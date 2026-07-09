@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acelynn Pro Audio Analyzer</title>
+    <title>Acelynn Pro Audio Suite</title>
     <style>
         :root {
             --bg-color: #0b0c10;
@@ -43,9 +43,8 @@
         .db-display { font-size: 4.5rem; font-weight: 800; line-height: 1; margin: 5px 0; color: var(--accent-green); }
         .db-label { font-size: 0.75rem; text-transform: uppercase; color: #a1a1aa; letter-spacing: 1.5px; }
 
-        /* The New Pro Metrics Grid */
         .metrics-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
         }
         .metric-tile {
             background-color: var(--card-color); border-radius: 8px; padding: 12px;
@@ -56,13 +55,29 @@
 
         canvas { width: 100%; height: 100px; background-color: #0b0b0c; border-radius: 6px; margin-top: 12px; }
 
-        .coach-card {
-            background-color: var(--card-color); border-radius: 12px; padding: 20px;
-            border-left: 6px solid var(--accent-green); box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        /* Historical Rolling List Container */
+        .section-title {
+            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #66fcf1; margin-bottom: 10px; padding-left: 4px;
         }
-        .coach-title { font-weight: 700; font-size: 1rem; text-transform: uppercase; margin-bottom: 6px; }
-        .coach-diagnosis { font-size: 0.95rem; margin-bottom: 10px; color: var(--text-bright); }
-        .coach-suggestion { font-size: 0.9rem; color: #a1a1aa; padding-top: 8px; border-top: 1px solid #45a29e; }
+        .log-container {
+            display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-bottom: 40px;
+        }
+        
+        /* Individual Log Item Styling */
+        .log-item {
+            background-color: var(--card-color); border-radius: 10px; padding: 16px;
+            border-left: 6px solid var(--accent-green); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease-out;
+        }
+        .log-time { font-size: 0.7rem; color: #a1a1aa; float: right; font-weight: bold; }
+        .log-title { font-weight: 700; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 6px; }
+        .log-diagnosis { font-size: 0.9rem; margin-bottom: 8px; color: var(--text-bright); line-height: 1.3; }
+        .log-suggestion { font-size: 0.85rem; color: #a1a1aa; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -101,10 +116,12 @@
         </div>
     </div>
 
-    <div class="coach-card" id="coachCard">
-        <div class="coach-title" id="coachStatus" style="color: var(--accent-green);">Engine Offline</div>
-        <div class="coach-diagnosis" id="coachDiag">Awaiting mic inputs.</div>
-        <div class="coach-suggestion" id="coachSugg">Launch the engine to process deep audio metrics and mastering advice.</div>
+    <div class="section-title">Analysis Timeline (Newest Top)</div>
+    <div class="log-container" id="coachLog">
+        <div class="log-item" style="border-left-color: #a1a1aa;">
+            <div class="log-title">Engine Ready</div>
+            <div class="log-diagnosis">System idling. Boot up core systems above to map your sound history.</div>
+        </div>
     </div>
 </div>
 
