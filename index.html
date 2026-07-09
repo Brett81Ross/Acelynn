@@ -1,839 +1,250 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MachZero - AI Resale Estimator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acelynn Pro</title>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --card-color: #0e0e14;
+            --panel-bg: #151522;
+            --table-header: #201a35;
+            --accent-purple: #8a2be2;
+            --accent-green: #00fa9a;
+            --accent-pink: #ff416c;
+            --accent-cyan: #00ffff;
+            --text-main: #b0b3b8;
+            --text-bright: #ffffff;
+        }
 
-  <meta property="og:title" content="MachZero - AI Resale Estimator">
-  <meta property="og:description" content="Add multiple snapshots to a single batch for immediate, expert resale values and optimized marketplace descriptions.">
-  <meta property="og:image" content="https://machzero-beta.vercel.app/acelynnpro.png">
-  <meta property="og:image:type" content="image/png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
+        body {
+            margin: 0;
+            padding: 16px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
 
-  <style>
-    :root {
-      --bg-dark: #070b19;
-      --card-bg: #111a36;
-      --accent-blue: #38bdf8;
-      --accent-green: #10b981;
-      --accent-indigo: #3b82f6;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      
-      /* MachZero Diagnostic Border Accents */
-      --border-blue: #233a66;
-      --border-indigo: #3c2475;
-      --reverb-orange: #ea580c;
-      --generic-border: #334155;
-    }
-    
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 16px;
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      box-sizing: border-box;
-    }
-    
-    .container {
-      width: 100%;
-      max-width: 420px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    
-    .header {
-      text-align: center;
-      margin-top: 24px;
-      margin-bottom: 28px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-    }
-    
-    .logo {
-      width: 140px;
-      height: 140px;
-      margin-bottom: 16px;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      object-fit: cover;
-      display: block;
-    }
-    
-    .title {
-      font-size: 2.2rem;
-      font-weight: 900;
-      margin: 0 0 8px 0;
-      letter-spacing: 2px;
-      color: var(--text-main);
-    }
-    
-    .title span {
-      color: var(--accent-blue);
-    }
-    
-    .description {
-      color: var(--text-muted);
-      max-width: 360px;
-      margin: 0 auto;
-      font-size: 0.9rem;
-      line-height: 1.6;
-    }
-    
-    .button-group {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      background: var(--card-bg);
-      padding: 16px;
-      border-radius: 16px;
-      box-sizing: border-box;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    }
-    
-    .btn {
-      border: none;
-      padding: 14px;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s, background-color 0.2s;
-    }
-    
-    .btn:active {
-      transform: scale(0.98);
-    }
-    
-    .btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    .btn-camera {
-      background-color: var(--accent-blue);
-      color: #020617;
-    }
-    
-    .btn-upload {
-      background-color: rgba(255, 255, 255, 0.08);
-      color: var(--text-main);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .btn-submit {
-      background-color: var(--accent-green);
-      color: #ffffff;
-      margin-top: 4px;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-    }
-    
-    .status-area {
-      width: 100%;
-      margin-top: 20px;
-    }
-    
-    .loading-card {
-      background-color: var(--card-bg);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      border-radius: 12px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-    }
-    
-    .loading-card p {
-      margin: 0;
-      font-weight: 600;
-      color: var(--accent-blue);
-      font-size: 1rem;
-      animation: pulseText 1.5s ease-in-out infinite;
-    }
-    
-    .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid rgba(56, 189, 248, 0.1);
-      border-top-color: var(--accent-blue);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        header { text-align: center; margin-bottom: 24px; }
+        h1 { margin: 0; font-size: 2rem; color: #45f3ff; font-weight: 700; letter-spacing: 0.5px; }
+        p.subtitle { color: #8a8a93; margin: 6px 0 0 0; font-size: 0.85rem; line-height: 1.4; }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    @keyframes pulseText {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
+        .btn-master {
+            width: 100%; background: #00fa9a; color: #050508; border: none;
+            padding: 16px; border-radius: 8px; font-weight: 800; font-size: 1.1rem;
+            margin-bottom: 16px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+        }
 
-    .error-card {
-      background-color: #27161a;
-      border: 1px solid #ef4444;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    
-    .error-card h4 {
-      margin: 0 0 4px 0;
-      color: #ef4444;
-      text-transform: uppercase;
-      font-size: 0.8rem;
-      letter-spacing: 0.5px;
-    }
-    
-    .error-card p {
-      margin: 0;
-      font-size: 0.85rem;
-      color: #fca5a5;
-      word-break: break-word;
-    }
-    
-    .preview-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 16px;
-      width: 100%;
-    }
-    
-    .preview-item {
-      position: relative;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      aspect-ratio: 1 / 1;
-      background-color: #020617;
-    }
-    
-    .preview-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-    
-    .remove-btn {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      background: rgba(15, 23, 42, 0.8);
-      color: #ef4444;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(4px);
-      padding: 0;
-    }
+        .btn-group {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+            opacity: 0.5; pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-group.unlocked { opacity: 1; pointer-events: auto; }
 
-    .master-report-wrapper {
-      display: none;
-      width: 100%;
-    }
+        .btn-action {
+            padding: 14px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; border: none; text-transform: none; color: white;
+        }
+        #sweepBtn { background: #5c3bc4; }
+        #finalReportBtn { background: #e03b5a; }
+        .btn-action:active { opacity: 0.8; }
 
-    .report-box-primary {
-      padding: 24px;
-      border-radius: 12px;
-      background: var(--card-bg);
-      border: 2px solid var(--accent-blue);
-      text-align: left;
-      margin-bottom: 16px;
-    }
+        .status-box {
+            border: 2px solid #8a8a93; border-radius: 12px; padding: 24px;
+            text-align: center; margin-bottom: 20px; background-color: transparent;
+            transition: all 0.3s ease;
+        }
+        .status-title { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; color: #8a8a93; letter-spacing: 0.5px; }
+        .status-diag { font-size: 1rem; color: #8a8a93; margin-bottom: 16px; font-weight: 500; }
+        .status-sugg { font-size: 0.9rem; color: #8a8a93; line-height: 1.4; }
 
-    .report-box-secondary {
-      padding: 24px;
-      border-radius: 12px;
-      background: #0f162b;
-      border: 2px solid var(--border-blue);
-      text-align: left;
-      margin-bottom: 16px;
-    }
+        .section-card {
+            background-color: #111116; border-radius: 12px; padding: 16px; margin-bottom: 20px;
+        }
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.9rem; font-weight: 600; color: var(--text-bright); margin-bottom: 12px;
+        }
+        
+        .log-container { display: flex; flex-direction: column; gap: 12px; }
+        
+        /* Boxed Card Layouts (Stamps inside Timeline) */
+        .log-item { 
+            background-color: var(--card-color); border-radius: 10px; padding: 16px;
+            border-left: 6px solid var(--accent-green); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease-out; font-size: 0.85rem;
+        }
+        .log-time { font-size: 0.7rem; color: #8a8a93; float: right; font-weight: bold; }
+        .log-meta { font-weight: 700; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 6px; }
+        .log-body { color: var(--text-bright); line-height: 1.4; margin-bottom: 8px; }
+        .log-fix { font-size: 0.85rem; color: #b0b3b8; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .sweep-sub-title { font-weight: bold; color: var(--accent-cyan); margin-top: 6px; display: block; }
 
-    .report-box-deep {
-      padding: 24px;
-      border-radius: 12px;
-      background: #121526;
-      border: 2px solid var(--border-indigo);
-      text-align: left;
-      margin-bottom: 16px;
-    }
+        .report-suite {
+            background: linear-gradient(145deg, #130f26, #090714);
+            border: 1px solid #ff416c; border-radius: 12px; padding: 20px;
+            margin-top: 20px; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .report-main-title {
+            font-size: 1.1rem; font-weight: 700; color: #ff416c; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,65,108,0.2); padding-bottom: 8px;
+        }
+        .eval-points-lbl { font-size: 0.9rem; color: var(--text-bright); margin-bottom: 14px; }
+        
+        .allocation-box {
+            background-color: var(--panel-bg); border-radius: 6px; padding: 12px;
+            font-size: 0.85rem; line-height: 1.5; color: var(--text-bright); margin-bottom: 12px;
+        }
+        .allocation-box strong { color: var(--accent-cyan); }
 
-    /* Consolidated Multi-Marketplace Hub Panel */
-    #marketplace-hub-container {
-      padding: 24px;
-      border-radius: 12px;
-      background: #0f172a;
-      border: 2px solid var(--accent-blue);
-      text-align: left;
-      margin-bottom: 16px;
-      display: none;
-    }
+        .report-block { margin-bottom: 22px; }
+        .block-title { font-size: 0.95rem; font-weight: 700; color: var(--text-bright); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .block-diag { font-size: 0.85rem; color: #00fa9a; line-height: 1.4; margin-bottom: 4px; }
+        .block-diag span { color: var(--text-bright); font-weight: normal; }
 
-    .report-header-title {
-      margin-top: 0;
-      font-size: 18px;
-      border-bottom: 2px solid var(--accent-blue);
-      padding-bottom: 10px;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-    }
+        .table-responsive { overflow-x: auto; margin-top: 10px; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+        th { background-color: var(--table-header); color: #00ffff; padding: 10px; font-weight: 600; }
+        td { background-color: var(--card-color); padding: 12px 10px; border-bottom: 1px solid #1a1a26; color: var(--text-bright); }
+        tr:last-child td { border-bottom: none; }
+        .txt-cyan { color: #00ffff; }
+        .txt-purple { color: #a485ff; }
 
-    .diagnostic-section {
-      margin-top: 20px;
-      padding-top: 15px;
-      border-top: 1px solid var(--border-blue);
-    }
-
-    .diagnostic-title {
-      font-size: 15px;
-      font-weight: bold;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    .diagnostic-text {
-      color: var(--text-muted);
-      font-size: 14px;
-      margin-bottom: 0;
-    }
-
-    .matrix-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-      font-size: 14px;
-      background: #090e1a;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid var(--border-blue);
-    }
-
-    .matrix-table th {
-      background: #162245;
-      color: var(--accent-blue);
-      padding: 10px 12px;
-      text-align: left;
-      font-weight: 700;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .matrix-table td {
-      padding: 12px;
-      border-bottom: 1px solid #111a36;
-      color: #e2e8f0;
-    }
-
-    .matrix-table tr:last-child td {
-      border-bottom: none;
-    }
-    
-    /* Cross-Listing Buttons Grid Layout */
-    .marketplace-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .btn-reverb {
-      background-color: var(--reverb-orange);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
-    }
-    
-    .btn-reverb:hover { background-color: #d94e06; }
-    .btn-mercari { background-color: #e60012; color: #ffffff; }
-    .btn-ebay { background-color: #0064d2; color: #ffffff; }
-    .btn-facebook { background-color: #1877f2; color: #ffffff; }
-    .btn-offerup { background-color: #00b6aa; color: #ffffff; }
-    .btn-poshmark { background-color: #8b1e3f; color: #ffffff; }
-
-    footer {
-      margin-top: auto;
-      padding-top: 48px;
-      padding-bottom: 12px;
-      text-align: center;
-      font-size: 0.75rem;
-      color: #475569;
-      width: 100%;
-    }
-    
-    footer p { margin: 0; }
-    footer p:first-child { margin-bottom: 4px; }
-    #fileInput { display: none; }
-  </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    <div class="header">
-      <img src="acelynnpro.png" alt="MachZero Logo" class="logo" id="brandLogo">
-      <h1 class="title">MACH<span>ZERO</span></h1>
-      <p class="description">
-        Add multiple pictures to your batch to get a precise appraisal. Capture different details, close-ups of signatures, or angles of your item before analyzing.
-      </p>
+<div class="container">
+    <header>
+        <h1>Acelynn Pro</h1>
+        <p class="subtitle">Laboratory Acoustic Calibration & Integrated Mastering Diagnosis Suite</p>
+    </header>
+
+    <button class="btn-master" id="powerBtn">Tap to Power On Engine</button>
+
+    <div class="btn-group" id="functionalControls">
+        <button class="btn-action" id="sweepBtn">Run Room Sweep Test</button>
+        <button class="btn-action" id="finalReportBtn">Generate Final Session Analysis</button>
     </div>
 
-    <div class="button-group">
-      <button class="btn btn-camera" id="cameraBtn">TAKE A PHOTO</button>
-      <button class="btn btn-upload" id="uploadBtn">CHOOSE IMAGES</button>
-      <button class="btn btn-submit" id="submitBtn" style="display: none;">ANALYZE PHOTO/IMAGE (0)</button>
-      <input type="file" id="fileInput" accept="image/*" multiple>
+    <div class="status-box" id="statusContainer">
+        <div class="status-title" id="statusHeader">Status: OFFLINE</div>
+        <div class="status-diag" id="statusText">Awaiting Hardware Initialization</div>
+        <div class="status-sugg" id="statusSuggestion">Suggestion: Tap the green button above to grant microphone access and engage monitoring frameworks.</div>
     </div>
 
-    <div class="status-area" id="statusArea">
-      <div id="loadingState" class="loading-card" style="display: none; margin-bottom: 20px;">
-        <div class="spinner"></div>
-        <p>Analyzing Images...</p>
-      </div>
-
-      <div id="errorState" class="error-card" style="display: none;">
-        <h4>Network Fault</h4>
-        <p id="errorText"></p>
-      </div>
-
-      <div id="previewGrid" class="preview-grid"></div>
-
-      <div id="masterReportWrapper" class="master-report-wrapper">
-        
-        <div class="report-box-primary">
-          <h3 class="report-header-title" style="color: var(--accent-blue); border-color: var(--accent-blue);">📊 Core Inventory Valuation Matrix</h3>
-          <table class="matrix-table">
-            <thead>
-              <tr>
-                <th>Evaluation Parameter</th>
-                <th>Target Properties</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Estimated Range</td>
-                <td id="table-val-range" style="color: var(--accent-green); font-weight: bold; font-size: 15px;">Pending</td>
-              </tr>
-              <tr>
-                <td>Asset Identity</td>
-                <td id="table-val-title">Pending</td>
-              </tr>
-            </tbody>
-          </table>
+    <div class="section-card">
+        <div class="section-header">
+            <span>📋 Real-Time Diagnostic Timeline Log</span>
         </div>
-
-        <div class="report-box-secondary">
-          <h3 class="report-header-title" style="color: var(--accent-indigo); border-color: var(--accent-indigo);">🔍 Structural Evaluation & Factors</h3>
-          <div class="diagnostic-section" style="border-top: none; margin-top: 0; padding-top: 0;">
-            <div class="diagnostic-title">📋 Strategic Appraisal Insights</div>
-            <div class="diagnostic-text" id="box-val-factors">Processing insights...</div>
-          </div>
-          <div class="diagnostic-section">
-            <div class="diagnostic-title">🌐 Recommended Marketplace Allocation</div>
-            <div class="diagnostic-text" id="box-val-channels">Processing channels...</div>
-          </div>
-        </div>
-
-        <div class="report-box-deep">
-          <h3 class="report-header-title" style="color: #a855f7; border-color: var(--border-indigo);">🏆 Optimized Marketplace Copy Engine</h3>
-          <div class="diagnostic-section" style="border-top: none; margin-top: 0; padding-top: 0;">
-            <div class="diagnostic-title">📝 Ready-to-Publish Structural Output</div>
-            <div class="diagnostic-text" id="box-val-copyblock" style="background: #090a12; padding: 16px; border-radius: 8px; border: 1px solid var(--border-indigo); white-space: pre-wrap; font-size: 13px;">Processing content copy...</div>
-          </div>
-        </div>
-
-        <div id="marketplace-hub-container">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 24px;">🚀</span>
-            <div>
-              <h3 style="color: var(--accent-blue); margin: 0; font-size: 15px; font-weight: bold;">Marketplace Cross-Listing Hub</h3>
-              <p style="margin: 2px 0 0 0; font-size: 13px; color: var(--text-muted);">Instantly push automated data arrays or stage listings onto multiple channels.</p>
+        <div class="log-container" id="coachLog">
+            <div class="log-item" style="border-left-color: #8a8a93;">
+                <div class="log-meta">System Dormant</div>
+                <div class="log-body">Multi-variable sound metrics and room sweep blueprints will compile here.</div>
             </div>
-          </div>
-          
-          <div class="marketplace-grid">
-            <button class="btn btn-reverb" id="postReverbBtn" style="display: none;">SEND DRAFT TO REVERB.COM</button>
-            <button class="btn btn-mercari" id="crossMercariBtn">LIST DRAFT ON MERCARI</button>
-            <button class="btn btn-ebay" id="crossEbayBtn">LIST DRAFT ON EBAY</button>
-            <button class="btn btn-facebook" id="crossFacebookBtn">LIST DRAFT ON FACEBOOK MARKETPLACE</button>
-            <button class="btn btn-offerup" id="crossOfferUpBtn">LIST DRAFT ON OFFERUP</button>
-            <button class="btn btn-poshmark" id="crossPoshmarkBtn">LIST DRAFT ON POSHMARK</button>
-          </div>
         </div>
-
-      </div>
     </div>
 
-    <footer>
-      <p>&copy; 2026 MachZero&trade;</p>
-      <p>Powered by CactusByte Studios &bull; All Rights Reserved</p>
-    </footer>
-  </div>
-
-  <script>
-    const fileInput = document.getElementById('fileInput');
-    const cameraBtn = document.getElementById('cameraBtn');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    const loadingState = document.getElementById('loadingState');
-    const errorState = document.getElementById('errorState');
-    const errorText = document.getElementById('errorText');
-    const previewGrid = document.getElementById('previewGrid');
-    const brandLogo = document.getElementById('brandLogo');
-
-    const masterReportWrapper = document.getElementById('masterReportWrapper');
-    const tableValRange = document.getElementById('table-val-range');
-    const tableValTitle = document.getElementById('table-val-title');
-    const boxValFactors = document.getElementById('box-val-factors');
-    const boxValChannels = document.getElementById('box-val-channels');
-    const boxValCopyblock = document.getElementById('box-val-copyblock');
-    
-    const marketplaceHubContainer = document.getElementById('marketplace-hub-container');
-    const postReverbBtn = document.getElementById('postReverbBtn');
-
-    const crossMercariBtn = document.getElementById('crossMercariBtn');
-    const crossEbayBtn = document.getElementById('crossEbayBtn');
-    const crossFacebookBtn = document.getElementById('crossFacebookBtn');
-    const crossOfferUpBtn = document.getElementById('crossOfferUpBtn');
-    const crossPoshmarkBtn = document.getElementById('crossPoshmarkBtn');
-
-    brandLogo.onerror = () => { console.error("Logo asset acelynnpro.png could not be loaded."); };
-
-    // BIND TO GLOBAL WINDOW SCOPE: Keeps image properties alive across asynchronous events
-    window.imageQueue = [];
-    window.structuredStagedItem = null;
-
-    cameraBtn.addEventListener('click', () => {
-      errorState.style.display = 'none';
-      fileInput.setAttribute('capture', 'environment');
-      fileInput.click();
-    });
-
-    uploadBtn.addEventListener('click', () => {
-      errorState.style.display = 'none';
-      fileInput.removeAttribute('capture');
-      fileInput.click();
-    });
-
-    fileInput.addEventListener('change', async (e) => {
-      const files = Array.from(e.target.files);
-      if (files.length === 0) return;
-
-      for (const file of files) {
-        try {
-          const blobUrl = URL.createObjectURL(file);
-          
-          const queueItem = {
-            id: Date.now() + Math.random().toString(36).substr(2, 5),
-            blobUrl: blobUrl,
-            base64: null 
-          };
-
-          const gridItem = document.createElement('div');
-          gridItem.className = 'preview-item';
-          gridItem.dataset.id = queueItem.id;
-          
-          const imgNode = document.createElement('img');
-          imgNode.src = blobUrl;
-          
-          const removeBtn = document.createElement('button');
-          removeBtn.className = 'remove-btn';
-          removeBtn.innerText = '×';
-          removeBtn.onclick = () => removeImageFromBatch(queueItem.id);
-
-          gridItem.appendChild(imgNode);
-          gridItem.appendChild(removeBtn);
-          previewGrid.appendChild(gridItem);
-
-          window.imageQueue.push(queueItem);
-
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            try {
-              compressAndPrepImage(reader.result, (cleanBase64) => {
-                queueItem.base64 = cleanBase64;
-              });
-            } catch (innerErr) {
-              console.error("Compression processing error:", innerErr);
-            }
-          };
-          reader.readAsDataURL(file);
-        } catch (fileErr) {
-          console.error("File loading registration fault:", fileErr);
-        }
-      }
-
-      updateSubmitButtonState();
-      fileInput.value = ''; 
-    });
-
-    function compressAndPrepImage(base64Str, callback) {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        const max_size = 800; 
-
-        if (width > height) {
-          if (width > max_size) {
-            height *= max_size / width;
-            width = max_size;
-          }
-        } else {
-          if (height > max_size) {
-            width *= max_size / height;
-            height = max_size;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.78);
-        const splitData = optimizedBase64.split(',');
+    <div class="report-suite" id="finalReportSuite">
+        <div class="report-main-title">🏆 Master Session Optimization Strategy</div>
+        <div class="eval-points-lbl">Total Sequence Points Evaluated: <span id="reportPointsQty" style="font-weight:700;">0</span></div>
         
-        callback(splitData[1]);
-      };
-    }
+        <div class="allocation-box">
+            📊 <strong>Acoustic Macro Profiles:</strong> Balanced Duty Cycle: <span id="allocBalanced">88%</span> | Low Boundary Coupling: <span id="allocCoupling">0%</span> | Mid-Range Comb Dispersion: <span id="allocDispersion">12%</span>
+        </div>
 
-    function removeImageFromBatch(id) {
-      const index = window.imageQueue.findIndex(item => item.id === id);
-      if (index !== -1) {
-        URL.revokeObjectURL(window.imageQueue[index].blobUrl);
-        window.imageQueue.splice(index, 1);
-      }
-      const element = previewGrid.querySelector(`[data-id="${id}"]`);
-      if (element) element.remove();
-      updateSubmitButtonState();
-    }
+        <div class="report-block">
+            <div class="block-title">🔊 1. Low-End Geometry & Sub-Bass Phase Decay</div>
+            <div class="block-diag">Diagnosis: <span id="reportLowEndDesc">Analyzing metrics...</span></div>
+        </div>
 
-    function updateSubmitButtonState() {
-      if (window.imageQueue.length > 0) {
-        submitBtn.style.display = 'block';
-        submitBtn.innerText = `ANALYZE PHOTO/IMAGE (${window.imageQueue.length})`;
-      } else {
-        submitBtn.style.display = 'none';
-      }
-    }
+        <div class="report-block">
+            <div class="block-title">⚡ 2. Desktop Specular Reflections & Comb Filtering Matrix (250Hz - 2kHz)</div>
+            <div class="block-diag">Diagnosis: <span id="reportMidEndDesc">Analyzing metrics...</span></div>
+        </div>
 
-    submitBtn.addEventListener('click', async () => {
-      const uncompleted = window.imageQueue.some(item => !item.base64);
-      if (uncompleted) {
-        showError("Images are still processing. Please press analyze again.");
-        return;
-      }
+        <div class="report-block">
+            <div class="block-title">🎛️ 3. Surgical Parametric Equalizer Correction Blueprint</div>
+            <div class="block-diag">Diagnosis: Parametric Attenuation Target Calibration. <span>Apply these micro-calibrated filtering adjustments straight to your master bus or room processing environment:</span></div>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Band Position</th>
+                            <th>Target Frequency</th>
+                            <th>Gain Calculation</th>
+                            <th>Q-Factor (Bandwidth)</th>
+                            <th>Filter Profile Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Band 1 (Sub-Bass Phase Lock)</td>
+                            <td class="txt-cyan">20 Hz - 60 Hz</td>
+                            <td id="tableG1">0.0 dB (Mono Center)</td>
+                            <td class="txt-purple">Mono Extraction Matrix</td>
+                            <td>Brickwall Utility Filter</td>
+                        </tr>
+                        <tr>
+                            <td>Band 2 (Punch & Boom Fundamental)</td>
+                            <td class="txt-cyan">80 Hz - 250 Hz</td>
+                            <td id="tableG2">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 6.5 (Narrow Cut)</td>
+                            <td>Parametric Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 3 (Mud & Desk Reflections)</td>
+                            <td class="txt-cyan">250 Hz - 500 Hz</td>
+                            <td id="tableG3_new">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 3.5 (Surgical Notch)</td>
+                            <td>Parametric Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 4 (Console Comb Filtering)</td>
+                            <td class="txt-cyan">1,200 Hz</td>
+                            <td id="tableG4_comb">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 5.0 (Surgical Notch)</td>
+                            <td>Dynamic Notch</td>
+                        </tr>
+                        <tr>
+                            <td>Band 5 (Clarity Presence Anchor)</td>
+                            <td class="txt-cyan">1 kHz - 4 kHz</td>
+                            <td id="tableG4">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 0.8 (Wide Smooth)</td>
+                            <td>Parametric / Dynamic Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 6 (Sibilance & Harshness)</td>
+                            <td class="txt-cyan">6 kHz - 10 kHz</td>
+                            <td id="tableG5_sib">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 4.0 (Precision Band)</td>
+                            <td>Dynamic De-Esser Split</td>
+                        </tr>
+                        <tr>
+                            <td>Band 7 (Air Presence Tuning)</td>
+                            <td class="txt-cyan">10 kHz - 20 kHz</td>
+                            <td id="tableG5_new">+0.5 dB (Polished)</td>
+                            <td class="txt-purple">Q = 0.7 (Wide Smoothing)</td>
+                            <td>High Shelf / 20kHz LPF</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-      setLoading(true);
-      errorState.style.display = 'none';
-      masterReportWrapper.style.display = 'none';
-      marketplaceHubContainer.style.display = 'none';
-
-      // Gather the arrays of pure base64 data to hand off to our backend route
-      const base64Array = window.imageQueue.map(item => item.base64);
-      await sendDirectToBackend(base64Array);
-    });
-
-    async function sendDirectToBackend(base64ImagesArray) {
-      try {
-        // 🛠️ CORRECT HANDOFF IMPLEMENTATION: Sends payload to api/analyze securely via POST
-        const responseFetch = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ images: base64ImagesArray })
-        });
-        
-        if (!responseFetch.ok) {
-          const rawErrText = await responseFetch.text().catch(() => "");
-          throw new Error(`Server status fault ${responseFetch.status}. ${rawErrText}`);
-        }
-        
-        const serverData = await responseFetch.json();
-        const text = serverData.analysis;
-
-        // Extract and map structural markdown tags back to their respective container layout modules
-        const sections = {
-          range: text.split('[PART_1]')[1]?.split('[PART_2]')[0]?.trim() || "Evaluation Staging Error",
-          title: text.split('[PART_2]')[1]?.split('[PART_3]')[0]?.trim() || "Evaluation Staging Error",
-          factors: text.split('[PART_3]')[1]?.split('[PART_4]')[0]?.trim() || "",
-          channels: text.split('[PART_4]')[1]?.split('[PART_5]')[0]?.trim() || "",
-          copyblock: text.split('[PART_5]')[1]?.trim() || ""
-        };
-
-        window.structuredStagedItem = {
-          title: sections.title,
-          price: sections.range,
-          description: sections.copyblock
-        };
-
-        tableValRange.innerText = sections.range;
-        tableValTitle.innerText = sections.title;
-        boxValFactors.innerHTML = marked.parse(sections.factors);
-        boxValChannels.innerHTML = marked.parse(sections.channels);
-        boxValCopyblock.innerHTML = marked.parse(sections.copyblock);
-
-        masterReportWrapper.style.display = 'block';
-        marketplaceHubContainer.style.display = 'block';
-
-        const verifiedKeywords = ['guitar', 'bass', 'amplifier', 'pedal', 'synth', 'keyboard', 'pickup', 'audio', 'gear', 'drum', 'ibanez', 'fender', 'gibson'];
-        const cleanTitle = sections.title.toLowerCase();
-        const cleanRawText = text.toLowerCase();
-
-        const matchedInstrument = verifiedKeywords.some(keyword => 
-          cleanTitle.includes(keyword) || cleanRawText.includes(keyword)
-        );
-
-        if (matchedInstrument) {
-          postReverbBtn.style.display = 'block';
-        } else {
-          postReverbBtn.style.display = 'none';
-        }
-
-        masterReportWrapper.scrollIntoView({ behavior: 'smooth' });
-      } catch (err) {
-        console.error(err);
-        showError(`Analysis Error: ${err.message}`);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    // ANDROID WEBVIEW SECURITY FAIL-SAFE WRAPPER
-    async function executeClipboardHandoff(platformName, redirectUrl) {
-      if (!window.structuredStagedItem) return;
-      
-      const cleanDescText = boxValCopyblock.innerText || window.structuredStagedItem.description;
-      const clipboardContent = `TITLE: ${window.structuredStagedItem.title}\nPRICE SEGMENT: ${window.structuredStagedItem.price}\n\n${cleanDescText}`;
-      
-      try {
-        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-          await navigator.clipboard.writeText(clipboardContent);
-          alert(`Copied to Clipboard!\n\nMachZero has copied your item title, pricing estimation, and detailed description. We are now opening ${platformName} so you can paste it right in.`);
-        }
-      } catch (err) {
-        console.warn("Mobile browser context copy routine blocked:", err);
-      } finally {
-        // Unconditional redirect execution to completely protect screen responsiveness
-        window.open(redirectUrl, "_blank");
-      }
-    }
-
-    crossMercariBtn.addEventListener('click', () => {
-      executeClipboardHandoff("Mercari", "https://www.mercari.com/sell/");
-    });
-
-    crossEbayBtn.addEventListener('click', () => {
-      executeClipboardHandoff("eBay", "https://www.ebay.com/sl/sell");
-    });
-
-    crossFacebookBtn.addEventListener('click', () => {
-      executeClipboardHandoff("Facebook Marketplace", "https://www.facebook.com/marketplace/create");
-    });
-
-    crossOfferUpBtn.addEventListener('click', () => {
-      executeClipboardHandoff("OfferUp", "https://offerup.com/post");
-    });
-
-    crossPoshmarkBtn.addEventListener('click', () => {
-      executeClipboardHandoff("Poshmark", "https://poshmark.com/listing");
-    });
-
-    postReverbBtn.addEventListener('click', async () => {
-      if (!window.structuredStagedItem) return;
-
-      postReverbBtn.disabled = true;
-      postReverbBtn.innerText = "PUBLISHING UNPUBLISHED DRAFT...";
-
-      const rawImagePayloads = window.imageQueue.map(item => item.base64).filter(Boolean);
-
-      try {
-        const response = await fetch('/api/reverb-draft', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: window.structuredStagedItem.title,
-            description: window.structuredStagedItem.description,
-            price: window.structuredStagedItem.price, 
-            images: rawImagePayloads 
-          })
-        });
-
-        if (response.ok) {
-          const userChoice = confirm("Okay, I made the draft in your Reverb. Would you like to go there now or would you like to stay on this app?\n\nClick 'OK' to view your Reverb drafts page, or 'Cancel' to stay right here.");
-          if (userChoice) {
-            window.open("https://reverb.com/my/listings?state=draft", "_blank");
-          }
-        } else {
-          const rawErrorPayload = await response.json().catch(() => ({}));
-          const specificDetails = rawErrorPayload.details ? JSON.stringify(rawErrorPayload.details) : rawErrorPayload.error || "Unknown server response code";
-          alert("Reverb Rejection Feedback:\n" + specificDetails);
-        }
-      } catch (err) {
-        console.error("Endpoint execution block error:", err);
-        alert("Connectivity error during API execution: " + err.message);
-      } finally {
-        postReverbBtn.disabled = false;
-        postReverbBtn.innerText = "SEND DRAFT TO REVERB.COM";
-      }
-    });
-
-    function setLoading(isLoading) {
-      if (isLoading) {
-        loadingState.style.display = 'flex';
-        cameraBtn.disabled = true;
-        uploadBtn.disabled = true;
-        submitBtn.disabled = true;
-      } else {
-        loadingState.style.display = 'none';
-        cameraBtn.disabled = false;
-        uploadBtn.disabled = false;
-        submitBtn.disabled = false;
-      }
-    }
-
-    function showError(message) {
-      errorText.textContent = message;
-      errorState.style.display = 'block';
-    }
-  </script>
-  <script defer src="https://va.vercel.clerk.com/script.js"></script>
-
+<script src="app.js"></script>
 </body>
 </html>
