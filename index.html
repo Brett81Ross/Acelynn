@@ -35,11 +35,15 @@
         }
         .btn-prime:hover { background-color: #66fcf1; color: #0b0c10; }
 
-        .btn-sweep {
-            width: 100%; background-color: #45f3ff; color: #0b0c10; border: none;
-            padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; margin-bottom: 16px;
-            cursor: pointer; display: none; text-transform: uppercase;
+        .btn-group {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; display: none;
         }
+        .btn-action {
+            padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; border: none; text-transform: uppercase;
+        }
+        #sweepBtn { background-color: #45f3ff; color: #0b0c10; }
+        #finalReportBtn { background-color: #ff4a5a; color: #ffffff; }
 
         .meter-card {
             background-color: var(--card-color); border-radius: 12px; padding: 20px;
@@ -65,7 +69,7 @@
             font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #66fcf1; margin-bottom: 10px; padding-left: 4px;
         }
         .log-container {
-            display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-bottom: 40px;
+            display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-bottom: 40px;
         }
         
         .log-item {
@@ -77,6 +81,12 @@
         .log-title { font-weight: 700; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 6px; }
         .log-diagnosis { font-size: 0.9rem; margin-bottom: 8px; color: var(--text-bright); line-height: 1.3; }
         .log-suggestion { font-size: 0.85rem; color: #a1a1aa; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .eq-fix-badge {
+            background: rgba(251, 212, 109, 0.1); border: 1px solid var(--accent-yellow);
+            color: var(--accent-yellow); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;
+            display: inline-block; margin-top: 6px; font-family: monospace;
+        }
 
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-15px); }
@@ -93,7 +103,11 @@
     </header>
 
     <button class="btn-prime" id="startBtn">Initialize Calibration Suite</button>
-    <button class="btn-sweep" id="sweepBtn">Run Room Response Sweep (20Hz-20kHz)</button>
+    
+    <div class="btn-group" id="actionGroup">
+        <button class="btn-action" id="sweepBtn">Room Sweep</button>
+        <button class="btn-action" id="finalReportBtn">Final Session Analysis</button>
+    </div>
 
     <div class="meter-card">
         <div class="db-label">Linear Reference Tracker</div>
