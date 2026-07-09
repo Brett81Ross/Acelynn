@@ -9,12 +9,13 @@
         #coach-box { margin-top: 20px; padding: 20px; border-radius: 10px; background: #1e1e1e; border: 2px solid #333; transition: all 0.5s ease; }
         #post-analysis-box { margin-top: 20px; padding: 20px; border-radius: 10px; background: #1a233a; border: 2px solid #4a5568; display: none; text-align: left; }
         
-        /* New History Dropdown Styles */
+        /* History Dropdown Styles */
         #history-container { margin-top: 20px; background: #1a1a1a; border: 1px solid #444; border-radius: 10px; overflow: hidden; text-align: left; }
         #history-header { background: #2d2d2d; padding: 12px 20px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center; user-select: none; }
-        #history-content { max-height: 200px; overflow-y: auto; display: none; padding: 10px 20px; border-top: 1px solid #333; }
-        .history-item { padding: 6px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; }
-        .history-time { color: #888; margin-right: 10px; font-family: monospace; }
+        #history-content { max-height: 250px; overflow-y: auto; display: none; padding: 10px 20px; border-top: 1px solid #333; }
+        .history-item { padding: 8px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; line-height: 1.4; }
+        .history-time { color: #888; margin-right: 10px; font-family: monospace; font-weight: bold; }
+        .history-fix { color: #aaa; display: block; margin-top: 3px; font-style: italic; padding-left: 78px; }
         
         .WARNING { border-color: #ff9800 !important; color: #ff9800; }
         .CRITICAL { border-color: #f44336 !important; color: #f44336; }
@@ -37,12 +38,14 @@
         <button id="sweep-btn">Run Room Sweep Test</button>
     </div>
 
+    <!-- Live Diagnosis Module -->
     <div id="coach-box" class="BALANCED">
         <h2 id="status">Status: Ready</h2>
         <p id="diagnosis">Click start to analyze your room's live sound balance.</p>
         <p><strong id="suggestion"></strong></p>
     </div>
 
+    <!-- Rolldown History Module with Fix Additions -->
     <div id="history-container">
         <div id="history-header">
             <span>📋 Diagnosis History Log</span>
@@ -53,6 +56,7 @@
         </div>
     </div>
 
+    <!-- Video-Inspired Post Analysis Module -->
     <div id="post-analysis-box">
         <h3 style="color: #00adb5; margin-top: 0;">📊 Room Calibration & Post-Analysis Report</h3>
         <p><strong>Calculated Room Profile Variance:</strong> <span id="variance-val">Analyzing...</span></p>
@@ -100,18 +104,20 @@
             }
         });
 
-        // Helper function to append new metrics to the rolldown list
-        function logToHistory(diagnosisText) {
+        // Updated function to handle multi-line history logging with fixes
+        function logToHistory(diagnosisText, suggestionText) {
             if (emptyHistory) emptyHistory.remove();
             
             const now = new Date();
-            const timeStr = now.toTimeString().split(' ')[0]; // Returns HH:MM:SS
+            const timeStr = now.toTimeString().split(' ')[0]; 
             
             const logItem = document.createElement('div');
             logItem.className = 'history-item';
-            logItem.innerHTML = `<span class="history-time">[${timeStr}]</span> ${diagnosisText}`;
+            logItem.innerHTML = `
+                <div><span class="history-time">[${timeStr}]</span><strong>${diagnosisText}</strong></div>
+                <div class="history-fix">↳ Fix: ${suggestionText}</div>
+            `;
             
-            // Insert newest logs at the top of the history box content
             historyContent.insertBefore(logItem, historyContent.firstChild);
         }
 
@@ -154,20 +160,27 @@
                 const currentTime = Date.now();
                 if (currentTime - lastUiUpdateTime >= UI_UPDATE_INTERVAL) {
                     let currentStatusMessage = "";
+                    let currentSuggestionMessage = "";
                     
                     if (lowEndEnergy > 2000) { 
                         currentStatusMessage = "Muddy Low-End Buildup Detected";
-                        updateUI("WARNING", currentStatusMessage, "Your bass frequencies are overwhelming the space. Try backing away from walls or adding a high-pass filter.");
+                        currentSuggestionMessage = "Your bass frequencies are overwhelming the space. Try backing away from walls or adding a high-pass filter.";
                     } else if (harshZoneEnergy > 1800) {
                         currentStatusMessage = "Harsh Presence Zone Peak Detected";
-                        updateUI("CRITICAL", currentStatusMessage, "Vocals or upper mids are piercing. Apply a slight EQ dip around 3 kHz.");
+                        currentSuggestionMessage = "Vocals or upper mids are piercing. Apply a slight EQ dip around 3 kHz.";
                     } else {
                         currentStatusMessage = "Acoustically Balanced Performance";
-                        updateUI("BALANCED", currentStatusMessage, "Frequency response looks smooth. Keep tracking!");
+                        currentSuggestionMessage = "Frequency response looks smooth. Keep tracking!";
                     }
                     
-                    // Add to our rolling history profile
-                    logToHistory(currentStatusMessage);
+                    updateUI(
+                        lowEndEnergy > 2000 ? "WARNING" : (harshZoneEnergy > 1800 ? "CRITICAL" : "BALANCED"),
+                        currentStatusMessage,
+                        currentSuggestionMessage
+                    );
+                    
+                    // Added suggestion parameter directly to history generation loop
+                    logToHistory(currentStatusMessage, currentSuggestionMessage);
                     lastUiUpdateTime = currentTime; 
                 }
 
@@ -203,7 +216,7 @@
                 sweepBtn.innerText = "Run Room Sweep Test";
                 statusText.innerText = "Status: Post-Analysis Diagnostics Complete";
                 generatePostAnalysisReport();
-                logToHistory("Ran Room Sweep Test Profile");
+                logToHistory("Ran Room Sweep Test Profile", "Check global layout configurations in the post-analysis container below.");
             }, 3600);
         });
 
