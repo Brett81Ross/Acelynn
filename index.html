@@ -3,15 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acelynn Pro Audio Suite</title>
+    <title>Acelynn Pro</title>
     <style>
         :root {
-            --bg-color: #0b0c10;
-            --card-color: #1f2833;
-            --accent-green: #45f3ff;
-            --accent-yellow: #fbd46d;
-            --accent-red: #ff4a5a;
-            --text-main: #c5c6c7;
+            --bg-color: #050508;
+            --card-color: #0e0e14;
+            --panel-bg: #151522;
+            --table-header: #201a35;
+            --accent-purple: #8a2be2;
+            --accent-green: #00fa9a;
+            --accent-pink: #ff416c;
+            --accent-cyan: #00ffff;
+            --text-main: #b0b3b8;
             --text-bright: #ffffff;
         }
 
@@ -24,78 +27,87 @@
         }
 
         .container { max-width: 600px; margin: 0 auto; }
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { margin: 0; font-size: 1.8rem; color: var(--text-bright); letter-spacing: 1px; }
-        p.subtitle { color: #66fcf1; margin: 4px 0 0 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        header { text-align: center; margin-bottom: 24px; }
+        h1 { margin: 0; font-size: 2rem; color: #45f3ff; font-weight: 700; letter-spacing: 0.5px; }
+        p.subtitle { color: #8a8a93; margin: 6px 0 0 0; font-size: 0.85rem; line-height: 1.4; }
 
-        .btn-prime {
-            width: 100%; background-color: #1f2833; color: #66fcf1; border: 2px solid #66fcf1;
-            padding: 14px; border-radius: 8px; font-weight: 600; font-size: 1rem; margin-bottom: 12px;
-            cursor: pointer; transition: all 0.2s ease;
-        }
-        .btn-prime:hover { background-color: #66fcf1; color: #0b0c10; }
-
-        /* The Grid that displays your dual-button tracking engine once initialized */
         .btn-group {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; display: none;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
         }
         .btn-action {
-            padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
-            cursor: pointer; border: none; text-transform: uppercase; transition: background 0.2s;
+            padding: 14px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; border: none; text-transform: none; transition: opacity 0.2s;
+            color: white;
         }
-        #sweepBtn { background-color: #45f3ff; color: #0b0c10; }
-        #finalReportBtn { background-color: #ff4a5a; color: #ffffff; }
-        #sweepBtn:active { opacity: 0.8; }
-        #finalReportBtn:active { opacity: 0.8; }
+        #sweepBtn { background: #5c3bc4; }
+        #finalReportBtn { background: #e03b5a; }
+        .btn-action:active { opacity: 0.8; }
 
-        .meter-card {
-            background-color: var(--card-color); border-radius: 12px; padding: 20px;
-            text-align: center; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        /* Real-Time Status Block */
+        .status-box {
+            border: 2px solid #20c997; border-radius: 12px; padding: 24px;
+            text-align: center; margin-bottom: 20px; background-color: transparent;
         }
+        .status-title { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; color: #20c997; letter-spacing: 0.5px; }
+        .status-diag { font-size: 1rem; color: #20c997; margin-bottom: 16px; font-weight: 500; }
+        .status-sugg { font-size: 0.9rem; color: #20c997; line-height: 1.4; }
 
-        .db-display { font-size: 4.5rem; font-weight: 800; line-height: 1; margin: 5px 0; color: var(--accent-green); }
-        .db-label { font-size: 0.75rem; text-transform: uppercase; color: #a1a1aa; letter-spacing: 1.5px; }
-
-        .metrics-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
+        /* Timeline History Section */
+        .section-card {
+            background-color: #111116; border-radius: 12px; padding: 16px; margin-bottom: 20px;
         }
-        .metric-tile {
-            background-color: var(--card-color); border-radius: 8px; padding: 12px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.9rem; font-weight: 600; color: var(--text-bright); margin-bottom: 12px;
         }
-        .metric-val { font-size: 1.4rem; font-weight: 700; color: var(--text-bright); margin-top: 4px; }
-        .metric-lbl { font-size: 0.7rem; color: #a1a1aa; text-transform: uppercase; }
-
-        canvas { width: 100%; height: 100px; background-color: #0b0b0c; border-radius: 6px; margin-top: 12px; }
-
-        .section-title {
-            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #66fcf1; margin-bottom: 10px; padding-left: 4px;
-        }
-        .log-container {
-            display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-bottom: 40px;
-        }
+        .toggle-txt { font-size: 0.8rem; color: #8a8a93; text-transform: uppercase; }
         
-        .log-item {
-            background-color: var(--card-color); border-radius: 10px; padding: 16px;
-            border-left: 6px solid var(--accent-green); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            animation: slideDown 0.3s ease-out;
-        }
-        .log-time { font-size: 0.7rem; color: #a1a1aa; float: right; font-weight: bold; }
-        .log-title { font-weight: 700; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 6px; }
-        .log-diagnosis { font-size: 0.9rem; margin-bottom: 8px; color: var(--text-bright); line-height: 1.3; }
-        .log-suggestion { font-size: 0.85rem; color: #a1a1aa; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); }
-        
-        /* EQ Fix Code Block Badges */
-        .eq-fix-badge {
-            background: rgba(251, 212, 109, 0.1); border: 1px solid var(--accent-yellow);
-            color: var(--accent-yellow); padding: 6px 10px; border-radius: 4px; font-size: 0.75rem;
-            display: inline-block; margin-top: 8px; font-family: monospace; letter-spacing: 0.3px;
-        }
+        .log-container { display: flex; flex-direction: column; gap: 10px; }
+        .log-item { padding: 12px 0; border-bottom: 1px solid #1c1c24; font-size: 0.85rem; }
+        .log-item:last-child { border-bottom: none; }
+        .log-meta { color: #5c3bc4; font-weight: 600; margin-bottom: 4px; }
+        .log-body { color: var(--text-bright); margin-left: 10px; margin-bottom: 2px; }
+        .log-fix { color: #8a8a93; margin-left: 10px; font-style: italic; }
 
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-15px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* --- FINAL REPORT SUITE PANELS --- */
+        .report-suite {
+            background: linear-gradient(145deg, #130f26, #090714);
+            border: 1px solid #ff416c; border-radius: 12px; padding: 20px;
+            margin-top: 20px; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
         }
+        .report-main-title {
+            font-size: 1.1rem; font-weight: 700; color: #ff416c; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,65,108,0.2); padding-bottom: 8px;
+        }
+        .eval-points-lbl { font-size: 0.9rem; color: var(--text-bright); margin-bottom: 14px; }
+        
+        .allocation-box {
+            background-color: var(--panel-bg); border-radius: 6px; padding: 12px;
+            font-size: 0.85rem; line-height: 1.5; color: var(--text-bright); margin-bottom: 20px;
+        }
+        .allocation-box strong { color: var(--accent-cyan); }
+
+        .report-block { margin-bottom: 22px; }
+        .block-title { font-size: 0.95rem; font-weight: 700; color: var(--text-bright); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .block-diag { font-size: 0.85rem; color: #00fa9a; line-height: 1.4; margin-bottom: 4px; }
+        .block-diag span { color: var(--text-bright); font-weight: normal; }
+
+        /* Blueprint Table Styles */
+        .table-responsive { overflow-x: auto; margin-top: 10px; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+        th { background-color: var(--table-header); color: #00ffff; padding: 10px; font-weight: 600; }
+        td { background-color: var(--card-color); padding: 12px 10px; border-bottom: 1px solid #1a1a26; color: var(--text-bright); }
+        tr:last-child td { border-bottom: none; }
+        .txt-cyan { color: #00ffff; }
+        .txt-purple { color: #a485ff; }
+        
+        .pro-tip { font-size: 0.75rem; font-style: italic; color: #8a8a93; margin-top: 10px; line-height: 1.4; }
+        .pro-tip strong { color: var(--text-bright); }
+
+        .hardware-steps { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .hardware-steps ul { margin: 8px 0 0 0; padding-left: 16px; font-size: 0.8rem; color: #a1a1aa; display: flex; flex-direction: column; gap: 8px; }
+        .hardware-steps strong { color: var(--text-bright); }
     </style>
 </head>
 <body>
@@ -103,47 +115,107 @@
 <div class="container">
     <header>
         <h1>Acelynn Pro</h1>
-        <p class="subtitle">Acoustic Reference Measurement Suite</p>
+        <p class="subtitle">Professional Acoustic Calibration & Real-Time Environment Diagnosis Engine</p>
     </header>
 
-    <button class="btn-prime" id="startBtn">Initialize Calibration Suite</button>
-    
-    <div class="btn-group" id="actionGroup">
-        <button class="btn-action" id="sweepBtn">Run Room Sweep</button>
+    <div class="btn-group">
+        <button class="btn-action" id="sweepBtn">Run Room Sweep Test</button>
         <button class="btn-action" id="finalReportBtn">Generate Final Session Analysis</button>
     </div>
 
-    <div class="meter-card">
-        <div class="db-label">Linear Reference Tracker</div>
-        <div class="db-display" id="dbValue">00.0</div>
-        <div class="db-label">ECM Emulated dB SPL</div>
-        <canvas id="spectrumCanvas"></canvas>
+    <div class="status-box" id="statusContainer">
+        <div class="status-title" id="statusHeader">Status: BALANCED</div>
+        <div class="status-diag" id="statusText">Acoustically Balanced Performance</div>
+        <div class="status-sugg" id="statusSuggestion">Suggestion: Frequency response metrics currently fall within studio parameter targets. Continue tracking.</div>
     </div>
 
-    <div class="metrics-grid">
-        <div class="metric-tile">
-            <div class="metric-lbl">LUFS Equivalent</div>
-            <div class="metric-val" id="lufsVal">-Inf</div>
+    <div class="section-card">
+        <div class="section-header">
+            <span>📋 Diagnosis History Log</span>
+            <span class="toggle-txt">▲ Tap to Close</span>
         </div>
-        <div class="metric-tile">
-            <div class="metric-lbl">Dynamic Range (Crest)</div>
-            <div class="metric-val" id="crestVal">0.0 dB</div>
-        </div>
-        <div class="metric-tile">
-            <div class="metric-lbl">Clarity vs Mud Ratio</div>
-            <div class="metric-val" id="mudVal">1.00</div>
-        </div>
-        <div class="metric-tile">
-            <div class="metric-lbl">Acoustic Profiler</div>
-            <div class="metric-val" id="harshVal">Ready</div>
+        <div class="log-container" id="coachLog">
+            <div class="log-item">
+                <div class="log-meta">[00:00:00] Engine Idle</div>
+                <div class="log-body">↳ Live background calculations will stream structural flags here.</div>
+            </div>
         </div>
     </div>
 
-    <div class="section-title">Analysis Timeline (Newest Top)</div>
-    <div class="log-container" id="coachLog">
-        <div class="log-item" style="border-left-color: #a1a1aa;">
-            <div class="log-title">Suite Hibernating</div>
-            <div class="log-diagnosis">Initialize core systems to load flat capsule tracking profiles.</div>
+    <div class="report-suite" id="finalReportSuite">
+        <div class="report-main-title">🏆 Master Session Optimization Strategy</div>
+        <div class="eval-points-lbl">Total Sequence Points Evaluated: <span id="reportPointsQty" style="font-weight:700;">0</span></div>
+        
+        <div class="allocation-box">
+            📊 <strong>Acoustic Spectrum Allocation:</strong> Balanced Duty Cycle: <span id="allocBalanced">88%</span> | Low Boundary Coupling: <span id="allocCoupling">0%</span> | Mid-Range Comb Dispersion: <span id="allocDispersion">12%</span>
+        </div>
+
+        <div class="report-block">
+            <div class="block-title">🔊 1. Low-End Geometry & Sub-Bass Phase Decay</div>
+            <div class="block-diag">Diagnosis: Stable Low-End Linearity. <span id="reportLowEndDesc">Sub-bass decay rates fall within acceptable professional tolerances. Axial modes are not being critically excited at the current monitoring axis coordinates. No geometric displacement required.</span></div>
+        </div>
+
+        <div class="report-block">
+            <div class="block-title">⚡ 2. Early Reflections & Comb Filtering Matrix (2kHz - 4kHz)</div>
+            <div class="block-diag">Diagnosis: Clean Transient Phase Performance. <span id="reportMidEndDesc">Destructive comb filtering and flutter echo across reflection paths are nominal. Vocal intelligibility and stereo imaging localization thresholds are performing cleanly.</span></div>
+        </div>
+
+        <div class="report-block">
+            <div class="block-title">🎛️ 3. Surgical Parametric Equalizer Correction Blueprint</div>
+            <div class="block-diag">Diagnosis: Parametric Attenuation Target Calibration. <span>To mathematically flatten the monitor environment system before it strikes your ears, apply these targeted structural filtering curves directly to your software equalizer plugin (e.g., FabFilter Pro-Q 3, Sonarworks, or DAW Master Bus parametric strip):</span></div>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Band Position</th>
+                            <th>Target Frequency</th>
+                            <th>Gain Calculation</th>
+                            <th>Q-Factor (Bandwidth)</th>
+                            <th>Filter Profile Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Band 1 (Sub-Bass Mode)</td>
+                            <td class="txt-cyan" id="tableF1">45 Hz</td>
+                            <td id="tableG1">0.0 dB (Flat)</td>
+                            <td class="txt-purple">4.0 (Narrow Notch)</td>
+                            <td>Parametric Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 2 (Boundary Mud)</td>
+                            <td class="txt-cyan" id="tableF2">130 Hz</td>
+                            <td id="tableG2">0.0 dB (Flat)</td>
+                            <td class="txt-purple">2.5 (Medium Bell)</td>
+                            <td>Parametric Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 3 (Comb Reflection)</td>
+                            <td class="txt-cyan" id="tableF3">3,150 Hz (3.1kHz)</td>
+                            <td id="tableG3">0.0 dB (Flat)</td>
+                            <td class="txt-purple">5.0 (Surgical Sharp)</td>
+                            <td>Dynamic Notch / Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 4 (Air Presence Tuning)</td>
+                            <td class="txt-cyan" id="tableF4">12,000 Hz (12kHz)</td>
+                            <td id="tableG4">+1.0 dB</td>
+                            <td class="txt-purple">0.7 (Wide Smoothing)</td>
+                            <td>High Shelf</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pro-tip">*Pro tip: Ensure your DAW equalizer plugin is switched to <strong>Linear Phase Mode</strong> when executing sharp low-end notch corrections to prevent phase-shifting smear around your transient points.</div>
+        </div>
+
+        <div class="hardware-steps">
+            <div class="block-title">🛠️ 4. Professional Hardware Calibration Next Steps</div>
+            <ul>
+                <li><strong>Bypass Phone Microphones:</strong> Standard phone microphones compress signals automatically past 95dB and roll off below 40Hz. Always link a linear, omnidirectional measurement capsule (like the Behringer ECM8000) into an external interface before saving target curve metrics.</li>
+                <li><strong>Round-Trip Hardware Calibration:</strong> Run a continuous system validation profile inside free software utilities like Room EQ Wizard (REW) to parse a calibration file directly, creating a perfectly flat response curve tailored to your specific gear variables.</li>
+            </ul>
         </div>
     </div>
 </div>
