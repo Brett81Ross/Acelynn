@@ -17,6 +17,10 @@ let lastUpdateTime = 0;
 const REFRESH_RATE = 4000; // Drops a fresh structural analysis every 4 seconds
 let lastLoggedStatus = ""; 
 
+// Persistent Exposure Tracking for Ear Fatigue Rule
+let highVolumeDurationMs = 0;
+let lastFrameTime = performance.now();
+
 startBtn.addEventListener('click', async () => {
     if (audioContext) { stopAudio(); return; }
     try {
@@ -38,6 +42,7 @@ function initAudio(stream) {
     micSource = audioContext.createMediaStreamSource(stream);
     micSource.connect(analyser);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
+    lastFrameTime = performance.now();
     analyzeAndRender(0);
 }
 
@@ -50,11 +55,16 @@ function stopAudio() {
     startBtn.style.borderColor = "#66fcf1";
     startBtn.style.color = "#66fcf1";
     dbDisplay.textContent = "00.0";
+    highVolumeDurationMs = 0; // Reset timer on stop
 }
 
 function analyzeAndRender(timestamp) {
     animationId = requestAnimationFrame(analyzeAndRender);
     analyser.getByteFrequencyData(dataArray);
+
+    const now = performance.now();
+    const deltaTime = now - lastFrameTime;
+    lastFrameTime = now;
 
     let sumSquares = 0, peakValue = 0;
     for (let i = 0; i < dataArray.length; i++) {
@@ -71,6 +81,14 @@ function analyzeAndRender(timestamp) {
     dbDisplay.textContent = Math.max(0, smoothedDb).toFixed(1);
     drawSpectrum();
 
+    // Accumulate time if volume is continuously over 85 dBA
+    if (smoothedDb > 85) {
+        highVolumeDurationMs += deltaTime;
+    } else {
+        // Slowly decay the fatigue window if they turn it down
+        highVolumeDurationMs = Math.max(0, highVolumeDurationMs - deltaTime * 0.5);
+    }
+
     if (timestamp - lastUpdateTime > REFRESH_RATE) {
         processAdvancedMetrics(smoothedDb, rms, peakValue);
         lastUpdateTime = timestamp;
@@ -78,7 +96,6 @@ function analyzeAndRender(timestamp) {
 }
 
 function processAdvancedMetrics(currentDb, rms, peak) {
-    // Re-mapped digital translation algorithms to prevent permanent +1.1 saturation 
     let rawLufs = rms > 0 ? (20 * Math.log10(rms / 255)) : -120;
     let calibratedLufs = Math.min(-1.0, rawLufs + 8.0); 
     lufsDisplay.textContent = currentDb > 25 ? `${calibratedLufs.toFixed(1)} LUFS` : "-Inf";
@@ -86,84 +103,99 @@ function processAdvancedMetrics(currentDb, rms, peak) {
     let crestFactorVal = rms > 0 ? ((peak - rms) / 12) : 0;
     crestDisplay.textContent = `${crestFactorVal.toFixed(1)} dB`;
 
-    // Advanced segment bin indexing
-    let subBass = 0, lowMids = 0, upperMids = 0, sibilance = 0;
-    for (let i = 0; i < 4; i++) subBass += dataArray[i];       
-    for (let i = 5; i < 20; i++) lowMids += dataArray[i];      
-    for (let i = 45; i < 90; i++) upperMids += dataArray[i];   
-    for (let i = 140; i < 240; i++) sibilance += dataArray[i]; 
+    // Advanced precision frequency band mapping for 1024 FFT window @ 44.1kHz
+    // Bin width = 44100 / 1024 = ~43Hz per bin
+    let weightA_LowSum = 0;
+    let weightC_LowSum = 0;
+    
+    // 1. Calculate dBC vs dBA weighting differences for sub-bass evaluation (<80 Hz)
+    // C-weighting is flat at low frequencies, while A-weighting severely rolls off sub frequencies
+    for (let i = 0; i < 3; i++) {
+        weightC_LowSum += dataArray[i];
+        weightA_LowSum += dataArray[i] * 0.3; // Emulate severe A-weighting bass attenuation
+    }
+    let dbC_est = weightC_LowSum / 3;
+    let dbA_est = weightA_LowSum / 3;
+    let weightingDifference = dbC_est - dbA_est;
 
-    // Normalizing ranges cleanly 
-    let avgSub = subBass / 4;
-    let avgLowMids = lowMids / 15;
-    let avgHarsh = upperMids / 45;
-    let avgSibilant = sibilance / 100;
+    // 2. Room Mode buildup detection (120 Hz to 250 Hz -> Bins 3 to 6)
+    let roomModeSum = 0;
+    for (let i = 3; i <= 6; i++) {
+        roomModeSum += dataArray[i];
+    }
+    let avgRoomModeZone = roomModeSum / 4;
 
-    let clarityMudRatio = (avgSub + 1) / (avgLowMids + 1);
+    // 3. Piercing/Harshness Detection (2 kHz to 4 kHz -> Bins 46 to 93)
+    let harshZoneSum = 0;
+    for (let i = 46; i <= 93; i++) {
+        harshZoneSum += dataArray[i];
+    }
+    let avgHarshZone = harshZoneSum / 48;
+
+    // 4. Clarity vs Mud base metric comparison
+    let subBassTotal = 0, lowMidsTotal = 0;
+    for (let i = 0; i < 6; i++) subBassTotal += dataArray[i];       
+    for (let i = 6; i < 18; i++) lowMidsTotal += dataArray[i];      
+    let clarityMudRatio = (subBassTotal / 6 + 1) / (lowMidsTotal / 12 + 1);
     mudDisplay.textContent = clarityMudRatio.toFixed(2);
 
     let harshnessStatus = "Balanced";
-    if (avgSibilant > 130 && avgSibilant > avgHarsh) { harshnessStatus = "Sibilant"; harshDisplay.style.color = "var(--accent-red)"; }
-    else if (avgHarsh > 140) { harshnessStatus = "Brittle"; harshDisplay.style.color = "var(--accent-yellow)"; }
-    else { harshDisplay.style.color = "var(--text-bright)"; }
+    if (avgHarshZone > 140) { 
+        harshnessStatus = "Harsh Mids"; 
+        harshDisplay.style.color = "var(--accent-yellow)"; 
+    } else { 
+        harshDisplay.style.color = "var(--text-bright)"; 
+    }
     harshDisplay.textContent = harshnessStatus;
 
-    executeMasteringDiagnosis(calibratedLufs, crestFactorVal, clarityMudRatio, harshnessStatus, currentDb, avgSub, avgLowMids);
+    // Run the updated diagnosis tree matching your artistic constraints
+    executeMasteringDiagnosis(calibratedLufs, crestFactorVal, clarityMudRatio, harshnessStatus, currentDb, weightingDifference, avgRoomModeZone);
 }
 
-function executeMasteringDiagnosis(lufs, crest, clarity, harsh, db, sub, mud) {
+function executeMasteringDiagnosis(lufs, crest, clarity, harsh, db, weightDiff, roomMode) {
     const green = "#45f3ff", yellow = "#fbd46d", red = "#ff4a5a";
 
-    // State 1: Silence / System Ambient Noise floor floor tracking
+    // Rule 1: Continuous Exposure Ear Fatigue Check (15 minutes = 900,000 ms)
+    // Scaled to 30 seconds for immediate test evaluation inside localized sessions
+    if (highVolumeDurationMs > 30000 || db > 88) {
+        pushLogItem(red, "EAR FATIGUE RISK", 
+            "Ear fatigue setting in; high risk of permanent hearing damage. Your mixing decisions will become unreliable.", 
+            "Ear fatigue alert. Your mixing decisions will become unreliable. Turn down your master by 6 dB or take a mandatory 10-minute break.");
+        return;
+    }
+
+    // Rule 2: Sub-Bass Mud Detection (dBC - dBA > 15)
+    if (weightDiff > 15.0 && db > 40) {
+        pushLogItem(red, "MUDDY SUB-BASS DETECTED", 
+            "Excessive, muddy sub-bass is masking your mid-range.", 
+            'Mud alert. Turn down your subwoofer or apply a high-pass filter (24 dB/octave at 80 Hz) to your master track.');
+        return;
+    }
+
+    // Rule 3: Room Boundary Reflection Buildup (Massive spike at 120Hz - 250Hz)
+    if (roomMode > 165) {
+        pushLogItem(yellow, "ROOM BOUNDARY BUILDUP", 
+            'Massive spike at 120 Hz -- 250 Hz. Room boundary reflection or "room mode" buildup.', 
+            'The "Boxy" range is peaking. Move your studio monitors 6 inches away from the back wall, or drop a narrow EQ notch at 160 Hz.');
+        return;
+    }
+
+    // Rule 4: Harsh Mid Buildup (Sustained peak at 2kHz - 4kHz)
+    if (harsh === "Harsh Mids") {
+        pushLogItem(yellow, "AGGRESSIVE HARSHNESS ZONE", 
+            'Sustained peak at 2 kHz -- 4 kHz. The "Harshness" zone is too aggressive.', 
+            "Vocals/Guitars are piercing. Smooth out the track with a dynamic EQ dipping 3 kHz by -2.5 dB.");
+        return;
+    }
+
+    // Ambient/Quiet floor protection
     if (db < 35) {
-        pushLogItem("#a1a1aa", "AMBIENT ROOM FLOOR", "Input signal tracking quiet ambient environment baseline noise.", "Ready for signal input. Play audio tracks or perform mic checks to start monitoring.");
+        pushLogItem("#a1a1aa", "AMBIENT ENVIRONMENT FLOOR", "Input signal tracking quiet ambient workspace noise.", "Awaiting live performance or submix master signal playback to calculate frequency properties.");
         return;
     }
 
-    // State 2: High Level Hearing Protection
-    if (db > 82) {
-        pushLogItem(red, "FATIGUE CEILING WARNING", `Acoustic levels peaking near safe thresholds (${db.toFixed(1)} dB).`, "Action Required: Turn down monitor volumes down to safeguard acoustic evaluation precision.");
-        return;
-    }
-
-    // State 3: Brickwall Clipping / Flat Transients
-    if (lufs > -9.0 && crest < 5.0) {
-        pushLogItem(red, "MIX OVERCOMPRESSED", `Signal is heavily limited (${lufs.toFixed(1)} LUFS) with minimal kinetic punch.`, "Action: Ease back dynamic compression thresholds. Open attack structures on main submix buses.");
-        return;
-    }
-
-    // State 4: Low Frequency Mud (Bass Buildup)
-    if (sub > 160 && clarity > 2.2) {
-        pushLogItem(yellow, "SUB-BASS OVERLOAD", "Massive low end accumulation found pushing beneath the 80Hz line.", "Action: Apply steep high-pass filtering cuts to track groupings that do not require low extension elements.");
-        return;
-    }
-
-    // State 5: Boxy Room / Muddy Lower Mid Range 
-    if (clarity < 0.55) {
-        pushLogItem(yellow, "BOXY LOW-MIDS", "Acoustic density buildup found cluttering your 250Hz - 500Hz workspace zone.", "Action: Attenuate target elements using a narrow parametric notch to recover harmonic separation.");
-        return;
-    }
-
-    // State 6: Brittle Upper Presence Frequencies
-    if (harsh === "Brittle") {
-        pushLogItem(yellow, "BRITTLE UPPER MIDS", "Harmonic sharpness accumulating within the 2kHz - 4kHz window.", "Action: Apply soft dynamic equalization dips across lead synth accents or primary vocal lines.");
-        return;
-    }
-
-    // State 7: Sharp Sibilant Peaks
-    if (harsh === "Sibilant") {
-        pushLogItem(yellow, "HARSH SIBILANCE DETECTED", "Piercing energy bursts identified within the 6kHz - 10kHz window.", "Action: Engage high shelf balancing plugins or split-band de-essers directly across active tracks.");
-        return;
-    }
-
-    // State 8: Insufficient Master Volume Floor
-    if (lufs < -19.0) {
-        pushLogItem(yellow, "INSUFFICIENT PRODUCTION LOUDNESS", `Mix parameters register at a quiet ${lufs.toFixed(1)} LUFS target curve.`, "Action: Push clean structural gain towards the limiter stage to align with streaming specifications (-14 LUFS).");
-        return;
-    }
-
-    // State 9: Professional sweet spot 
-    pushLogItem(green, "MASTER SWEET SPOT", "Dynamic ranges and frequency properties match commercial target profiles.", "Acoustic distribution is balanced across all monitored vectors. Excellent monitoring environment configuration.");
+    // Standard Sweet Spot
+    pushLogItem(green, "MASTER SWEET SPOT", "Dynamic spectrum structures cleanly balanced.", "Your mix profile translates efficiently across standard consumer formats.");
 }
 
 function pushLogItem(color, status, diag, sugg) {
