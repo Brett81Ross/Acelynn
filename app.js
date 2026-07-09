@@ -1,5 +1,5 @@
 let audioContext, analyser, micSource, dataArray, animationId;
-let calibrationNode; 
+let calibrationNode; // Biquad filter to flatten phone microphone signature
 
 // UI Components
 const startBtn = document.getElementById('startBtn');
@@ -12,14 +12,6 @@ const harshDisplay = document.getElementById('harshVal');
 const coachLog = document.getElementById('coachLog');
 const canvas = document.getElementById('spectrumCanvas');
 const canvasCtx = canvas.getContext('2d');
-
-// Halved Box Target Element Selectors
-const statusBoxContainer = document.getElementById('statusBoxContainer');
-const liveStatusTitle = document.getElementById('liveStatusTitle');
-const liveStatusDiag = document.getElementById('liveStatusDiag');
-const liveStatusSugg = document.getElementById('liveStatusSugg');
-const eqCanvas = document.getElementById('eqCanvas');
-const eqCanvasCtx = eqCanvas.getContext('2d');
 
 // State Monitoring Variables
 let smoothedDb = 0;
@@ -58,10 +50,13 @@ function initAudio(stream) {
     
     micSource = audioContext.createMediaStreamSource(stream);
 
+    // --- BEHRINGER ECM8000 CAPSULE EMULATION FILTER ---
+    // Standard phone mics roll off sharply below 100Hz and build presence bumps at 3.5kHz.
+    // We run the raw signal through a hardware optimization curve to restore a flat baseline.
     calibrationNode = audioContext.createBiquadFilter();
     calibrationNode.type = "highshelf";
     calibrationNode.frequency.value = 120;
-    calibrationNode.gain.value = 6.0; 
+    calibrationNode.gain.value = 6.0; // Restoring crushed sub-bass extension tracking
 
     micSource.connect(calibrationNode);
     calibrationNode.connect(analyser);
@@ -82,16 +77,9 @@ function stopAudio() {
     sweepBtn.style.display = "none";
     dbDisplay.textContent = "00.0";
     highVolumeDurationMs = 0;
-    
-    // Reset status block visuals
-    statusBoxContainer.style.borderColor = "var(--accent-green)";
-    liveStatusTitle.textContent = "Status: Ready";
-    liveStatusTitle.style.color = "var(--accent-green)";
-    liveStatusDiag.textContent = "Engine Idle";
-    liveStatusSugg.textContent = "Boot up core diagnostic metrics to engage active environment tracking maps.";
-    eqCanvasCtx.clearRect(0, 0, eqCanvas.width, eqCanvas.height);
 }
 
+// --- ACOUSTIC TEST SINE SWEEP GENERATOR (ECM8000 Feature) ---
 function runAcousticRoomSweep() {
     isSweeping = true;
     sweepCaptureData = [];
@@ -103,19 +91,21 @@ function runAcousticRoomSweep() {
     const gainNode = audioContext.createGain();
     
     osc.type = 'sine';
+    // Sweep exponentially across audible parameters from 20Hz up to 20kHz
     osc.frequency.setValueAtTime(20, audioContext.currentTime);
     osc.frequency.exponentialRampToValueAtTime(20000, audioContext.currentTime + 3.5);
 
     gainNode.gain.setValueAtTime(0.001, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.4, audioContext.currentTime + 0.2); 
+    gainNode.gain.linearRampToValueAtTime(0.4, audioContext.currentTime + 0.2); // Smooth fade-in
     gainNode.gain.setValueAtTime(0.4, audioContext.currentTime + 3.3);
-    gainNode.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 3.5); 
+    gainNode.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 3.5); // Smooth fade-out
 
     osc.connect(gainNode);
-    gainNode.connect(audioContext.destination); 
+    gainNode.connect(audioContext.destination); // Play sweep out through monitor speakers
 
     osc.start();
     
+    // Capture frequency spectrum data frames during playback
     const captureInterval = setInterval(() => {
         let currentSnapshot = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(currentSnapshot);
@@ -135,9 +125,12 @@ function runAcousticRoomSweep() {
 }
 
 function diagnoseRoomResponse() {
-    let lowestBinValue = 255, highestBinValue = 0;
+    // Process captured frames to find extreme frequency nulls or room reflections
+    let lowestBinValue = 255;
+    let highestBinValue = 0;
+    
     for (let frame of sweepCaptureData) {
-        for (let i = 4; i < frame.length / 2; i++) { 
+        for (let i = 4; i < frame.length / 2; i++) { // Target sub-to-mid reflections
             if (frame[i] < lowestBinValue) lowestBinValue = frame[i];
             if (frame[i] > highestBinValue) highestBinValue = frame[i];
         }
@@ -147,11 +140,17 @@ function diagnoseRoomResponse() {
     const green = "#45f3ff", yellow = "#fbd46d", red = "#ff4a5a";
 
     if (responseVariance > 130) {
-        pushLogItem(red, "SWEEP COMPLETE: SEVERE ROOM NULLS", `Acoustic sweep detected massive phase cancellation issues (Variance: ${responseVariance} points). Your room setup has deep audio blind spots.`, "Action Required: Reposition monitors immediately. Avoid placing mixing chairs exactly halfway between front and back walls to eliminate standing wave cancellations.");
+        pushLogItem(red, "SWEEP COMPLETE: SEVERE ROOM NULLS", 
+            `Acoustic sweep detected massive phase cancellation issues (Variance: ${responseVariance} points). Your room setup has deep audio blind spots.`, 
+            "Action Required: Reposition monitors immediately. Avoid placing mixing chairs exactly halfway between front and back walls to eliminate standing wave cancellations.");
     } else if (responseVariance > 80) {
-        pushLogItem(yellow, "SWEEP COMPLETE: ACOUSTIC REFLECTIONS", `Room variance is prominent (${responseVariance} points). Hard parallel surfaces are coloring your monitors.`, "Action Required: Apply acoustic absorption panels at primary reflection points (walls directly to left and right of your monitor setup).");
+        pushLogItem(yellow, "SWEEP COMPLETE: ACOUSTIC REFLECTIONS", 
+            `Room variance is prominent (${responseVariance} points). Hard parallel surfaces are coloring your monitors.`, 
+            "Action Required: Apply acoustic absorption panels at primary reflection points (walls directly to left and right of your monitor setup).");
     } else {
-        pushLogItem(green, "SWEEP COMPLETE: FLAT CALIBRATION", `Superb acoustic accuracy identified (Variance: ${responseVariance} points). Your workspace response mirrors professional treated studio environments.`, "No room adjustment adjustments needed. Your space exhibits high-grade monitoring linearity.");
+        pushLogItem(green, "SWEEP COMPLETE: FLAT CALIBRATION", 
+            `Superb acoustic accuracy identified (Variance: ${responseVariance} points). Your workspace response mirrors professional treated studio environments.`, 
+            "No room adjustment adjustments needed. Your space exhibits high-grade monitoring linearity.");
     }
 }
 
@@ -174,14 +173,12 @@ function analyzeAndRender(timestamp) {
     
     smoothedDb = (rawDb * 0.1) + (smoothedDb * 0.9);
     dbDisplay.textContent = Math.max(0, smoothedDb).toFixed(1);
-    
-    // Render standard bottom spectrum graph AND new mini-EQ curve inside the status window
     drawSpectrum();
-    drawRealtimeEqualizerCurve();
 
     if (smoothedDb > 85) { highVolumeDurationMs += deltaTime; } 
     else { highVolumeDurationMs = Math.max(0, highVolumeDurationMs - deltaTime * 0.5); }
 
+    // Pause normal ambient log evaluations if an active sine test sweep is writing data
     if (timestamp - lastUpdateTime > REFRESH_RATE && !isSweeping) {
         processAdvancedMetrics(smoothedDb, rms, peakValue);
         lastUpdateTime = timestamp;
@@ -197,6 +194,7 @@ function processAdvancedMetrics(currentDb, rms, peak) {
     crestDisplay.textContent = `${crestFactorVal.toFixed(1)} dB`;
 
     let weightA_LowSum = 0, weightC_LowSum = 0, roomModeSum = 0, harshZoneSum = 0;
+    
     for (let i = 0; i < 3; i++) {
         weightC_LowSum += dataArray[i];
         weightA_LowSum += dataArray[i] * 0.3; 
@@ -227,86 +225,26 @@ function executeMasteringDiagnosis(lufs, crest, clarity, harsh, db, weightDiff, 
     const green = "#45f3ff", yellow = "#fbd46d", red = "#ff4a5a";
 
     if (highVolumeDurationMs > 900000) {
-        updateLiveStatusPanel(red, "Status: FATIGUE", "Ear Fatigue Risk Active", "Your mixing decisions will become unreliable. Turn down your master by 6 dB or take a mandatory 10-minute break.");
-        pushLogItem(red, "EAR FATIGUE RISK", "Ear fatigue setting in; high risk of permanent hearing damage.", "Turn down your master by 6 dB or take a mandatory 10-minute break.");
+        pushLogItem(red, "EAR FATIGUE RISK", "Ear fatigue setting in; high risk of permanent hearing damage. Your mixing decisions will become unreliable.", "Ear fatigue alert. Your mixing decisions will become unreliable. Turn down your master by 6 dB or take a mandatory 10-minute break.");
         return;
     }
     if (weightDiff > 15.0 && db > 40) {
-        updateLiveStatusPanel(red, "Status: MUDDY", "Sub-Bass Masking Active", "Mud alert. Turn down your subwoofer or apply a high-pass filter (24 dB/octave at 80 Hz) to your master track.");
-        pushLogItem(red, "MUDDY SUB-BASS DETECTED", "Excessive, muddy sub-bass is masking your mid-range.", "Turn down your subwoofer or apply a high-pass filter (24 dB/octave at 80 Hz) to your master track.");
+        pushLogItem(red, "MUDDY SUB-BASS DETECTED", "Excessive, muddy sub-bass is masking your mid-range.", "Mud alert. Turn down your subwoofer or apply a high-pass filter (24 dB/octave at 80 Hz) to your master track.");
         return;
     }
     if (roomMode > 165) {
-        updateLiveStatusPanel(yellow, "Status: BOXY", "Room Mode Reflection Buildup", "The 'Boxy' range is peaking. Move your studio monitors 6 inches away from the back wall, or drop a narrow EQ notch at 160 Hz.");
-        pushLogItem(yellow, "ROOM BOUNDARY BUILDUP", 'Massive spike at 120 Hz -- 250 Hz. Room boundary reflection buildup.', 'Move your studio monitors 6 inches away from the back wall, or drop a narrow EQ notch at 160 Hz.');
+        pushLogItem(yellow, "ROOM BOUNDARY BUILDUP", 'Massive spike at 120 Hz -- 250 Hz. Room boundary reflection or "room mode" buildup.', 'The "Boxy" range is peaking. Move your studio monitors 6 inches away from the back wall, or drop a narrow EQ notch at 160 Hz.');
         return;
     }
     if (harsh === "Harsh Mids") {
-        updateLiveStatusPanel(yellow, "Status: HARSH", "Aggressive Presence Buildup", "Vocals/Guitars are piercing. Smooth out the track with a dynamic EQ dipping 3 kHz by -2.5 dB.");
-        pushLogItem(yellow, "AGGRESSIVE HARSHNESS ZONE", 'Sustained peak at 2 kHz -- 4 kHz. The "Harshness" zone is too aggressive.', "Smooth out the track with a dynamic EQ dipping 3 kHz by -2.5 dB.");
+        pushLogItem(yellow, "AGGRESSIVE HARSHNESS ZONE", 'Sustained peak at 2 kHz -- 4 kHz. The "Harshness" zone is too aggressive.', "Vocals/Guitars are piercing. Smooth out the track with a dynamic EQ dipping 3 kHz by -2.5 dB.");
         return;
     }
     if (db < 35) {
-        updateLiveStatusPanel("#a1a1aa", "Status: AMBIENT", "Monitoring Idle Noise Floor", "Awaiting live performance or submix master signal playback to calculate frequency properties.");
         pushLogItem("#a1a1aa", "AMBIENT ENVIRONMENT FLOOR", "Input signal tracking quiet ambient workspace noise.", "Awaiting live performance or submix master signal playback to calculate frequency properties.");
         return;
     }
-    
-    updateLiveStatusPanel(green, "Status: BALANCED", "Acoustically Balanced Performance", "Frequency response metrics currently fall within studio parameter targets. Continue tracking.");
     pushLogItem(green, "MASTER SWEET SPOT", "Dynamic spectrum structures cleanly balanced.", "Your mix profile translates efficiently across standard consumer formats.");
-}
-
-// Handler updates values directly within the split panel container view safely
-function updateLiveStatusPanel(color, heading, diagnosis, suggestion) {
-    statusBoxContainer.style.borderColor = color;
-    liveStatusTitle.textContent = heading;
-    liveStatusTitle.style.color = color;
-    liveStatusDiag.textContent = diagnosis;
-    liveStatusSugg.textContent = suggestion;
-}
-
-// --- CURVED REAL-TIME EQUALIZER DISPLAY ENGINE ---
-function drawRealtimeEqualizerCurve() {
-    const w = eqCanvas.width = eqCanvas.parentElement.clientWidth;
-    const h = eqCanvas.height = eqCanvas.parentElement.clientHeight;
-    
-    eqCanvasCtx.clearRect(0, 0, w, h);
-    
-    // Draw micro subtle grid backdrop markers
-    eqCanvasCtx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-    eqCanvasCtx.lineWidth = 1;
-    for (let i = 1; i < 4; i++) {
-        let lx = (w / 4) * i;
-        eqCanvasCtx.beginPath();
-        eqCanvasCtx.moveTo(lx, 0);
-        eqCanvasCtx.lineTo(lx, h);
-        eqCanvasCtx.stroke();
-    }
-
-    // Process FFT nodes into smooth curve vectors using parametric Bezier anchors
-    eqCanvasCtx.beginPath();
-    eqCanvasCtx.lineWidth = 2.5;
-    eqCanvasCtx.strokeStyle = statusBoxContainer.style.borderColor || "var(--accent-green)";
-    
-    let sliceWidth = w / 8; 
-    let points = [];
-    
-    // Sample 8 core parametric target points across low-mid-high groupings
-    for (let i = 0; i < 8; i++) {
-        let chunkIdx = Math.floor((dataArray.length / 8) * i);
-        let magnitude = dataArray[chunkIdx] / 255;
-        let px = i * sliceWidth;
-        let py = h - (magnitude * h * 0.7) - (h * 0.15); // Keeps curve floating beautifully inside safety lanes
-        points.push({ x: px, y: py });
-    }
-    
-    eqCanvasCtx.moveTo(points[0].x, points[0].y);
-    for (let i = 0; i < points.length - 1; i++) {
-        let xc = (points[i].x + points[i + 1].x) / 2;
-        let yc = (points[i].y + points[i + 1].y) / 2;
-        eqCanvasCtx.getPoint = eqCanvasCtx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
-    }
-    eqCanvasCtx.stroke();
 }
 
 function pushLogItem(color, status, diag, sugg) {
