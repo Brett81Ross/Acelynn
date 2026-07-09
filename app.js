@@ -7,17 +7,15 @@ const lufsDisplay = document.getElementById('lufsVal');
 const crestDisplay = document.getElementById('crestVal');
 const mudDisplay = document.getElementById('mudVal');
 const harshDisplay = document.getElementById('harshVal');
-const coachCard = document.getElementById('coachCard');
-const coachStatus = document.getElementById('coachStatus');
-const coachDiag = document.getElementById('coachDiag');
-const coachSugg = document.getElementById('coachSugg');
+const coachLog = document.getElementById('coachLog');
 const canvas = document.getElementById('spectrumCanvas');
 const canvasCtx = canvas.getContext('2d');
 
-// Smooth & Stabilize Controls
+// Smoothing & Historical Flow Variables
 let smoothedDb = 0;
 let lastUpdateTime = 0;
-const REFRESH_RATE = 3000; // Grid data recalculates cleanly every 3 seconds
+const REFRESH_RATE = 4000; // Analyzes sound and drops a new historical card every 4 seconds
+let lastLoggedStatus = ""; // Prevents flooding identical notes back-to-back
 
 startBtn.addEventListener('click', async () => {
     if (audioContext) { stopAudio(); return; }
@@ -27,6 +25,7 @@ startBtn.addEventListener('click', async () => {
         startBtn.textContent = "Shut Down System";
         startBtn.style.borderColor = "#ff4a5a";
         startBtn.style.color = "#ff4a5a";
+        coachLog.innerHTML = ""; // Clear initial startup placeholder
     } catch (err) {
         alert("Microphone connection failure.");
     }
@@ -57,7 +56,6 @@ function analyzeAndRender(timestamp) {
     animationId = requestAnimationFrame(analyzeAndRender);
     analyser.getByteFrequencyData(dataArray);
 
-    // Continuous fast tracking for the visual dial and analyzer graph
     let sumSquares = 0, peakValue = 0;
     for (let i = 0; i < dataArray.length; i++) {
         let val = dataArray[i];
@@ -71,7 +69,6 @@ function analyzeAndRender(timestamp) {
     dbDisplay.textContent = Math.max(0, smoothedDb).toFixed(1);
     drawSpectrum();
 
-    // The Grid updates and analyzes variables at a slower, human-readable rate
     if (timestamp - lastUpdateTime > REFRESH_RATE) {
         processAdvancedMetrics(smoothedDb, rms, peakValue);
         lastUpdateTime = timestamp;
@@ -79,21 +76,18 @@ function analyzeAndRender(timestamp) {
 }
 
 function processAdvancedMetrics(currentDb, rms, peak) {
-    // 1. Calculate LUFS Target Equivalent (Digital Full Scale projection)
     let rawLufs = rms > 0 ? (20 * Math.log10(rms / 255)) : -120;
-    let calibratedLufs = rawLufs + 14; // Re-aligning digital roof
+    let calibratedLufs = rawLufs + 14;
     lufsDisplay.textContent = calibratedLufs > -120 ? `${calibratedLufs.toFixed(1)} LUFS` : "-Inf";
 
-    // 2. Compute Crest Factor (Dynamic Range punch score)
     let crestFactorVal = (peak - rms) / 10;
     crestDisplay.textContent = `${crestFactorVal.toFixed(1)} dB`;
 
-    // 3. Extract Deep Frequency Allocations
     let subBass = 0, lowMids = 0, upperMids = 0, sibilance = 0;
-    for (let i = 0; i < 6; i++) subBass += dataArray[i];       // 0 - 250 Hz
-    for (let i = 6; i < 18; i++) lowMids += dataArray[i];      // 250 - 750 Hz
-    for (let i = 45; i < 90; i++) upperMids += dataArray[i];   // 2k - 4k Hz
-    for (let i = 140; i < 240; i++) sibilance += dataArray[i]; // 6k - 10k Hz
+    for (let i = 0; i < 6; i++) subBass += dataArray[i];       
+    for (let i = 6; i < 18; i++) lowMids += dataArray[i];      
+    for (let i = 45; i < 90; i++) upperMids += dataArray[i];   
+    for (let i = 140; i < 240; i++) sibilance += dataArray[i]; 
 
     let clarityMudRatio = (subBass + 1) / (lowMids + 1);
     mudDisplay.textContent = clarityMudRatio.toFixed(2);
@@ -104,7 +98,6 @@ function processAdvancedMetrics(currentDb, rms, peak) {
     else { harshDisplay.style.color = "var(--text-bright)"; }
     harshDisplay.textContent = harshnessStatus;
 
-    // 4. Run High-Level Mastering Diagnosis
     executeMasteringDiagnosis(calibratedLufs, crestFactorVal, clarityMudRatio, harshnessStatus, currentDb);
 }
 
@@ -112,38 +105,46 @@ function executeMasteringDiagnosis(lufs, crest, clarity, harsh, db) {
     const green = "#45f3ff", yellow = "#fbd46d", red = "#ff4a5a";
 
     if (db > 85) {
-        updateCoach(red, "CRITICAL: SAFE EXPOSURE", 
-            "The localized audio projection is too loud for prolonged analytical creation.", 
-            "Action: Bring sound levels down to preserve your translation accuracy.");
+        pushLogItem(red, "FATIGUE WARNING", `Volume tracking high at ${db.toFixed(1)} dB SPL.`, "Lower master monitors to protect analytical accuracy.");
     } else if (lufs > -10 && crest < 6) {
-        updateCoach(red, "CRITICAL: MIX OVERCOMPRESSED", 
-            `Your tracks register at a crushed ${lufs.toFixed(1)} LUFS with almost zero transient punch (${crest.toFixed(1)}dB Crest).`, 
-            "Action: Back off dynamic brickwall limiters. Increase compressor attack values to reclaim musical life.");
+        pushLogItem(red, "MIX OVERCOMPRESSED", `Crushed energy signature at ${lufs.toFixed(1)} LUFS.`, "Back off dynamic limiters and widen compressor attack spaces.");
     } else if (clarity < 0.6) {
-        updateCoach(yellow, "WARNING: HEAVY LOW-MID BUILDUP", 
-            "Acoustic accumulation identified in the 300Hz boxiness range. This is obscuring clean detail.", 
-            "Action: Apply parametric equalization attenuation cuts across muddy audio tracks to reclaim workspace balance.");
+        pushLogItem(yellow, "BOXY LOW-MIDS", "Acoustic accumulation identified near the 300Hz line.", "Drop narrow parametric cuts across non-bass instrument groupings.");
     } else if (harsh === "Sibilant") {
-        updateCoach(yellow, "WARNING: DE-ESSER REQUIRED", 
-            "Sharp sibilant components are spiking uncontrollably within the 6kHz - 10kHz window.", 
-            "Action: Engage a precision dynamic de-esser to smoothly round out sharp vocal components or drum cymbals.");
+        pushLogItem(yellow, "DE-ESSER REQUIRED", "Sibilant components spiking between 6kHz - 10kHz.", "Engage a dynamic split de-esser across problem vocal paths.");
     } else if (lufs < -20 && db > 40) {
-        updateCoach(yellow, "PRO ADVICE: INSUFFICIENT LOUDNESS", 
-            `Your perceived signal sits safely at ${lufs.toFixed(1)} LUFS, which is far too quiet for general audio distribution standards.`, 
-            "Action: Cleanly maximize gain into your master bus system. Target roughly -14 LUFS to match standard streaming platform curves.");
+        pushLogItem(yellow, "INSUFFICIENT LOUDNESS", `Signal measuring quiet at ${lufs.toFixed(1)} LUFS.`, "Increase structural gain towards your final output targets.");
     } else {
-        updateCoach(green, "PROFESSIONAL MASTER PROFILE", 
-            "Excellent spatial, frequency, and dynamic calibration observed inside the audio data window.", 
-            "Action: Your mix profile holds commercial balance specifications. Safe to bounce files for external distribution.");
+        pushLogItem(green, "MASTER Sweet Spot", "Dynamic spectrum structures cleanly balanced.", "Your mix profile translates efficiently across standard consumer formats.");
     }
 }
 
-function updateCoach(color, status, diag, sugg) {
-    coachCard.style.borderColor = color;
-    coachStatus.textContent = status;
-    coachStatus.style.color = color;
-    coachDiag.textContent = diag;
-    coachSugg.textContent = sugg;
+// Builds and prepends the new log card items to the timeline feed
+function pushLogItem(color, status, diag, sugg) {
+    // Prevent flooding the timeline with identical consecutive readings
+    if (status === lastLoggedStatus) return;
+    lastLoggedStatus = status;
+
+    const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const newCard = document.createElement('div');
+    newCard.className = 'log-item';
+    newCard.style.borderLeftColor = color;
+
+    newCard.innerHTML = `
+        <div class="log-time">${timeString}</div>
+        <div class="log-title" style="color: ${color}">${status}</div>
+        <div class="log-diagnosis">${diag}</div>
+        <div class="log-suggestion">${sugg}</div>
+    `;
+
+    // Insert at the absolute top of the container
+    coachLog.insertBefore(newCard, coachLog.firstChild);
+
+    // Keep memory clean: remove extremely old metrics when log exceeds 25 historical cards
+    if (coachLog.children.length > 25) {
+        coachLog.removeChild(coachLog.lastChild);
+    }
 }
 
 function drawSpectrum() {
