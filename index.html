@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AcoustiCoach Live & Room Calibration</title>
+    <title>Acelynn Pro</title>
     <style>
         body { font-family: Arial, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
-        #coach-box { margin-top: 20px; padding: 20px; border-radius: 10px; background: #1e1e1e; border: 2px solid #333; }
+        #coach-box { margin-top: 20px; padding: 20px; border-radius: 10px; background: #1e1e1e; border: 2px solid #333; transition: all 0.5s ease; }
         #post-analysis-box { margin-top: 20px; padding: 20px; border-radius: 10px; background: #1a233a; border: 2px solid #4a5568; display: none; text-align: left; }
+        
+        /* New History Dropdown Styles */
+        #history-container { margin-top: 20px; background: #1a1a1a; border: 1px solid #444; border-radius: 10px; overflow: hidden; text-align: left; }
+        #history-header { background: #2d2d2d; padding: 12px 20px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        #history-content { max-height: 200px; overflow-y: auto; display: none; padding: 10px 20px; border-top: 1px solid #333; }
+        .history-item { padding: 6px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; }
+        .history-time { color: #888; margin-right: 10px; font-family: monospace; }
+        
         .WARNING { border-color: #ff9800 !important; color: #ff9800; }
         .CRITICAL { border-color: #f44336 !important; color: #f44336; }
         .BALANCED { border-color: #4caf50 !important; color: #4caf50; }
@@ -21,7 +29,7 @@
 </head>
 <body>
 
-    <h1>AcoustiCoach Pro</h1>
+    <h1>Acelynn Pro</h1>
     <p style="color: #aaa;">Optimized for Measurement Mics like the Behringer ECM8000</p>
 
     <div class="controls">
@@ -33,6 +41,16 @@
         <h2 id="status">Status: Ready</h2>
         <p id="diagnosis">Click start to analyze your room's live sound balance.</p>
         <p><strong id="suggestion"></strong></p>
+    </div>
+
+    <div id="history-container">
+        <div id="history-header">
+            <span>📋 Diagnosis History Log</span>
+            <span id="history-arrow">▼ Tap to Open</span>
+        </div>
+        <div id="history-content">
+            <div id="empty-history" style="color: #666; font-style: italic; text-align: center; padding: 10px 0;">No logs recorded yet. Start tracking to build history.</div>
+        </div>
     </div>
 
     <div id="post-analysis-box">
@@ -51,6 +69,12 @@
         const postBox = document.getElementById('post-analysis-box');
         const varianceVal = document.getElementById('variance-val');
         const reportDetails = document.getElementById('report-details');
+        
+        // History Elements
+        const historyHeader = document.getElementById('history-header');
+        const historyContent = document.getElementById('history-content');
+        const historyArrow = document.getElementById('history-arrow');
+        const emptyHistory = document.getElementById('empty-history');
 
         let audioContext;
         let analyzer;
@@ -58,10 +82,38 @@
         let dataArray;
         let isAnalyzing = false;
 
-        // Record history snapshot for the post-analysis engine
         let longTermLowEnd = [];
         let longTermMids = [];
         let longTermHighs = [];
+
+        let lastUiUpdateTime = 0;
+        const UI_UPDATE_INTERVAL = 2000; 
+
+        // Toggle the history rolldown list view
+        historyHeader.addEventListener('click', () => {
+            if (historyContent.style.display === "block") {
+                historyContent.style.display = "none";
+                historyArrow.innerText = "▼ Tap to Open";
+            } else {
+                historyContent.style.display = "block";
+                historyArrow.innerText = "▲ Tap to Close";
+            }
+        });
+
+        // Helper function to append new metrics to the rolldown list
+        function logToHistory(diagnosisText) {
+            if (emptyHistory) emptyHistory.remove();
+            
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0]; // Returns HH:MM:SS
+            
+            const logItem = document.createElement('div');
+            logItem.className = 'history-item';
+            logItem.innerHTML = `<span class="history-time">[${timeStr}]</span> ${diagnosisText}`;
+            
+            // Insert newest logs at the top of the history box content
+            historyContent.insertBefore(logItem, historyContent.firstChild);
+        }
 
         startBtn.addEventListener('click', async () => {
             if (isAnalyzing) return;
@@ -78,9 +130,10 @@
             dataArray = new Uint8Array(bufferLength);
 
             startBtn.style.display = 'none'; 
-            sweepBtn.style.display = 'inline-block'; // Reveal the sweep test capability
+            sweepBtn.style.display = 'inline-block'; 
             statusText.innerText = "Status: Analyzing Live...";
             isAnalyzing = true;
+            lastUiUpdateTime = Date.now();
 
             function analyze() {
                 if (!isAnalyzing) return;
@@ -94,17 +147,28 @@
                 for(let i = 10; i < 40; i++) midEnergy += dataArray[i];
                 for(let i = 40; i < 80; i++) harshZoneEnergy += dataArray[i]; 
 
-                // Track history for post-analysis
                 longTermLowEnd.push(lowEndEnergy / 10);
                 longTermMids.push(midEnergy / 30);
                 longTermHighs.push(harshZoneEnergy / 40);
 
-                if (lowEndEnergy > 2000) { 
-                    updateUI("WARNING", "Muddy Low-End Buildup", "Your bass frequencies are overwhelming the space. Try backing away from walls or adding a high-pass filter.");
-                } else if (harshZoneEnergy > 1800) {
-                    updateUI("CRITICAL", "Harsh Presence Zone Peak", "Vocals or upper mids are piercing. Apply a slight EQ dip around 3 kHz.");
-                } else {
-                    updateUI("BALANCED", "Acoustically Balanced", "Frequency response looks smooth. Keep tracking!");
+                const currentTime = Date.now();
+                if (currentTime - lastUiUpdateTime >= UI_UPDATE_INTERVAL) {
+                    let currentStatusMessage = "";
+                    
+                    if (lowEndEnergy > 2000) { 
+                        currentStatusMessage = "Muddy Low-End Buildup Detected";
+                        updateUI("WARNING", currentStatusMessage, "Your bass frequencies are overwhelming the space. Try backing away from walls or adding a high-pass filter.");
+                    } else if (harshZoneEnergy > 1800) {
+                        currentStatusMessage = "Harsh Presence Zone Peak Detected";
+                        updateUI("CRITICAL", currentStatusMessage, "Vocals or upper mids are piercing. Apply a slight EQ dip around 3 kHz.");
+                    } else {
+                        currentStatusMessage = "Acoustically Balanced Performance";
+                        updateUI("BALANCED", currentStatusMessage, "Frequency response looks smooth. Keep tracking!");
+                    }
+                    
+                    // Add to our rolling history profile
+                    logToHistory(currentStatusMessage);
+                    lastUiUpdateTime = currentTime; 
                 }
 
                 requestAnimationFrame(analyze);
@@ -112,7 +176,6 @@
             analyze();
         });
 
-        // NEW: Acoustic Sweep Engine (Mimicking Room EQ Wizard / Open Sound Meter capability)
         sweepBtn.addEventListener('click', () => {
             if (!audioContext) return;
             
@@ -120,16 +183,14 @@
             sweepBtn.innerText = "Sweeping Room...";
             statusText.innerText = "Status: Generating Acoustic Frequency Sweep Tone...";
 
-            // Create an oscillator to sweep frequencies from 20Hz up to 20,000Hz through monitors
             const osc = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
             osc.type = 'sine';
             osc.frequency.setValueAtTime(20, audioContext.currentTime);
-            // Sweep linearly across the auditory spectrum over 3.5 seconds
             osc.frequency.linearRampToValueAtTime(20000, audioContext.currentTime + 3.5);
             
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Keep safe test volume
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); 
             
             osc.connect(gainNode);
             gainNode.connect(audioContext.destination);
@@ -137,24 +198,22 @@
             osc.start();
             osc.stop(audioContext.currentTime + 3.5);
 
-            // Once sweep finishes, generate the complex video-style Post-Analysis Report
             setTimeout(() => {
                 sweepBtn.disabled = false;
                 sweepBtn.innerText = "Run Room Sweep Test";
                 statusText.innerText = "Status: Post-Analysis Diagnostics Complete";
                 generatePostAnalysisReport();
+                logToHistory("Ran Room Sweep Test Profile");
             }, 3600);
         });
 
         function generatePostAnalysisReport() {
-            // Calculate averages from gathered history data
             const avgLow = longTermLowEnd.reduce((a, b) => a + b, 0) / longTermLowEnd.length || 0;
             const avgMid = longTermMids.reduce((a, b) => a + b, 0) / longTermMids.length || 0;
             const avgHigh = longTermHighs.reduce((a, b) => a + b, 0) / longTermHighs.length || 0;
 
             const targetMax = Math.max(avgLow, avgMid, avgHigh);
             const targetMin = Math.min(avgLow, avgMid, avgHigh);
-            // Dynamic delta calculation to mimic professional software
             const totalVarianceDb = Math.max(1, Math.round((targetMax - targetMin) / 15)); 
 
             postBox.style.display = "block";
@@ -162,14 +221,12 @@
 
             let analysisHtml = "<ul>";
             
-            // Replicating professional evaluation limits mentioned in the measurement video
             if (totalVarianceDb > 5) {
                 analysisHtml += `<li>❌ <strong>Critical Room Node Alert:</strong> Your curve fluctuation exceeds the safe 5 dB threshold. Your listening position is experiencing strong acoustic anomalies.</li>`;
             } else {
-                analysisHtml += `<li>fdfd ✅ <strong>Studio Grade Accuracy:</strong> Your room curve is within a safe ±5 dB range. This environment is highly dependable for mixing.</li>`;
+                analysisHtml += `<li>✅ <strong>Studio Grade Accuracy:</strong> Your room curve is within a safe ±5 dB range. This environment is highly dependable for mixing.</li>`;
             }
 
-            // Early Reflection & boundary checking logic
             if (avgLow > avgMid * 1.4) {
                 analysisHtml += `<li>⚠️ <strong>Boundary Reflection Leak:</strong> Significant low-end frequency buildup detected around 100Hz–250Hz. Consider relocating monitors further away from corners.</li>`;
             }
