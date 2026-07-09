@@ -49,21 +49,6 @@
         .db-display { font-size: 4.5rem; font-weight: 800; line-height: 1; margin: 5px 0; color: var(--accent-green); }
         .db-label { font-size: 0.75rem; text-transform: uppercase; color: #a1a1aa; letter-spacing: 1.5px; }
 
-        /* --- HALVED STATUS BOX DESIGN --- */
-        .status-box-halved {
-            background-color: transparent; border: 2px solid var(--accent-green); border-radius: 12px;
-            padding: 16px; margin-bottom: 16px; display: flex; flex-direction: row; gap: 16px; min-height: 140px;
-            align-items: center; transition: border-color 0.3s ease;
-        }
-        .status-text-side { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-        .status-eq-side { flex: 1; width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; }
-        
-        .status-heading { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; color: var(--accent-green); }
-        .status-desc { font-size: 0.9rem; font-weight: bold; margin-bottom: 8px; color: var(--text-bright); }
-        .status-suggestion-text { font-size: 0.8rem; line-height: 1.3; color: #a1a1aa; }
-        
-        #eqCanvas { width: 100%; height: 100%; background-color: #0b0b0c; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
-
         .metrics-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
         }
@@ -74,7 +59,7 @@
         .metric-val { font-size: 1.4rem; font-weight: 700; color: var(--text-bright); margin-top: 4px; }
         .metric-lbl { font-size: 0.7rem; color: #a1a1aa; text-transform: uppercase; }
 
-        canvas#spectrumCanvas { width: 100%; height: 80px; background-color: #0b0b0c; border-radius: 6px; margin-top: 12px; }
+        canvas { width: 100%; height: 100px; background-color: #0b0b0c; border-radius: 6px; margin-top: 12px; }
 
         .section-title {
             font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #66fcf1; margin-bottom: 10px; padding-left: 4px;
@@ -93,11 +78,6 @@
         .log-diagnosis { font-size: 0.9rem; margin-bottom: 8px; color: var(--text-bright); line-height: 1.3; }
         .log-suggestion { font-size: 0.85rem; color: #a1a1aa; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); }
 
-        @media (max-width: 480px) {
-            .status-box-halved { flex-direction: column; align-items: stretch; }
-            .status-eq-side { height: 90px; }
-        }
-
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-15px); }
             to { opacity: 1; transform: translateY(0); }
@@ -115,17 +95,6 @@
     <button class="btn-prime" id="startBtn">Initialize Calibration Suite</button>
     <button class="btn-sweep" id="sweepBtn">Run Room Response Sweep (20Hz-20kHz)</button>
 
-    <div class="status-box-halved" id="statusBoxContainer">
-        <div class="status-text-side">
-            <div class="status-heading" id="liveStatusTitle">Status: Ready</div>
-            <div class="status-desc" id="liveStatusDiag">Engine Idle</div>
-            <div class="status-suggestion-text" id="liveStatusSugg">Boot up core diagnostic metrics to engage active environment tracking maps.</div>
-        </div>
-        <div class="status-eq-side">
-            <canvas id="eqCanvas"></canvas>
-        </div>
-    </div>
-
     <div class="meter-card">
         <div class="db-label">Linear Reference Tracker</div>
         <div class="db-display" id="dbValue">00.0</div>
@@ -138,3 +107,29 @@
             <div class="metric-lbl">LUFS Equivalent</div>
             <div class="metric-val" id="lufsVal">-Inf</div>
         </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">Dynamic Range (Crest)</div>
+            <div class="metric-val" id="crestVal">0.0 dB</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">Clarity vs Mud Ratio</div>
+            <div class="metric-val" id="mudVal">1.00</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">Acoustic Profiler</div>
+            <div class="metric-val" id="harshVal">Ready</div>
+        </div>
+    </div>
+
+    <div class="section-title">Analysis Timeline (Newest Top)</div>
+    <div class="log-container" id="coachLog">
+        <div class="log-item" style="border-left-color: #a1a1aa;">
+            <div class="log-title">Suite Hibernating</div>
+            <div class="log-diagnosis">Initialize core systems to load flat capsule tracking profiles.</div>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
