@@ -3,83 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AcoustiCoach Live</title>
+    <title>Acelynn Pro Audio Suite</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
-        #coach-box { margin-top: 30px; padding: 20px; border-radius: 10px; background: #1e1e1e; border: 2px solid #333; }
-        .WARNING { border-color: #ff9800 !important; color: #ff9800; }
-        .CRITICAL { border-color: #f44336 !important; color: #f44336; }
-        .BALANCED { border-color: #4caf50 !important; color: #4caf50; }
-        button { padding: 12px 24px; font-size: 16px; background: #00adb5; border: none; color: white; border-radius: 5px; cursor: pointer; }
+        :root {
+            --bg-color: #0b0c10;
+            --card-color: #1f2833;
+            --accent-green: #45f3ff;
+            --accent-yellow: #fbd46d;
+            --accent-red: #ff4a5a;
+            --text-main: #c5c6c7;
+            --text-bright: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 1.8rem; color: var(--text-bright); letter-spacing: 1px; }
+        p.subtitle { color: #66fcf1; margin: 4px 0 0 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        .btn-prime {
+            width: 100%; background-color: #1f2833; color: #66fcf1; border: 2px solid #66fcf1;
+            padding: 14px; border-radius: 8px; font-weight: 600; font-size: 1rem; margin-bottom: 16px;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn-prime:hover { background-color: #66fcf1; color: #0b0c10; }
+
+        .meter-card {
+            background-color: var(--card-color); border-radius: 12px; padding: 20px;
+            text-align: center; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .db-display { font-size: 4.5rem; font-weight: 800; line-height: 1; margin: 5px 0; color: var(--accent-green); }
+        .db-label { font-size: 0.75rem; text-transform: uppercase; color: #a1a1aa; letter-spacing: 1.5px; }
+
+        .metrics-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
+        }
+        .metric-tile {
+            background-color: var(--card-color); border-radius: 8px; padding: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .metric-val { font-size: 1.4rem; font-weight: 700; color: var(--text-bright); margin-top: 4px; }
+        .metric-lbl { font-size: 0.7rem; color: #a1a1aa; text-transform: uppercase; }
+
+        canvas { width: 100%; height: 100px; background-color: #0b0b0c; border-radius: 6px; margin-top: 12px; }
+
+        /* Historical Rolling List Container */
+        .section-title {
+            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #66fcf1; margin-bottom: 10px; padding-left: 4px;
+        }
+        .log-container {
+            display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; padding-bottom: 40px;
+        }
+        
+        /* Individual Log Item Styling */
+        .log-item {
+            background-color: var(--card-color); border-radius: 10px; padding: 16px;
+            border-left: 6px solid var(--accent-green); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease-out;
+        }
+        .log-time { font-size: 0.7rem; color: #a1a1aa; float: right; font-weight: bold; }
+        .log-title { font-weight: 700; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 6px; }
+        .log-diagnosis { font-size: 0.9rem; margin-bottom: 8px; color: var(--text-bright); line-height: 1.3; }
+        .log-suggestion { font-size: 0.85rem; color: #a1a1aa; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
-    <h1>AcoustiCoach</h1>
-    <button id="start-btn">Start Mic Analysis</button>
+<div class="container">
+    <header>
+        <h1>Acelynn Pro</h1>
+        <p class="subtitle">Acoustic & Mastering Suite</p>
+    </header>
 
-    <div id="coach-box" class="BALANCED">
-        <h2 id="status">Status: Ready</h2>
-        <p id="diagnosis">Click start to analyze your room's sound balance.</p>
-        <p><strong id="suggestion"></strong></p>
+    <button class="btn-prime" id="startBtn">Initialize Core Systems</button>
+
+    <div class="meter-card">
+        <div class="db-label">Short-Term Estimator</div>
+        <div class="db-display" id="dbValue">00.0</div>
+        <div class="db-label">Estimated dB SPL</div>
+        <canvas id="spectrumCanvas"></canvas>
     </div>
 
-    <script>
-        const startBtn = document.getElementById('start-btn');
-        const statusText = document.getElementById('status');
-        const diagnosisText = document.getElementById('diagnosis');
-        const suggestionText = document.getElementById('suggestion');
-        const coachBox = document.getElementById('coach-box');
+    <div class="metrics-grid">
+        <div class="metric-tile">
+            <div class="metric-lbl">LUFS Equivalent</div>
+            <div class="metric-val" id="lufsVal">-Inf</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">Dynamic Range (Crest)</div>
+            <div class="metric-val" id="crestVal">0.0 dB</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">Clarity vs Mud Ratio</div>
+            <div class="metric-val" id="mudVal">1.00</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">High-Freq Harshness</div>
+            <div class="metric-val" id="harshVal">Clean</div>
+        </div>
+    </div>
 
-        startBtn.addEventListener('click', async () => {
-            // 1. Request access to the microphone
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(stream);
-            
-            // 2. Create the Audio Analyzer
-            const analyzer = audioContext.createAnalyser();
-            analyzer.fftSize = 512; // Controls frequency resolution
-            source.connect(analyzer);
+    <div class="section-title">Analysis Timeline (Newest Top)</div>
+    <div class="log-container" id="coachLog">
+        <div class="log-item" style="border-left-color: #a1a1aa;">
+            <div class="log-title">Engine Ready</div>
+            <div class="log-diagnosis">System idling. Boot up core systems above to map your sound history.</div>
+        </div>
+    </div>
+</div>
 
-            const bufferLength = analyzer.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-
-            startBtn.style.display = 'none'; // Hide button once started
-            statusText.innerText = "Status: Analyzing Live...";
-
-            // 3. Loop the analysis in real-time
-            function analyze() {
-                analyzer.getByteFrequencyData(dataArray);
-
-                // Group frequencies into Bass and Mid/High groups
-                let lowEndEnergy = 0;
-                let harshZoneEnergy = 0;
-
-                // Simple bin approximations for 512 FFT size
-                for(let i = 0; i < 10; i++) lowEndEnergy += dataArray[i]; // Low bass
-                for(let i = 40; i < 80; i++) harshZoneEnergy += dataArray[i]; // ~2kHz - 4kHz harshness
-
-                // 4. Evaluate the data and change UI
-                if (lowEndEnergy > 2000) { 
-                    updateUI("WARNING", "Muddy Low-End Buildup", "Your bass frequencies are overwhelming the space. Try backing away from walls or adding a high-pass filter.");
-                } else if (harshZoneEnergy > 1800) {
-                    updateUI("CRITICAL", "Harsh Presence Zone Peak", "Vocals or upper mids are piercing. Apply a slight EQ dip around 3 kHz.");
-                } else {
-                    updateUI("BALANCED", "Acoustically Balanced", "Frequency response looks smooth. Keep tracking!");
-                }
-
-                requestAnimationFrame(analyze);
-            }
-            analyze();
-        });
-
-        function updateUI(status, diagnosis, suggestion) {
-            coachBox.className = status;
-            statusText.innerText = `Status: ${status}`;
-            diagnosisText.innerText = diagnosis;
-            suggestionText.innerText = `Suggestion: ${suggestion}`;
-        }
-    </script>
+<script src="app.js"></script>
 </body>
 </html>
