@@ -20,123 +20,106 @@
             padding: 20px; 
             line-height: 1.5; 
         }
-        h1 { 
-            color: #00adb5; 
-            font-weight: 700; 
-            margin-bottom: 5px; 
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
         .logo-container {
-            margin: 20px auto;
-            max-width: 150px;
+            margin: 40px auto 20px auto;
+            max-width: 160px;
+        }
+        .logo-img {
+            width: 100%;
+            height: auto;
+            border-radius: 16px;
+        }
+        h1 { 
+            color: #ffffff; 
+            font-size: 28px;
+            font-weight: 800; 
+            margin-top: 10px;
+            margin-bottom: 20px; 
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        h1 span {
+            color: #00adb5;
         }
         .subtitle {
             color: #94a3b8; 
-            margin-top: 0; 
-            font-size: 14px;
-            max-width: 400px;
+            margin-bottom: 40px;
+            font-size: 15px;
+            max-width: 340px;
             margin-left: auto;
             margin-right: auto;
         }
-        #appraisal-box { 
-            margin-top: 25px; 
-            padding: 25px; 
-            border-radius: 12px; 
-            background: #151518; 
-            border: 2px solid #2d2d34; 
-            text-align: left;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .controls { 
-            display: flex; 
-            justify-content: center; 
-            gap: 12px; 
-            margin-top: 25px; 
-            margin-bottom: 25px; 
-            flex-wrap: wrap; 
+        .button-group {
+            background: #111115;
+            border: 1px solid #1f1f24;
+            padding: 24px;
+            border-radius: 16px;
+            max-width: 340px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
         button { 
-            padding: 14px 28px; 
-            font-size: 15px; 
+            padding: 16px; 
+            font-size: 14px; 
             border: none; 
             color: white; 
-            border-radius: 6px; 
+            border-radius: 8px; 
             cursor: pointer; 
             font-weight: bold; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
             transition: background 0.2s, transform 0.1s; 
         }
         button:active {
-            transform: scale(0.98);
+            transform: scale(0.99);
         }
-        #photo-btn { background: #00adb5; width: 100%; max-width: 300px; }
-        #photo-btn:hover { background: #008c92; }
-        #images-btn { background: #1f2937; width: 100%; max-width: 300px; border: 1px solid #374151; }
-        #images-btn:hover { background: #111827; }
-
-        /* Dynamic Contextual Reverb Marketplace Card */
-        #reverb-container { 
-            margin-top: 20px; 
-            padding: 20px; 
-            border-radius: 12px; 
-            background: #1e120a; 
-            border: 2px solid #ea580c; 
-            text-align: left;
-            display: none; /* Hidden by default */
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 4px 20px rgba(234, 88, 12, 0.15);
+        #photo-btn { 
+            background: #00adb5; 
+            color: #0c0c0e;
         }
-        #post-reverb-btn { 
-            background: #ea580c; 
-            width: 100%; 
-            margin-top: 15px;
-            padding: 12px;
+        #photo-btn:hover { 
+            background: #00989e; 
         }
-        #post-reverb-btn:hover { background: #c2410c; }
-        
-        .result-item {
-            margin-bottom: 12px;
-            font-size: 15px;
+        #images-btn { 
+            background: #1f242f; 
+            color: #cbd5e1;
         }
-        .label { color: #64748b; font-weight: bold; text-transform: uppercase; font-size: 12px; display: block; }
-        .value { color: #f1f5f9; font-size: 16px; font-weight: 500; }
+        #images-btn:hover { 
+            background: #181c26; 
+        }
+        .footer {
+            margin-top: 80px;
+            font-size: 11px;
+            color: #475569;
+            letter-spacing: 0.5px;
+        }
+        .footer-studio {
+            margin-top: 4px;
+            color: #64748b;
+        }
     </style>
 </head>
 <body>
 
-    <h1>MachZero</h1>
-    <p class="subtitle">Instant valuation, dimensional diagnostics, and smart marketplace integrations.</p>
+    <div class="logo-container">
+        <img src="./acelynnpro.png" alt="MachZero Logo" class="logo-img">
+    </div>
 
-    <div class="controls">
+    <h1>MACH<span>ZERO</span></h1>
+    <p class="subtitle">Add multiple pictures to your batch to get a precise appraisal. Capture different details, close-ups of signatures, or angles of your item before analyzing.</p>
+
+    <div class="button-group">
         <button id="photo-btn">TAKE A PHOTO</button>
         <button id="images-btn">CHOOSE IMAGES</button>
     </div>
 
-    <!-- Core Appraisal Result Window -->
-    <div id="appraisal-box">
-        <h2 style="color: #00adb5; margin-top: 0; font-size: 18px; border-bottom: 1px solid #2d2d34; padding-bottom: 10px;">📋 Appraisal Diagnosis</h2>
-        <div id="appraisal-details">
-            <p style="color: #64748b; font-style: italic; text-align: center; margin: 20px 0;">Awaiting scan. Take a photo or upload an image to evaluate assets.</p>
-        </div>
+    <div class="footer">
+        <div>© 2026 MachZero™</div>
+        <div class="footer-studio">Powered by CactusByte Studios • All Rights Reserved</div>
     </div>
 
-    <!-- Hidden Contextual Reverb Portal: Only shows if item is an instrument -->
-    <div id="reverb-container">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 24px;">🎸</span>
-            <div>
-                <h3 style="color: #ea580c; margin: 0; font-size: 16px; font-weight: bold;">Musical Equipment Identified</h3>
-                <p style="margin: 2px 0 0 0; font-size: 13px; color: #94a3b8;">MachZero detected gear. You can push this straight to your store drafts.</p>
-            </div>
-        </div>
-        <button id="post-reverb-btn">SEND DRAFT TO REVERB.COM</button>
-    </div>
-
-    <!-- Include your script file -->
     <script src="./app.js"></script>
 </body>
 </html>
