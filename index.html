@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acelynn Pro</title>
     
-    <!-- Home Screen & Icon Configurations -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="acelynnpro.png">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./acelynnpro.png">
     <meta name="theme-color" content="#00adb5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -46,14 +45,12 @@
         <button id="sweep-btn">Run Room Sweep Test</button>
     </div>
 
-    <!-- Live Diagnosis Module -->
     <div id="coach-box" class="BALANCED">
         <h2 id="status">Status: Ready</h2>
         <p id="diagnosis">Click start to analyze your room's live sound balance.</p>
         <p><strong id="suggestion"></strong></p>
     </div>
 
-    <!-- Rolldown History Module with Fix Additions -->
     <div id="history-container">
         <div id="history-header">
             <span>📋 Diagnosis History Log</span>
@@ -64,7 +61,6 @@
         </div>
     </div>
 
-    <!-- Video-Inspired Post Analysis Module -->
     <div id="post-analysis-box">
         <h3 style="color: #00adb5; margin-top: 0;">📊 Room Calibration & Post-Analysis Report</h3>
         <p><strong>Calculated Room Profile Variance:</strong> <span id="variance-val">Analyzing...</span></p>
@@ -187,7 +183,6 @@
                         currentSuggestionMessage
                     );
                     
-                    // Added suggestion parameter directly to history generation loop
                     logToHistory(currentStatusMessage, currentSuggestionMessage);
                     lastUiUpdateTime = currentTime; 
                 }
@@ -266,6 +261,15 @@
             statusText.innerText = `Status: ${status}`;
             diagnosisText.innerText = diagnosis;
             suggestionText.innerText = `Suggestion: ${suggestion}`;
+        }
+
+        // NEW: Active Service Worker registration routine
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Acelynn Pro Engine Connected to Home Screen Launcher.'))
+                .catch(err => console.log('Connection failed: ', err));
+            });
         }
     </script>
 </body>
