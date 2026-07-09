@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acelynn - Artist SPL Meter</title>
+    <title>Acelynn Pro Audio Analyzer</title>
     <style>
         :root {
-            --bg-color: #121214;
-            --card-color: #1a1a1e;
-            --accent-green: #00e676;
-            --accent-yellow: #ffd600;
-            --accent-red: #ff1744;
-            --text-main: #ffffff;
+            --bg-color: #0b0c10;
+            --card-color: #1f2833;
+            --accent-green: #45f3ff;
+            --accent-yellow: #fbd46d;
+            --accent-red: #ff4a5a;
+            --text-main: #c5c6c7;
+            --text-bright: #ffffff;
         }
 
         body {
@@ -22,106 +23,88 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        h1 { margin: 0; font-size: 1.5rem; letter-spacing: 0.5px; }
-        p.subtitle { color: #8a8a93; margin: 4px 0 0 0; font-size: 0.85rem; }
-
-        .meter-card {
-            background-color: var(--card-color);
-            border-radius: 16px;
-            padding: 24px;
-            text-align: center;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            margin-bottom: 16px;
-        }
-
-        .db-display {
-            font-size: 4rem;
-            font-weight: 800;
-            line-height: 1;
-            margin: 10px 0;
-            color: var(--accent-green);
-            transition: color 0.2s ease;
-        }
-
-        .db-label {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            color: #8a8a93;
-            letter-spacing: 1px;
-        }
-
-        canvas {
-            width: 100%;
-            height: 140px;
-            background-color: #0b0b0c;
-            border-radius: 8px;
-            margin-top: 16px;
-        }
-
-        .coach-card {
-            background-color: var(--card-color);
-            border-radius: 16px;
-            padding: 20px;
-            border-left: 6px solid var(--accent-green);
-            transition: border-color 0.3s ease;
-        }
-
-        .coach-title {
-            font-weight: 700;
-            font-size: 1rem;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-            letter-spacing: 0.5px;
-        }
-
-        .coach-diagnosis { font-size: 0.95rem; margin-bottom: 12px; color: #e1e1e6; }
-        .coach-suggestion { font-size: 0.9rem; color: #a1a1aa; padding-top: 8px; border-top: 1px solid #2e2e33; }
+        .container { max-width: 600px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 1.8rem; color: var(--text-bright); letter-spacing: 1px; }
+        p.subtitle { color: #66fcf1; margin: 4px 0 0 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
 
         .btn-prime {
-            width: 100%;
-            background-color: #3f51b5;
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 1rem;
-            margin-bottom: 16px;
-            cursor: pointer;
+            width: 100%; background-color: #1f2833; color: #66fcf1; border: 2px solid #66fcf1;
+            padding: 14px; border-radius: 8px; font-weight: 600; font-size: 1rem; margin-bottom: 16px;
+            cursor: pointer; transition: all 0.2s ease;
         }
+        .btn-prime:hover { background-color: #66fcf1; color: #0b0c10; }
+
+        .meter-card {
+            background-color: var(--card-color); border-radius: 12px; padding: 20px;
+            text-align: center; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .db-display { font-size: 4.5rem; font-weight: 800; line-height: 1; margin: 5px 0; color: var(--accent-green); }
+        .db-label { font-size: 0.75rem; text-transform: uppercase; color: #a1a1aa; letter-spacing: 1.5px; }
+
+        /* The New Pro Metrics Grid */
+        .metrics-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+        }
+        .metric-tile {
+            background-color: var(--card-color); border-radius: 8px; padding: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .metric-val { font-size: 1.4rem; font-weight: 700; color: var(--text-bright); margin-top: 4px; }
+        .metric-lbl { font-size: 0.7rem; color: #a1a1aa; text-transform: uppercase; }
+
+        canvas { width: 100%; height: 100px; background-color: #0b0b0c; border-radius: 6px; margin-top: 12px; }
+
+        .coach-card {
+            background-color: var(--card-color); border-radius: 12px; padding: 20px;
+            border-left: 6px solid var(--accent-green); box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .coach-title { font-weight: 700; font-size: 1rem; text-transform: uppercase; margin-bottom: 6px; }
+        .coach-diagnosis { font-size: 0.95rem; margin-bottom: 10px; color: var(--text-bright); }
+        .coach-suggestion { font-size: 0.9rem; color: #a1a1aa; padding-top: 8px; border-top: 1px solid #45a29e; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Acelynn</h1>
-        <p class="subtitle">Real-time studio acoustic evaluator</p>
+        <h1>Acelynn Pro</h1>
+        <p class="subtitle">Acoustic & Mastering Suite</p>
     </header>
 
-    <button class="btn-prime" id="startBtn">Start Measurement</button>
+    <button class="btn-prime" id="startBtn">Initialize Core Systems</button>
 
     <div class="meter-card">
-        <div class="db-label">Approximate Level</div>
+        <div class="db-label">Short-Term Estimator</div>
         <div class="db-display" id="dbValue">00.0</div>
-        <div class="db-label">dB SPL (Est.)</div>
+        <div class="db-label">Estimated dB SPL</div>
         <canvas id="spectrumCanvas"></canvas>
     </div>
 
+    <div class="metrics-grid">
+        <div class="metric-tile">
+            <div class="metric-lbl">LUFS Equivalent</div>
+            <div class="metric-val" id="lufsVal">-Inf</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">Dynamic Range (Crest)</div>
+            <div class="metric-val" id="crestVal">0.0 dB</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">Clarity vs Mud Ratio</div>
+            <div class="metric-val" id="mudVal">1.00</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-lbl">High-Freq Harshness</div>
+            <div class="metric-val" id="harshVal">Clean</div>
+        </div>
+    </div>
+
     <div class="coach-card" id="coachCard">
-        <div class="coach-title" id="coachStatus" style="color: var(--accent-green);">System Ready</div>
-        <div class="coach-diagnosis" id="coachDiag">Tap start to analyze your mixing environment.</div>
-        <div class="coach-suggestion" id="coachSugg">Suggestions for speaker adjustment and EQ will appear here live.</div>
+        <div class="coach-title" id="coachStatus" style="color: var(--accent-green);">Engine Offline</div>
+        <div class="coach-diagnosis" id="coachDiag">Awaiting mic inputs.</div>
+        <div class="coach-suggestion" id="coachSugg">Launch the engine to process deep audio metrics and mastering advice.</div>
     </div>
 </div>
 
