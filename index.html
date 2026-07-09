@@ -44,7 +44,6 @@
         #finalReportBtn { background: #e03b5a; }
         .btn-action:active { opacity: 0.8; }
 
-        /* Real-Time Status Block */
         .status-box {
             border: 2px solid #20c997; border-radius: 12px; padding: 24px;
             text-align: center; margin-bottom: 20px; background-color: transparent;
@@ -53,7 +52,6 @@
         .status-diag { font-size: 1rem; color: #20c997; margin-bottom: 16px; font-weight: 500; }
         .status-sugg { font-size: 0.9rem; color: #20c997; line-height: 1.4; }
 
-        /* Timeline History Section */
         .section-card {
             background-color: #111116; border-radius: 12px; padding: 16px; margin-bottom: 20px;
         }
@@ -70,7 +68,7 @@
         .log-body { color: var(--text-bright); margin-left: 10px; margin-bottom: 2px; }
         .log-fix { color: #8a8a93; margin-left: 10px; font-style: italic; }
 
-        /* --- FINAL REPORT SUITE PANELS --- */
+        /* --- ADVANCED REPORT SUITE --- */
         .report-suite {
             background: linear-gradient(145deg, #130f26, #090714);
             border: 1px solid #ff416c; border-radius: 12px; padding: 20px;
@@ -93,7 +91,6 @@
         .block-diag { font-size: 0.85rem; color: #00fa9a; line-height: 1.4; margin-bottom: 4px; }
         .block-diag span { color: var(--text-bright); font-weight: normal; }
 
-        /* Blueprint Table Styles */
         .table-responsive { overflow-x: auto; margin-top: 10px; border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
         th { background-color: var(--table-header); color: #00ffff; padding: 10px; font-weight: 600; }
@@ -150,19 +147,28 @@
             📊 <strong>Acoustic Spectrum Allocation:</strong> Balanced Duty Cycle: <span id="allocBalanced">88%</span> | Low Boundary Coupling: <span id="allocCoupling">0%</span> | Mid-Range Comb Dispersion: <span id="allocDispersion">12%</span>
         </div>
 
+        <div class="allocation-box" style="border-left: 3px solid var(--accent-purple);">
+            🎛️ <strong>Stereo & Saturation Analysis:</strong> Phase Vector Correlation: <span id="allocPhase">+0.85 (Safe)</span> | Calculated Signal Distortion (THD+N): <span id="allocThd">0.02% (Clean)</span>
+        </div>
+
         <div class="report-block">
             <div class="block-title">🔊 1. Low-End Geometry & Sub-Bass Phase Decay</div>
-            <div class="block-diag">Diagnosis: Stable Low-End Linearity. <span id="reportLowEndDesc">Sub-bass decay rates fall within acceptable professional tolerances. Axial modes are not being critically excited at the current monitoring axis coordinates. No geometric displacement required.</span></div>
+            <div class="block-diag">Diagnosis: Stable Low-End Linearity. <span id="reportLowEndDesc">Sub-bass decay rates fall within acceptable professional tolerances. Axial modes are not being critically excited.</span></div>
         </div>
 
         <div class="report-block">
             <div class="block-title">⚡ 2. Early Reflections & Comb Filtering Matrix (2kHz - 4kHz)</div>
-            <div class="block-diag">Diagnosis: Clean Transient Phase Performance. <span id="reportMidEndDesc">Destructive comb filtering and flutter echo across reflection paths are nominal. Vocal intelligibility and stereo imaging localization thresholds are performing cleanly.</span></div>
+            <div class="block-diag">Diagnosis: Clean Transient Phase Performance. <span id="reportMidEndDesc">Destructive comb filtering and flutter echo across reflection paths are nominal. Stereo imaging thresholds are performing cleanly.</span></div>
         </div>
 
         <div class="report-block">
-            <div class="block-title">🎛️ 3. Surgical Parametric Equalizer Correction Blueprint</div>
-            <div class="block-diag">Diagnosis: Parametric Attenuation Target Calibration. <span>To mathematically flatten the monitor environment system before it strikes your ears, apply these targeted structural filtering curves directly to your software equalizer plugin (e.g., FabFilter Pro-Q 3, Sonarworks, or DAW Master Bus parametric strip):</span></div>
+            <div class="block-title">🛰️ 3. Stereo Correlation & High Air Dampening</div>
+            <div class="block-diag">Diagnosis: Vector Space Mapping. <span id="reportStereoAirDesc">Top-end air attenuation profiles are checked alongside width tracking maps to determine true imaging depth accuracy.</span></div>
+        </div>
+
+        <div class="report-block">
+            <div class="block-title">🎛️ 4. Surgical Parametric Equalizer Correction Blueprint</div>
+            <div class="block-diag">Diagnosis: Parametric Attenuation Target Calibration. <span>Apply these targeted structural filtering curves directly to your master channel or monitoring correction system:</span></div>
             
             <div class="table-responsive">
                 <table>
@@ -191,30 +197,44 @@
                             <td>Parametric Bell</td>
                         </tr>
                         <tr>
-                            <td>Band 3 (Comb Reflection)</td>
-                            <td class="txt-cyan" id="tableF3">3,150 Hz (3.1kHz)</td>
+                            <td>Band 3 (Muddy Low-Mids)</td>
+                            <td class="txt-cyan">450 Hz</td>
+                            <td id="tableG3_new">0.0 dB (Flat)</td>
+                            <td class="txt-purple">1.8 (Smooth Notch)</td>
+                            <td>Parametric Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 4 (Comb Reflection)</td>
+                            <td class="txt-cyan" id="tableF3">3,150 Hz</td>
                             <td id="tableG3">0.0 dB (Flat)</td>
                             <td class="txt-purple">5.0 (Surgical Sharp)</td>
                             <td>Dynamic Notch / Bell</td>
                         </tr>
                         <tr>
-                            <td>Band 4 (Air Presence Tuning)</td>
-                            <td class="txt-cyan" id="tableF4">12,000 Hz (12kHz)</td>
+                            <td>Band 5 (Harsh De-Essing)</td>
+                            <td class="txt-cyan">7,500 Hz</td>
+                            <td id="tableG5_new">0.0 dB (Flat)</td>
+                            <td class="txt-purple">3.0 (Precision Band)</td>
+                            <td>Dynamic Notch</td>
+                        </tr>
+                        <tr>
+                            <td>Band 6 (Air Presence Tuning)</td>
+                            <td class="txt-cyan" id="tableF4">16,000 Hz</td>
                             <td id="tableG4">+1.0 dB</td>
-                            <td class="txt-purple">0.7 (Wide Smoothing)</td>
+                            <td class="txt-purple">0.5 (Ultra-Wide Shelf)</td>
                             <td>High Shelf</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <div class="pro-tip">*Pro tip: Ensure your DAW equalizer plugin is switched to <strong>Linear Phase Mode</strong> when executing sharp low-end notch corrections to prevent phase-shifting smear around your transient points.</div>
+            <div class="pro-tip">*Pro tip: Ensure your DAW equalizer plugin is switched to <strong>Linear Phase Mode</strong> when executing sharp low-end corrections to prevent phase smear.</div>
         </div>
 
         <div class="hardware-steps">
-            <div class="block-title">🛠️ 4. Professional Hardware Calibration Next Steps</div>
+            <div class="block-title">🛠️ 5. Professional Hardware Calibration Next Steps</div>
             <ul>
-                <li><strong>Bypass Phone Microphones:</strong> Standard phone microphones compress signals automatically past 95dB and roll off below 40Hz. Always link a linear, omnidirectional measurement capsule (like the Behringer ECM8000) into an external interface before saving target curve metrics.</li>
-                <li><strong>Round-Trip Hardware Calibration:</strong> Run a continuous system validation profile inside free software utilities like Room EQ Wizard (REW) to parse a calibration file directly, creating a perfectly flat response curve tailored to your specific gear variables.</li>
+                <li><strong>Bypass Phone Microphones:</strong> Standard phone microphones compress signals automatically past 95dB and roll off below 40Hz. Always link a linear measurement capsule (like the Behringer ECM8000) into an external interface before saving target metrics.</li>
+                <li><strong>Phase Correlation Monitoring:</strong> Keep your correlation meter between 0 and +1. Avoid wide panning on sub-bass frequencies below 90Hz to maintain solid playback on consumer sound equipment.</li>
             </ul>
         </div>
     </div>
