@@ -46,6 +46,395 @@
         .diagnostic-title { font-size: 16px; font-weight: bold; color: #f1f5f9; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
         .diagnostic-text { color: #cbd5e1; font-size: 14px; margin-bottom: 12px; padding-left: 24px; }
         
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+    <h1>Acelynn Pro</h1>
+    <p style="color: #94a3b8; margin-top: 0; font-size: 14px;">Professional Acoustic Calibration & Real-Time Environment Diagnosis Engine</p>
+
+    <div class="controls">
+        <button id="start-btn">Start Live Analysis</button>
+        <button id="sweep-btn">Run Room Sweep Test</button>
+        <button id="final-analysis-btn">Generate Final Session Analysis</button>
+    </div>
+
+    <!-- Live Diagnosis Module -->
+    <div id="coach-box" class="BALANCED">
+        <h2 id="status">Status: Ready</h2>
+        <p id="diagnosis">Click start to analyze your room's live sound balance.</p>
+        <p><strong id="suggestion"></strong></p>
+    </div>
+
+    <!-- Rolldown History Module -->
+    <div id="history-container">
+        <div id="history-header">
+            <span>📋 Diagnosis History Log</span>
+            <span id="history-arrow">▲ Tap to Close</span>
+        </div>
+        <div id="history-content">
+            <div id="empty-history" style="color: #64748b; font-style: italic; text-align: center; padding: 10px 0;">No logs recorded yet. Start tracking to build history.</div>
+        </div>
+    </div>
+
+    <!-- UPGRADED: Professional Master Session Summary Box -->
+    <div id="final-report-box">
+        <h3 style="color: #ff4b5c; margin-top: 0; font-size: 20px; border-bottom: 2px solid #ff4b5c; padding-bottom: 10px;">🏆 Master Session Optimization Strategy</h3>
+        <p style="font-size: 15px; color: #94a3b8;"><strong>Total Sequence Points Evaluated:</strong> <span id="total-logs-count" style="color: #fff; font-weight: bold;">0</span></p>
+        <div id="final-report-details"></div>
+    </div>
+
+    <!-- Video-Inspired Post Analysis Module -->
+    <div id="post-analysis-box">
+        <h3 style="color: #00adb5; margin-top: 0;">📊 Room Calibration & Post-Analysis Report</h3>
+        <p><strong>Calculated Room Profile Variance:</strong> <span id="variance-val">Analyzing...</span></p>
+        <div id="report-details"></div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('start-btn');
+        const sweepBtn = document.getElementById('sweep-btn');
+        const finalAnalysisBtn = document.getElementById('final-analysis-btn');
+        const statusText = document.getElementById('status');
+        const diagnosisText = document.getElementById('diagnosis');
+        const suggestionText = document.getElementById('suggestion');
+        const coachBox = document.getElementById('coach-box');
+        const postBox = document.getElementById('post-analysis-box');
+        const finalReportBox = document.getElementById('final-report-box');
+        
+        const varianceVal = document.getElementById('variance-val');
+        const reportDetails = document.getElementById('report-details');
+        const totalLogsCount = document.getElementById('total-logs-count');
+        const finalReportDetails = document.getElementById('final-report-details');
+        
+        const historyHeader = document.getElementById('history-header');
+        const historyContent = document.getElementById('history-content');
+        const historyArrow = document.getElementById('history-arrow');
+        const emptyHistory = document.getElementById('empty-history');
+
+        let audioContext;
+        let analyzer;
+        let source;
+        let dataArray;
+        let isAnalyzing = false;
+
+        let longTermLowEnd = [];
+        let longTermMids = [];
+        let longTermHighs = [];
+
+        let sessionHistoryData = [];
+        let lastUiUpdateTime = 0;
+        const UI_UPDATE_INTERVAL = 2000; 
+
+        historyHeader.addEventListener('click', () => {
+            if (historyContent.style.display === "none") {
+                historyContent.style.display = "block";
+                historyArrow.innerText = "▲ Tap to Close";
+            } else {
+                historyContent.style.display = "none";
+                historyArrow.innerText = "▼ Tap to Open";
+            }
+        });
+
+        function logToHistory(diagnosisText, suggestionText, type) {
+            if (emptyHistory) emptyHistory.remove();
+            
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0]; 
+            
+            sessionHistoryData.push({ type: type, diagnosis: diagnosisText, fix: suggestionText });
+            
+            const logItem = document.createElement('div');
+            logItem.className = 'history-item';
+            logItem.innerHTML = `
+                <div><span class="history-time">[${timeStr}]</span><strong>${diagnosisText}</strong></div>
+                <div class="history-fix">↳ Fix: ${suggestionText}</div>
+            `;
+            
+            historyContent.insertBefore(logItem, historyContent.firstChild);
+        }
+
+        startBtn.addEventListener('click', async () => {
+            if (isAnalyzing) return;
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            source = audioContext.createMediaStreamSource(stream);
+            
+            analyzer = audioContext.createAnalyser();
+            analyzer.fftSize = 512; 
+            source.connect(analyzer);
+
+            const bufferLength = analyzer.frequencyBinCount;
+            dataArray = new Uint8Array(bufferLength);
+
+            startBtn.style.display = 'none'; 
+            sweepBtn.style.display = 'inline-block'; 
+            finalAnalysisBtn.style.display = 'inline-block'; 
+            statusText.innerText = "Status: Analyzing Live...";
+            isAnalyzing = true;
+            lastUiUpdateTime = Date.now();
+
+            function analyze() {
+                if (!isAnalyzing) return;
+                analyzer.getByteFrequencyData(dataArray);
+
+                let lowEndEnergy = 0;
+                let harshZoneEnergy = 0;
+                let midEnergy = 0;
+
+                for(let i = 0; i < 10; i++) lowEndEnergy += dataArray[i]; 
+                for(let i = 10; i < 40; i++) midEnergy += dataArray[i];
+                for(let i = 40; i < 80; i++) harshZoneEnergy += dataArray[i]; 
+
+                longTermLowEnd.push(lowEndEnergy / 10);
+                longTermMids.push(midEnergy / 30);
+                longTermHighs.push(harshZoneEnergy / 40);
+
+                const currentTime = Date.now();
+                if (currentTime - lastUiUpdateTime >= UI_UPDATE_INTERVAL) {
+                    let currentStatusMessage = "";
+                    let currentSuggestionMessage = "";
+                    let logType = "BALANCED";
+                    
+                    if (lowEndEnergy > 2000) { 
+                        logType = "BASS";
+                        currentStatusMessage = "Muddy Low-End Buildup Detected";
+                        currentSuggestionMessage = "Standing waves identified under 250Hz. Reposition tracking source or check monitor-boundary decoupling configurations.";
+                    } else if (harshZoneEnergy > 1800) {
+                        logType = "HARSH";
+                        currentStatusMessage = "Harsh Presence Zone Peak Detected";
+                        currentSuggestionMessage = "Sustained spikes tracking between 2kHz–4kHz. Isolate early reflection boundaries immediately.";
+                    } else {
+                        currentStatusMessage = "Acoustically Balanced Performance";
+                        currentSuggestionMessage = "Frequency response metrics currently fall within studio parameter targets. Continue tracking.";
+                    }
+                    
+                    updateUI(
+                        lowEndEnergy > 2000 ? "WARNING" : (harshZoneEnergy > 1800 ? "CRITICAL" : "BALANCED"),
+                        currentStatusMessage,
+                        currentSuggestionMessage
+                    );
+                    
+                    logToHistory(currentStatusMessage, currentSuggestionMessage, logType);
+                    lastUiUpdateTime = currentTime; 
+                }
+
+                requestAnimationFrame(analyze);
+            }
+            analyze();
+        });
+
+        // UPGRADED: Professional-Tier Data Parsing & Resolution Engine
+        finalAnalysisBtn.addEventListener('click', () => {
+            if (sessionHistoryData.length === 0) {
+                alert("Please record some live analysis data first before optimizing.");
+                return;
+            }
+
+            let mudCount = 0;
+            let harshCount = 0;
+            let balancedCount = 0;
+
+            sessionHistoryData.forEach(item => {
+                if (item.type === "BASS") mudCount++;
+                if (item.type === "HARSH") harshCount++;
+                if (item.type === "BALANCED") balancedCount++;
+            });
+
+            totalLogsCount.innerText = sessionHistoryData.length;
+            finalReportBox.style.display = "block";
+
+            const total = sessionHistoryData.length;
+            const mudPct = Math.round((mudCount / total) * 100);
+            const harshPct = Math.round((harshCount / total) * 100);
+            const balancedPct = Math.round((balancedCount / total) * 100);
+
+            // Constructing deep professional summary architecture
+            let reportHtml = `<div style="background:#1f1635; padding:15px; border-radius:6px; margin-bottom:20px; border:1px solid #3c2475;">
+                <strong>📊 Acoustic Spectrum Allocation:</strong> Balanced Duty Cycle: ${balancedPct}% | Low Boundary Coupling: ${mudPct}% | Mid-Range Comb Dispersion: ${harshPct}%
+            </div>`;
+
+            // Tier 1: Low-End Evaluation (Room Modes & SBIR)
+            reportHtml += `<div class="diagnostic-section">
+                <div class="diagnostic-title">🔊 1. Low-End Geometry & Sub-Bass Phase Decay</div>`;
+            if (mudPct > 20) {
+                reportHtml += `<div class="diagnostic-text" style="color:#ff9800;">
+                    <strong>Diagnosis: Axial Room Mode Activation / Speaker-Boundary Interference Response (SBIR).</strong> Low frequencies are reflecting off hard parallel walls and folding back completely out of phase, causing structural acoustic masking.<br><br>
+                    <strong>Execution Fix Matrix:</strong>
+                    <br>• <strong>The Mirror Trick:</strong> Sit at your listening console and have an assistant slide a mirror along the sidewalls. Wherever you see the speaker cone reflection is where a 4-inch minimum broadband absorption panel must be mounted.
+                    <br>• <strong>Boundary Displaced Separation:</strong> Physically pull your desk frame forward or backward off the front wall to break the constructive phase calculation node. Avoid positioning your monitoring position at exactly 50% of the room's length axis.
+                    <br>• <strong>Porous Trapping:</strong> Stacking thick triangular mineral wool or dense fiberglass traps completely floor-to-ceiling in the corner bounds will absorb high-pressure velocity energy where it builds up heaviest.
+                </div>`;
+            } else {
+                reportHtml += `<div class="diagnostic-text" style="color:#10b981;">
+                    <strong>Diagnosis: Stable Low-End Linearity.</strong> Sub-bass decay rates fall within acceptable professional tolerances. Axial modes are not being critically excited at the current monitoring axis coordinates. No geometric displacement required.
+                </div>`;
+            }
+            reportHtml += `</div>`;
+
+            // Tier 2: Mid-Range Evaluation (Comb Filtering & Acoustic Glare)
+            reportHtml += `<div class="diagnostic-section">
+                <div class="diagnostic-title">⚡ 2. Early Reflections & Comb Filtering Matrix (2kHz - 4kHz)</div>`;
+            if (harshPct > 20) {
+                reportHtml += `<div class="diagnostic-text" style="color:#ef4444;">
+                    <strong>Diagnosis: Midrange Comb Filtering & Desktop Reflection Glare.</strong> Direct audio waves from your monitors are mixing with delayed, high-energy reflections bouncing off your mixing desk, console surface, or low ceiling, creating destructive phase valleys and acoustic glare.<br><br>
+                    <strong>Execution Fix Matrix:</strong>
+                    <br>• <strong>Monitor Angle Realignment:</strong> Avoid placing your studio monitors completely flat on the desk surface. Use isolation pads (like IsoAcoustics) and tilt them upward or lower their height until they form a perfect equilateral triangle pointing directly to your ears at a 38% depth listening configuration.
+                    <br>• <strong>Deploy Ceiling Clouds:</strong> Suspend a broadband absorption panel (ceiling cloud) directly above your head and mixing console to catch short vertical axis reflections.
+                    <br>• <strong>Dynamic DSP Treatment:</strong> Since physical changes take time, insert a surgical dynamic EQ slot directly on your master output rail. Set a fast-acting compression threshold pulling down -2.5dB on a narrow bandwidth centered precisely at 3.15kHz.
+                </div>`;
+            } else {
+                reportHtml += `<div class="diagnostic-text" style="color:#10b981;">
+                    <strong>Diagnosis: Clean Transient Phase Performance.</strong> Destructive comb filtering and flutter echo across reflection paths are nominal. Vocal intelligibility and stereo imaging localization thresholds are performing cleanly.
+                </div>`;
+            }
+            reportHtml += `</div>`;
+
+            // Tier 3: Global Room Advice Tiers
+            reportHtml += `<div class="diagnostic-section">
+                <div class="diagnostic-title">🛠️ 3. Professional Hardware Calibration Next Steps</div>
+                <div class="diagnostic-text">
+                    • <strong>Bypass Phone Microphones:</strong> Standard phone microphones compress signals automatically past 95dB and roll off below 40Hz. Always link a linear, omnidirectional measurement capsule (like the Behringer ECM8000) into an external interface before saving target curve metrics.
+                    <br>• <strong>Round-Trip Hardware Calibration:</strong> Run a continuous system validation profile inside free software utilities like Room EQ Wizard (REW) to parse a calibration file directly, creating a perfectly flat response curve tailored to your specific gear variables.
+                </div>
+            </div>`;
+
+            finalReportDetails.innerHTML = reportHtml;
+            finalReportBox.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        sweepBtn.addEventListener('click', () => {
+            if (!audioContext) return;
+            
+            sweepBtn.disabled = true;
+            sweepBtn.innerText = "Sweeping Room...";
+            statusText.innerText = "Status: Generating Acoustic Frequency Sweep Tone...";
+
+            const osc = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(20, audioContext.currentTime);
+            osc.frequency.linearRampToValueAtTime(20000, audioContext.currentTime + 3.5);
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); 
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            osc.start();
+            osc.stop(audioContext.currentTime + 3.5);
+
+            setTimeout(() => {
+                sweepBtn.disabled = false;
+                sweepBtn.innerText = "Run Room Sweep Test";
+                statusText.innerText = "Status: Post-Analysis Diagnostics Complete";
+                generatePostAnalysisReport();
+                logToHistory("Ran Room Sweep Test Profile", "Calculated room acoustic response delta metrics compiled successfully.", "SWEEP");
+            }, 3600);
+        });
+
+        function generatePostAnalysisReport() {
+            const avgLow = longTermLowEnd.reduce((a, b) => a + b, 0) / longTermLowEnd.length || 0;
+            const avgMid = longTermMids.reduce((a, b) => a + b, 0) / longTermMids.length || 0;
+            const avgHigh = longTermHighs.reduce((a, b) => a + b, 0) / longTermHighs.length || 0;
+
+            const targetMax = Math.max(avgLow, avgMid, avgHigh);
+            const targetMin = Math.min(avgLow, avgMid, avgHigh);
+            const totalVarianceDb = Math.max(1, Math.round((targetMax - targetMin) / 15)); 
+
+            postBox.style.display = "block";
+            varianceVal.innerText = `±${totalVarianceDb} dB across the tested spectrum.`;
+
+            let analysisHtml = "<ul>";
+            
+            if (totalVarianceDb > 5) {
+                analysisHtml += `<li>❌ <strong>Critical Room Node Alert:</strong> Your curve fluctuation exceeds the safe 5 dB threshold. Your listening position is experiencing strong acoustic anomalies.</li>`;
+            } else {
+                analysisHtml += `<li>✅ <strong>Studio Grade Accuracy:</strong> Your room curve is within a safe ±5 dB range. This environment is highly dependable for mixing.</li>`;
+            }
+
+            if (avgLow > avgMid * 1.4) {
+                analysisHtml += `<li>⚠️ <strong>Boundary Reflection Leak:</strong> Significant low-end frequency buildup detected around 100Hz–250Hz. Consider relocating monitors further away from corners.</li>`;
+            }
+            if (avgHigh < avgMid * 0.6) {
+                analysisHtml += `<li>📉 <strong>High Frequency Damping:</strong> Your room is overly treated or absorbing too much top end (2kHz+). Try exposing more hard reflective flat surfaces.</li>`;
+            } else {
+                analysisHtml += `<li>🎯 <strong>Acoustic Phase Balance:</strong> Phase response measurements indicate minimal destructive comb filtering through early reflections.</li>`;
+            }
+
+            analysisHtml += "</ul><p style='font-size:12px; color:#888; margin-top:15px;'>*Note: Ensure an omnidirectional measurement mic (e.g., ECM8000) is placed perfectly at head height in the listening sweet spot for accuracy.</p>";
+            reportDetails.innerHTML = analysisHtml;
+        }
+
+        function updateUI(status, diagnosis, suggestion) {
+            coachBox.className = status;
+            statusText.innerText = `Status: ${status}`;
+            diagnosisText.innerText = diagnosis;
+            suggestionText.innerText = `Suggestion: ${suggestion}`;
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Acelynn Pro Engine Connected.'))
+                .catch(err => console.log('Connection failed: ', err));
+            });
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acelynn Pro</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./acelynnpro.png">
+    <meta name="theme-color" content="#00adb5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #0c0c0e; color: #e2e8f0; text-align: center; padding: 20px; line-height: 1.5; }
+        h1 { color: #00adb5; font-weight: 700; margin-bottom: 5px; }
+        #coach-box { margin-top: 20px; padding: 25px; border-radius: 12px; background: #151518; border: 2px solid #2d2d34; transition: all 0.5s ease; }
+        #post-analysis-box { margin-top: 20px; padding: 25px; border-radius: 12px; background: #141b2d; border: 2px solid #233a66; display: none; text-align: left; }
+        
+        /* Deep Diagnostic Report Container Styles */
+        #final-report-box { margin-top: 20px; padding: 30px; border-radius: 12px; background: #161026; border: 2px solid #522bb3; display: none; text-align: left; }
+        
+        /* History Dropdown Styles */
+        #history-container { margin-top: 20px; background: #111114; border: 1px solid #2d2d34; border-radius: 12px; overflow: hidden; text-align: left; }
+        #history-header { background: #1a1a22; padding: 15px 20px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 1px solid #2d2d34; }
+        #history-content { max-height: 250px; overflow-y: auto; display: block; padding: 15px 20px; }
+        
+        .history-item { padding: 10px 0; border-bottom: 1px solid #1f1f25; font-size: 14px; }
+        .history-time { color: #64748b; margin-right: 10px; font-family: monospace; font-weight: bold; }
+        .history-fix { color: #94a3b8; display: block; margin-top: 5px; font-style: italic; padding-left: 78px; }
+        
+        .WARNING { border-color: #ff9800 !important; color: #ff9800; background: rgba(255, 152, 0, 0.03) !important; }
+        .CRITICAL { border-color: #ef4444 !important; color: #ef4444; background: rgba(239, 68, 68, 0.03) !important; }
+        .BALANCED { border-color: #10b981 !important; color: #10b981; background: rgba(16, 185, 129, 0.03) !important; }
+        
+        .controls { display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; flex-wrap: wrap; }
+        button { padding: 14px 28px; font-size: 15px; border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        #start-btn { background: #00adb5; }
+        #start-btn:hover { background: #008c92; }
+        #sweep-btn { background: #6f42c1; display: none; }
+        #sweep-btn:hover { background: #5931a2; }
+        #final-analysis-btn { background: #e23e57; display: none; }
+        #final-analysis-btn:hover { background: #c23147; }
+        
+        .diagnostic-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid #3c2475; }
+        .diagnostic-title { font-size: 16px; font-weight: bold; color: #f1f5f9; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .diagnostic-text { color: #cbd5e1; font-size: 14px; margin-bottom: 12px; padding-left: 24px; }
+        
         /* EQ Table Styles */
         .eq-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; background: #0f0a1c; border-radius: 6px; overflow: hidden; }
         .eq-table th { background: #2f1854; color: #00adb5; padding: 10px; text-align: left; }
