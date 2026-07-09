@@ -71,12 +71,20 @@
             font-size: 0.9rem; font-weight: 600; color: var(--text-bright); margin-bottom: 12px;
         }
         
-        .log-container { display: flex; flex-direction: column; gap: 10px; }
-        .log-item { padding: 12px 0; border-bottom: 1px solid #1c1c24; font-size: 0.85rem; }
-        .log-item:last-child { border-bottom: none; }
-        .log-meta { color: #45f3ff; font-weight: 600; margin-bottom: 4px; }
-        .log-body { color: var(--text-bright); margin-left: 10px; margin-bottom: 2px; }
-        .log-fix { color: #8a8a93; margin-left: 10px; font-style: italic; }
+        .log-container { display: flex; flex-direction: column; gap: 12px; }
+        
+        /* Boxed Card Layouts (Stamps inside Timeline) */
+        .log-item { 
+            background-color: var(--card-color); border-radius: 10px; padding: 16px;
+            border-left: 6px solid var(--accent-green); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease-out; font-size: 0.85rem;
+        }
+        .log-time { font-size: 0.7rem; color: #8a8a93; float: right; font-weight: bold; }
+        .log-meta { font-weight: 700; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 6px; }
+        .log-body { color: var(--text-bright); line-height: 1.4; margin-bottom: 8px; }
+        .log-fix { font-size: 0.85rem; color: #b0b3b8; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1); }
+        
+        .sweep-sub-title { font-weight: bold; color: var(--accent-cyan); margin-top: 6px; display: block; }
 
         .report-suite {
             background: linear-gradient(145deg, #130f26, #090714);
@@ -107,6 +115,11 @@
         tr:last-child td { border-bottom: none; }
         .txt-cyan { color: #00ffff; }
         .txt-purple { color: #a485ff; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -135,9 +148,9 @@
             <span>📋 Real-Time Diagnostic Timeline Log</span>
         </div>
         <div class="log-container" id="coachLog">
-            <div class="log-item">
+            <div class="log-item" style="border-left-color: #8a8a93;">
                 <div class="log-meta">System Dormant</div>
-                <div class="log-body">↳ Multi-variable sound metrics will compile here inside the running session container.</div>
+                <div class="log-body">Multi-variable sound metrics and room sweep blueprints will compile here.</div>
             </div>
         </div>
     </div>
@@ -148,10 +161,6 @@
         
         <div class="allocation-box">
             📊 <strong>Acoustic Macro Profiles:</strong> Balanced Duty Cycle: <span id="allocBalanced">88%</span> | Low Boundary Coupling: <span id="allocCoupling">0%</span> | Mid-Range Comb Dispersion: <span id="allocDispersion">12%</span>
-        </div>
-
-        <div class="allocation-box" style="border-left: 3px solid var(--accent-purple);">
-            🛡️ <strong>Phase & Distortion Matrix Indices:</strong> Stereo Correlation: <span id="allocPhase">+0.88</span> | Total Signal Distortion (THD+N): <span id="allocThd">0.02%</span> | Estimated RT60 Decay: <span id="allocRt60">0.24s</span>
         </div>
 
         <div class="report-block">
@@ -165,12 +174,7 @@
         </div>
 
         <div class="report-block">
-            <div class="block-title">🔮 3. Transient Envelope Compression & Electrical Ceiling</div>
-            <div class="block-diag">Diagnosis: <span id="reportTransientDesc">Transient attack velocity limits calculated within nominal operating parameters.</span></div>
-        </div>
-
-        <div class="report-block">
-            <div class="block-title">🎛️ 4. Surgical Parametric Equalizer Correction Blueprint</div>
+            <div class="block-title">🎛️ 3. Surgical Parametric Equalizer Correction Blueprint</div>
             <div class="block-diag">Diagnosis: Parametric Attenuation Target Calibration. <span>Apply these micro-calibrated filtering adjustments straight to your master bus or room processing environment:</span></div>
             
             <div class="table-responsive">
@@ -237,10 +241,10 @@
                     </tbody>
                 </table>
             </div>
-            <div class="pro-tip">*Pro tip: Always reduce before boosting. Use narrow Q configurations (Q = 4 to 10) for surgical resonance cuts, and wide Q setups (Q = 0.5 to 1.5) for natural, musical tone shaping. Make adjustments in small, conservative increments of 1 to 3 dB.</div>
         </div>
     </div>
 </div>
 
-<script src="app.js"></script> </body>
+<script src="app.js"></script>
+</body>
 </html>
