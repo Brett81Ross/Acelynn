@@ -21,8 +21,6 @@
         /* History Dropdown Styles */
         #history-container { margin-top: 20px; background: #1a1a1a; border: 1px solid #444; border-radius: 10px; overflow: hidden; text-align: left; }
         #history-header { background: #2d2d2d; padding: 12px 20px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center; user-select: none; }
-        
-        /* Changed from display:none to display:block to open immediately */
         #history-content { max-height: 250px; overflow-y: auto; display: block; padding: 10px 20px; border-top: 1px solid #333; }
         
         .history-item { padding: 8px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; line-height: 1.4; }
@@ -61,7 +59,7 @@
         <p><strong id="suggestion"></strong></p>
     </div>
 
-    <!-- Rolldown History Module - Now open by default -->
+    <!-- Rolldown History Module -->
     <div id="history-container">
         <div id="history-header">
             <span>📋 Diagnosis History Log</span>
@@ -121,7 +119,6 @@
         let lastUiUpdateTime = 0;
         const UI_UPDATE_INTERVAL = 2000; 
 
-        // Toggling mechanism remains functional for manual closing/reopening
         historyHeader.addEventListener('click', () => {
             if (historyContent.style.display === "none") {
                 historyContent.style.display = "block";
@@ -221,6 +218,7 @@
             analyze();
         });
 
+        // FIXED: Comprehensive fallback logic for the Final Analysis Engine
         finalAnalysisBtn.addEventListener('click', () => {
             if (sessionHistoryData.length === 0) {
                 alert("Please record some live analysis data first before optimizing.");
@@ -241,18 +239,20 @@
             finalReportBox.style.display = "block";
 
             const total = sessionHistoryData.length;
-            let reportHtml = "<h4>🔍 Environmental Trend Discoveries:</h4><ul>";
+            const mudPct = Math.round((mudCount / total) * 100);
+            const harshPct = Math.round((harshCount / total) * 100);
+            const balancedPct = Math.round((balancedCount / total) * 100);
 
-            if (mudCount / total > 0.4) {
-                reportHtml += `<li><strong>Dominant Problem (Bass Mud):</strong> Over ${Math.round((mudCount/total)*100)}% of your session encountered standing waves below 250Hz. <br><span style="color:#ff9800;"><strong>Execution Action:</strong> Your monitors are boundary-coupling with the room structure. You must physically shift your mixing desk at least 8 inches away from rear boundaries or manually insert a shelving filter at 120Hz down by 3dB on your hardware setup.</span></li>`;
-            }
-            if (harshCount / total > 0.4) {
-                reportHtml += `<li><strong>Dominant Problem (High-Mid Fatigue):</strong> Piercing resonances between 2kHz–4kHz spikes appeared in ${Math.round((harshCount/total)*100)}% of evaluations. <br><span style="color:#f44336;"><strong>Execution Action:</strong> This points directly to severe acoustic reflection desk comb filtering. Place absorption panels at your primary side reflection walls, or deploy a dynamic processor targeting the 3.2kHz bracket on your vocal or master output rails.</span></li>`;
-            }
-            if (balancedCount / total > 0.7) {
-                reportHtml += `<li><strong>Dominant State (Optimized Room):</strong> Your creative environment maintained exceptional geometric phase alignment for the majority of monitoring.<br><span style="color:#4caf50;"><strong>Execution Action:</strong> No structural corrections necessary. Room response parameters match targets perfectly. Proceed safely with tracking.</span></li>`;
-            } else if (mudCount === harshCount && mudCount > 0) {
-                reportHtml += `<li><strong>Erratic Transient Fluctuations:</strong> The room balance keeps jumping between extreme low muddiness and high sharpness.<br><span style="color:#00adb5;"><strong>Execution Action:</strong> Your monitoring translation is highly unstable. Calibrate your playback system level to a locked 78dB SPL standard to ensure your ears receive flat linearity.</span></li>`;
+            let reportHtml = "<h4>🔍 Environmental Trend Discoveries:</h4><ul>";
+            reportHtml += `<li><strong>Session Breakdown:</strong> Balanced: ${balancedPct}% | Bass Mud: ${mudPct}% | Mid Harshness: ${harshPct}%</li>`;
+
+            // Flexible tier fallback checking so it NEVER returns blank text
+            if (mudCount > 0 && mudCount >= harshCount) {
+                reportHtml += `<li><strong style="color:#ff9800;">⚠️ Low-End Resonance Warning:</strong> Low frequencies accumulated weight during your tracking. Monitor placement adjustment or defensive EQ carving below 150Hz is advised to restore headroom.</li>`;
+            } else if (harshCount > 0 && harshCount > mudCount) {
+                reportHtml += `<li><strong style="color:#f44336;">❌ Upper Mid-Range Correction Required:</strong> Transient peaks between 2kHz–4kHz are causing local acoustic fatigue. Treat local hard surface reflections or introduce a dynamic EQ notch at 3.1kHz on the track stack.</li>`;
+            } else {
+                reportHtml += `<li><strong style="color:#4caf50;">✅ Stable Production Profile:</strong> The acoustic translation of the room is maintaining a flat and predictable signature. No heavy monitoring or structural environment tuning is needed.</li>`;
             }
 
             reportHtml += "</ul>";
