@@ -1,7 +1,7 @@
 let audioContext, analyser, micSource, dataArray, animationId;
 let calibrationNode;
 
-// Target element selectors
+// Target Element Selectors
 const sweepBtn = document.getElementById('sweepBtn');
 const finalReportBtn = document.getElementById('finalReportBtn');
 const statusContainer = document.getElementById('statusContainer');
@@ -10,7 +10,7 @@ const statusText = document.getElementById('statusText');
 const statusSuggestion = document.getElementById('statusSuggestion');
 const coachLog = document.getElementById('coachLog');
 
-// Summary panel selectors
+// Summary Panel Selectors
 const finalReportSuite = document.getElementById('finalReportSuite');
 const reportPointsQty = document.getElementById('reportPointsQty');
 const allocBalanced = document.getElementById('allocBalanced');
@@ -21,14 +21,14 @@ const allocPhaseVector = document.getElementById('allocPhaseVector');
 const reportLowEndDesc = document.getElementById('reportLowEndDesc');
 const reportMidEndDesc = document.getElementById('reportMidEndDesc');
 
-// Table component selectors
+// Table Component Selectors
 const tableG1 = document.getElementById('tableG1');
 const tableG2 = document.getElementById('tableG2');
 const tableG3_new = document.getElementById('tableG3_new');
 const tableG4 = document.getElementById('tableG4');
 const tableG5_new = document.getElementById('tableG5_new');
 
-// Anomaly counters
+// Analytical Metric State Registers
 let samplesCollectedCount = 0;
 let lastEvaluationTime = 0;
 const TIME_GAP = 3000; 
@@ -40,42 +40,106 @@ let harshTicks = 0;
 let airTicks = 0;
 
 let isAudioEngineRunning = false;
+let isSweepingActive = false;
 let sweepFramesCaptured = [];
 
-window.addEventListener('DOMContentLoaded', () => {
-    bootAudioCaptureStream();
-});
+// --- SEAMLESS ACCURATE BUTTON ACTION 1: RUN ROOM SWEEP & STREAM INITIALIZATION ---
+sweepBtn.addEventListener('click', async () => {
+    if (isSweepingActive) return;
 
-async function bootAudioCaptureStream() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        
-        micSource = audioContext.createMediaStreamSource(stream);
+    // First time click initialization handler to unlock mobile browser restrictions safely
+    if (!audioContext) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 512;
+            
+            micSource = audioContext.createMediaStreamSource(stream);
 
-        // Hardware linearization modeling node
-        calibrationNode = audioContext.createBiquadFilter();
-        calibrationNode.type = "highshelf";
-        calibrationNode.frequency.value = 120;
-        calibrationNode.gain.value = 6.0;
+            // Hardware linearization modeling node
+            calibrationNode = audioContext.createBiquadFilter();
+            calibrationNode.type = "highshelf";
+            calibrationNode.frequency.value = 120;
+            calibrationNode.gain.value = 6.0;
 
-        micSource.connect(calibrationNode);
-        calibrationNode.connect(analyser);
-        
-        dataArray = new Uint8Array(analyser.frequencyBinCount);
-        isAudioEngineRunning = true;
-        
-        lastEvaluationTime = performance.now();
-        executeAcousticEngineLoop();
-        
-        coachLog.innerHTML = "";
-        writeHistoryRow("System Online", "Omnidirectional measurement filter loaded.", "Awaiting diagnostic sweeps and positional calculations.");
-    } catch (err) {
-        updateLiveStatus("#ff416c", "Status: BLOCKED", "Microphone Focus Access Absent", "Please unlock microphone capture permissions inside your browser address parameters.");
+            micSource.connect(calibrationNode);
+            calibrationNode.connect(analyser);
+            
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+            isAudioEngineRunning = true;
+            
+            lastEvaluationTime = performance.now();
+            executeAcousticEngineLoop();
+            
+            coachLog.innerHTML = "";
+            writeHistoryRow("Engine Online", "Omnidirectional measurement filter initialized successfully.", "Starting hardware test sequence.");
+        } catch (err) {
+            alert("Microphone connection failed. Please check permissions in your web address bar settings.");
+            return;
+        }
     }
-}
+
+    // Force context resume state check if suspended by mobile power saving rules
+    if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+    }
+
+    // Initialize Active Acoustic Sine Test Sweep Sequence
+    isSweepingActive = true;
+    sweepFramesCaptured = [];
+    sweepBtn.disabled = true;
+    sweepBtn.textContent = "Sweeping Space...";
+    sweepBtn.style.background = "#ff416c";
+
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(20, audioContext.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(20000, audioContext.currentTime + 3.0);
+
+    gainNode.gain.setValueAtTime(0.001, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.2);
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 2.8);
+    gainNode.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 3.0);
+
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    osc.start();
+
+    const snapshotInterval = setInterval(() => {
+        if (!analyser) return;
+        let frame = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(frame);
+        sweepFramesCaptured.push(frame);
+    }, 50);
+
+    osc.stop(audioContext.currentTime + 3.0);
+
+    setTimeout(() => {
+        clearInterval(snapshotInterval);
+        isSweepingActive = false;
+        sweepBtn.disabled = false;
+        sweepBtn.textContent = "Run Room Sweep Test";
+        sweepBtn.style.background = "#5c3bc4";
+        
+        let lowVal = 255, highVal = 0;
+        for (let snapshot of sweepFramesCaptured) {
+            let midValue = snapshot[15] || 0; 
+            if (midValue < lowVal) lowVal = midValue;
+            if (midValue > highVal) highVal = midValue;
+        }
+        let variance = highVal - lowVal;
+        
+        if (variance > 85) {
+            writeHistoryRow("Sweep Report: Boundary Reflections High", `Acoustic test sweep recorded notable response variance (${variance} points).`, "Verify listener geometry. Form an equilateral triangle with speakers 4 to 6 feet apart.");
+        } else {
+            writeHistoryRow("Sweep Report: Linear Acoustic Profile", `Pristine room response baseline computed (${variance} points variance).`, "Monitors map accurate target parameters within acceptable tolerances.");
+        }
+    }, 3200);
+});
 
 function executeAcousticEngineLoop(timestamp) {
     if (!isAudioEngineRunning) return;
@@ -85,7 +149,8 @@ function executeAcousticEngineLoop(timestamp) {
 
     if (!timestamp) timestamp = performance.now();
 
-    if (timestamp - lastEvaluationTime > TIME_GAP) {
+    // Pause real-time logging alerts momentarily if an active room calibration tone sweep is firing
+    if (timestamp - lastEvaluationTime > TIME_GAP && !isSweepingActive) {
         processLiveMetrics();
         lastEvaluationTime = timestamp;
     }
@@ -94,11 +159,11 @@ function executeAcousticEngineLoop(timestamp) {
 function processLiveMetrics() {
     samplesCollectedCount++;
 
-    let subBass = dataArray[1] || 0;       // 20Hz - 60Hz 
-    let punchBass = dataArray[4] || 0;     // 80Hz - 250Hz
-    let boxyMid = dataArray[15] || 0;      // 250Hz - 500Hz
-    let presenceMid = dataArray[73] || 0;  // 1kHz - 4kHz
-    let topAir = dataArray[235] || 0;      // 10kHz - 20kHz
+    let subBass = dataArray[1] || 0;       
+    let punchBass = dataArray[4] || 0;     
+    let boxyMid = dataArray[15] || 0;      
+    let presenceMid = dataArray[73] || 0;  
+    let topAir = dataArray[235] || 0;      
 
     if (subBass > 165) subBassTicks++;
     if (punchBass > 155) punchTicks++;
@@ -106,7 +171,6 @@ function processLiveMetrics() {
     if (presenceMid > 140) harshTicks++;
     if (topAir < 40) airTicks++;
 
-    // Conditional tracking updates mapped precisely to calibration targets
     if (boxyMid > 150) {
         updateLiveStatus("#ffc107", "Status: REVERBERANT", 'Trouble Zone: 250 Hz - 500 Hz Peak', "Mud & boxiness identified. Gently cut this area if vocals or guitars sound cloudy or cardboard-like.");
         writeHistoryRow("Boxy Low-Mid Tracking Spike", "Acoustic density peak calculated near the 350Hz boundary region.", "Execute the 'Search and Destroy' method using a narrow Q configuration to isolate the specific tone.");
@@ -145,65 +209,9 @@ function writeHistoryRow(status, diagnosis, suggestion) {
     if (coachLog.children.length > 10) coachLog.removeChild(coachLog.lastChild);
 }
 
-// --- ACTIVE ACOUSTIC TEST SINE SWEEP ---
-sweepBtn.addEventListener('click', () => {
-    if (!audioContext) { bootAudioCaptureStream(); return; }
-    if (audioContext.state === 'suspended') audioContext.resume();
-
-    sweepFramesCaptured = [];
-    sweepBtn.disabled = true;
-    sweepBtn.textContent = "Sweeping Space...";
-    sweepBtn.style.background = "#ff416c";
-
-    const osc = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(20, audioContext.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(20000, audioContext.currentTime + 3.0);
-
-    gainNode.gain.setValueAtTime(0.001, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.2);
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 2.8);
-    gainNode.gain.linearRampToValueAtTime(0.001, audioContext.currentTime + 3.0);
-
-    osc.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    osc.start();
-
-    const snapshotInterval = setInterval(() => {
-        let frame = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(frame);
-        sweepFramesCaptured.push(frame);
-    }, 50);
-
-    osc.stop(audioContext.currentTime + 3.0);
-
-    setTimeout(() => {
-        clearInterval(snapshotInterval);
-        sweepBtn.disabled = false;
-        sweepBtn.textContent = "Run Room Sweep Test";
-        sweepBtn.style.background = "#5c3bc4";
-        
-        let lowVal = 255, highVal = 0;
-        for (let snapshot of sweepFramesCaptured) {
-            let midValue = snapshot[15] || 0; 
-            if (midValue < lowVal) lowVal = midValue;
-            if (midValue > highVal) highVal = midValue;
-        }
-        let variance = highVal - lowVal;
-        
-        if (variance > 85) {
-            writeHistoryRow("Sweep Report: Boundary Reflections High", `Acoustic test sweep recorded notable response variance (${variance} points).`, "Verify listener geometry. Form an equilateral triangle with speakers 4 to 6 feet apart.");
-        } else {
-            writeHistoryRow("Sweep Report: Linear Acoustic Profile", `Pristine room response baseline computed (${variance} points variance).`, "Monitors map accurate target parameters within acceptable tolerances.");
-        }
-    }, 3200);
-});
-
-// --- SURGICAL MASTER ANALYSIS GENERATION ---
+// --- SEAMLESS ACCURATE BUTTON ACTION 2: MASTERING STRATEGY OVERVIEW GENERATION ---
 finalReportBtn.addEventListener('click', () => {
+    // If clicked before running the sweep engine, inject mock data frames so the sheet renders flawlessly
     if (samplesCollectedCount === 0) {
         samplesCollectedCount = 17;
         subBassTicks = 1; punchTicks = 2; boxyTicks = 4; harshTicks = 3; airTicks = 2;
@@ -211,7 +219,6 @@ finalReportBtn.addEventListener('click', () => {
 
     reportPointsQty.textContent = samplesCollectedCount;
 
-    // Calculate allocation indices from metric registers
     let couplingFactor = Math.round((boxyTicks / samplesCollectedCount) * 40);
     let dispersionFactor = Math.round((harshTicks / samplesCollectedCount) * 30);
     let balancedFactor = Math.max(45, 100 - (couplingFactor + dispersionFactor));
@@ -220,14 +227,13 @@ finalReportBtn.addEventListener('click', () => {
     allocCoupling.textContent = `${couplingFactor}%`;
     allocDispersion.textContent = `${dispersionFactor}%`;
 
-    // Mathematical modeling equations to synthesize advanced reporting constraints
     let computedRt60 = (0.22 + (couplingFactor / 110)).toFixed(2);
     let computedPhase = (0.98 - (dispersionFactor / 150)).toFixed(2);
 
     allocRt60.textContent = `${computedRt60}s`;
     allocPhaseVector.textContent = `${computedPhase} (Linear Alignment)`;
 
-    // Band 1 Sub Bass Configuration
+    // Band 1 Sub Bass
     if (subBassTicks / samplesCollectedCount > 0.2) {
         reportLowEndDesc.textContent = "Sub & Low Bass (20 Hz - 60 Hz) values mandate absolute mono serialization; verify channel summation parameters to protect low-end translation stability across consumer speaker arrays.";
         tableG1.textContent = "Locked Mono / High-Pass Active";
@@ -270,7 +276,7 @@ finalReportBtn.addEventListener('click', () => {
         tableG5_new.className = "";
     }
 
-    // Smoothly reveal report panel onto view window array
+    // Smoothly reveal report panel overlay view down into the layout array frame
     finalReportSuite.style.display = "block";
     finalReportSuite.scrollIntoView({ behavior: 'smooth' });
 });
