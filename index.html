@@ -68,7 +68,7 @@
         .log-body { color: var(--text-bright); margin-left: 10px; margin-bottom: 2px; }
         .log-fix { color: #8a8a93; margin-left: 10px; font-style: italic; }
 
-        /* --- ADVANCED REPORT SUITE --- */
+        /* --- SCIENTIFIC CONFIGURATION PANELS --- */
         .report-suite {
             background: linear-gradient(145deg, #130f26, #090714);
             border: 1px solid #ff416c; border-radius: 12px; padding: 20px;
@@ -82,7 +82,7 @@
         
         .allocation-box {
             background-color: var(--panel-bg); border-radius: 6px; padding: 12px;
-            font-size: 0.85rem; line-height: 1.5; color: var(--text-bright); margin-bottom: 20px;
+            font-size: 0.85rem; line-height: 1.5; color: var(--text-bright); margin-bottom: 12px;
         }
         .allocation-box strong { color: var(--accent-cyan); }
 
@@ -112,7 +112,7 @@
 <div class="container">
     <header>
         <h1>Acelynn Pro</h1>
-        <p class="subtitle">Professional Acoustic Calibration & Real-Time Environment Diagnosis Engine</p>
+        <p class="subtitle">Acoustic Reference Measurement & Geometric Alignment Suite</p>
     </header>
 
     <div class="btn-group">
@@ -134,7 +134,7 @@
         <div class="log-container" id="coachLog">
             <div class="log-item">
                 <div class="log-meta">[00:00:00] Engine Idle</div>
-                <div class="log-body">↳ Live background calculations will stream structural flags here.</div>
+                <div class="log-body">↳ Awaiting streaming measurement parameters to calculate baseline response matrices.</div>
             </div>
         </div>
     </div>
@@ -148,27 +148,22 @@
         </div>
 
         <div class="allocation-box" style="border-left: 3px solid var(--accent-purple);">
-            🎛️ <strong>Stereo & Saturation Analysis:</strong> Phase Vector Correlation: <span id="allocPhase">+0.85 (Safe)</span> | Calculated Signal Distortion (THD+N): <span id="allocThd">0.02% (Clean)</span>
+            ⏱️ <strong>Temporal Reflection & Phase Matrices:</strong> Estimated RT60 Decay: <span id="allocRt60">0.28s</span> | Phase Coherence Angle: <span id="allocPhaseVector">0.96 (Linear)</span>
         </div>
 
         <div class="report-block">
             <div class="block-title">🔊 1. Low-End Geometry & Sub-Bass Phase Decay</div>
-            <div class="block-diag">Diagnosis: Stable Low-End Linearity. <span id="reportLowEndDesc">Sub-bass decay rates fall within acceptable professional tolerances. Axial modes are not being critically excited.</span></div>
+            <div class="block-diag">Diagnosis: <span id="reportLowEndDesc">Sub-bass spatial arrays conform to standard thresholds. Sub & Low Bass (20 Hz - 60 Hz) values mandate absolute mono serialization; verify channel summation parameters to protect low-end translation stability.</span></div>
         </div>
 
         <div class="report-block">
-            <div class="block-title">⚡ 2. Early Reflections & Comb Filtering Matrix (2kHz - 4kHz)</div>
-            <div class="block-diag">Diagnosis: Clean Transient Phase Performance. <span id="reportMidEndDesc">Destructive comb filtering and flutter echo across reflection paths are nominal. Stereo imaging thresholds are performing cleanly.</span></div>
+            <div class="block-title">⚡ 2. Early Reflections & Comb Filtering Matrix (1kHz - 4kHz)</div>
+            <div class="block-diag">Diagnosis: <span id="reportMidEndDesc">Midrange tracking matrix absolute. Frequencies across the Clarity & Presence (1 kHz - 4 kHz) lane govern speech intelligibility and structural attack signatures. Wide adjustments degrade acoustic localization indices.</span></div>
         </div>
 
         <div class="report-block">
-            <div class="block-title">🛰️ 3. Stereo Correlation & High Air Dampening</div>
-            <div class="block-diag">Diagnosis: Vector Space Mapping. <span id="reportStereoAirDesc">Top-end air attenuation profiles are checked alongside width tracking maps to determine true imaging depth accuracy.</span></div>
-        </div>
-
-        <div class="report-block">
-            <div class="block-title">🎛️ 4. Surgical Parametric Equalizer Correction Blueprint</div>
-            <div class="block-diag">Diagnosis: Parametric Attenuation Target Calibration. <span>Apply these targeted structural filtering curves directly to your master channel or monitoring correction system:</span></div>
+            <div class="block-title">🎛️ 3. Surgical Parametric Equalizer Correction Blueprint</div>
+            <div class="block-diag">Diagnosis: Parametric Attenuation Calibration Targets. <span>Apply these micro-calibrated filtering variables directly to your linear-phase parametric equalizer framework:</span></div>
             
             <div class="table-responsive">
                 <table>
@@ -183,63 +178,58 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Band 1 (Sub-Bass Mode)</td>
-                            <td class="txt-cyan" id="tableF1">45 Hz</td>
-                            <td id="tableG1">0.0 dB (Flat)</td>
-                            <td class="txt-purple">4.0 (Narrow Notch)</td>
-                            <td>Parametric Bell</td>
+                            <td>Band 1 (Sub-Bass Fundamental)</td>
+                            <td class="txt-cyan">20 Hz - 60 Hz</td>
+                            <td id="tableG1">0.0 dB (Mono Centered)</td>
+                            <td class="txt-purple">Mono Extraction Matrix</td>
+                            <td>Brickwall / Mono Utility</td>
                         </tr>
                         <tr>
-                            <td>Band 2 (Boundary Mud)</td>
-                            <td class="txt-cyan" id="tableF2">130 Hz</td>
+                            <td>Band 2 (Punch & Boom Fundamental)</td>
+                            <td class="txt-cyan">80 Hz - 250 Hz</td>
                             <td id="tableG2">0.0 dB (Flat)</td>
-                            <td class="txt-purple">2.5 (Medium Bell)</td>
+                            <td class="txt-purple">Q = 6.5 (Narrow Cut)</td>
                             <td>Parametric Bell</td>
                         </tr>
                         <tr>
-                            <td>Band 3 (Muddy Low-Mids)</td>
-                            <td class="txt-cyan">450 Hz</td>
+                            <td>Band 3 (Mud & Boxiness Anomaly)</td>
+                            <td class="txt-cyan">250 Hz - 500 Hz</td>
                             <td id="tableG3_new">0.0 dB (Flat)</td>
-                            <td class="txt-purple">1.8 (Smooth Notch)</td>
+                            <td class="txt-purple">Q = 2.5 (Surgical Notch)</td>
                             <td>Parametric Bell</td>
                         </tr>
                         <tr>
-                            <td>Band 4 (Comb Reflection)</td>
-                            <td class="txt-cyan" id="tableF3">3,150 Hz</td>
-                            <td id="tableG3">0.0 dB (Flat)</td>
-                            <td class="txt-purple">5.0 (Surgical Sharp)</td>
-                            <td>Dynamic Notch / Bell</td>
+                            <td>Band 4 (Clarity Presence Anchor)</td>
+                            <td class="txt-cyan">1 kHz - 4 kHz</td>
+                            <td id="tableG4">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 0.8 (Wide Smooth)</td>
+                            <td>Parametric / Dynamic Bell</td>
                         </tr>
                         <tr>
-                            <td>Band 5 (Harsh De-Essing)</td>
-                            <td class="txt-cyan">7,500 Hz</td>
-                            <td id="tableG5_new">0.0 dB (Flat)</td>
-                            <td class="txt-purple">3.0 (Precision Band)</td>
-                            <td>Dynamic Notch</td>
-                        </tr>
-                        <tr>
-                            <td>Band 6 (Air Presence Tuning)</td>
-                            <td class="txt-cyan" id="tableF4">16,000 Hz</td>
-                            <td id="tableG4">+1.0 dB</td>
-                            <td class="txt-purple">0.5 (Ultra-Wide Shelf)</td>
-                            <td>High Shelf</td>
+                            <td>Band 5 (Air & Sparkle Polish)</td>
+                            <td class="txt-cyan">10 kHz - 20 kHz</td>
+                            <td id="tableG5_new">+0.5 dB (Polished)</td>
+                            <td class="txt-purple">Q = 0.7 (Wide Smoothing)</td>
+                            <td>High Shelf / 20kHz LPF</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <div class="pro-tip">*Pro tip: Ensure your DAW equalizer plugin is switched to <strong>Linear Phase Mode</strong> when executing sharp low-end corrections to prevent phase smear.</div>
+            <div class="pro-tip">*Pro tip: Always reduce before boosting. Use narrow Q configurations (Q = 4 to 10) for surgical resonance cuts, and wide Q setups (Q = 0.5 to 1.5) for natural, musical tone shaping. Make adjustments in small, conservative increments of 1 to 3 dB.</div>
         </div>
 
         <div class="hardware-steps">
-            <div class="block-title">🛠️ 5. Professional Hardware Calibration Next Steps</div>
+            <div class="block-title">📏 4. Advanced Geometric Positioning & Calibration Guidelines</div>
             <ul>
-                <li><strong>Bypass Phone Microphones:</strong> Standard phone microphones compress signals automatically past 95dB and roll off below 40Hz. Always link a linear measurement capsule (like the Behringer ECM8000) into an external interface before saving target metrics.</li>
-                <li><strong>Phase Correlation Monitoring:</strong> Keep your correlation meter between 0 and +1. Avoid wide panning on sub-bass frequencies below 90Hz to maintain solid playback on consumer sound equipment.</li>
+                <li><strong>Speaker Placement & Geometry:</strong> Arrange your studio monitors and listening seat to form a perfect equilateral triangle (speakers 4 to 6 feet apart). Position the high-frequency tweeters exactly at ear height, toed-in 30 degrees toward the primary listening axis.</li>
+                <li><strong>Time Alignment Matrix:</strong> If utilizing independent subwoofers, calculate the distance variance relative to the primary main monitors. Apply precise delay adjustments of **2.9 ms per meter of distance** to achieve perfect wavefront phase alignment.</li>
+                <li><strong>Acoustic Boundaries:</strong> Control early specular reflections using high-density Acoustic Panels on lateral walls, and deploy dedicated Bass Traps in corner boundaries to neutralize low-end boundary coupling anomalies.</li>
+                <li><strong>Calibration Standards:</strong> Use software like Room EQ Wizard (REW) combined with a calibrated omnidirectional measurement microphone. Calibrate the entire playback array output to a target value of **85 dB SPL (C-weighted)** using pink noise markers. Adjust digital profiles toward a natural downward target slope of **-1.5 to -3 dB per octave** into the high-frequency limits.</li>
             </ul>
         </div>
     </div>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js"></style>
 </body>
 </html>
