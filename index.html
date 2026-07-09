@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acelynn Pro</title>
     
+    <!-- Home Screen & Icon Configurations -->
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./acelynnpro.png">
     <meta name="theme-color" content="#00adb5">
@@ -20,7 +21,10 @@
         /* History Dropdown Styles */
         #history-container { margin-top: 20px; background: #1a1a1a; border: 1px solid #444; border-radius: 10px; overflow: hidden; text-align: left; }
         #history-header { background: #2d2d2d; padding: 12px 20px; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; align-items: center; user-select: none; }
-        #history-content { max-height: 250px; overflow-y: auto; display: none; padding: 10px 20px; border-top: 1px solid #333; }
+        
+        /* Changed from display:none to display:block to open immediately */
+        #history-content { max-height: 250px; overflow-y: auto; display: block; padding: 10px 20px; border-top: 1px solid #333; }
+        
         .history-item { padding: 8px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; line-height: 1.4; }
         .history-time { color: #888; margin-right: 10px; font-family: monospace; font-weight: bold; }
         .history-fix { color: #aaa; display: block; margin-top: 3px; font-style: italic; padding-left: 78px; }
@@ -50,28 +54,32 @@
         <button id="final-analysis-btn">Generate Final Session Analysis</button>
     </div>
 
+    <!-- Live Diagnosis Module -->
     <div id="coach-box" class="BALANCED">
         <h2 id="status">Status: Ready</h2>
         <p id="diagnosis">Click start to analyze your room's live sound balance.</p>
         <p><strong id="suggestion"></strong></p>
     </div>
 
+    <!-- Rolldown History Module - Now open by default -->
     <div id="history-container">
         <div id="history-header">
             <span>📋 Diagnosis History Log</span>
-            <span id="history-arrow">▼ Tap to Open</span>
+            <span id="history-arrow">▲ Tap to Close</span>
         </div>
         <div id="history-content">
             <div id="empty-history" style="color: #666; font-style: italic; text-align: center; padding: 10px 0;">No logs recorded yet. Start tracking to build history.</div>
         </div>
     </div>
 
+    <!-- Master Session Summary Box -->
     <div id="final-report-box">
         <h3 style="color: #ff4b5c; margin-top: 0;">🏆 Master Session Optimization Strategy</h3>
         <p><strong>Total Sequence Points Evaluated:</strong> <span id="total-logs-count">0</span></p>
         <div id="final-report-details"></div>
     </div>
 
+    <!-- Video-Inspired Post Analysis Module -->
     <div id="post-analysis-box">
         <h3 style="color: #00adb5; margin-top: 0;">📊 Room Calibration & Post-Analysis Report</h3>
         <p><strong>Calculated Room Profile Variance:</strong> <span id="variance-val">Analyzing...</span></p>
@@ -109,18 +117,18 @@
         let longTermMids = [];
         let longTermHighs = [];
 
-        // Trackers specifically for final history processing algorithms
         let sessionHistoryData = [];
         let lastUiUpdateTime = 0;
         const UI_UPDATE_INTERVAL = 2000; 
 
+        // Toggling mechanism remains functional for manual closing/reopening
         historyHeader.addEventListener('click', () => {
-            if (historyContent.style.display === "block") {
-                historyContent.style.display = "none";
-                historyArrow.innerText = "▼ Tap to Open";
-            } else {
+            if (historyContent.style.display === "none") {
                 historyContent.style.display = "block";
                 historyArrow.innerText = "▲ Tap to Close";
+            } else {
+                historyContent.style.display = "none";
+                historyArrow.innerText = "▼ Tap to Open";
             }
         });
 
@@ -130,7 +138,6 @@
             const now = new Date();
             const timeStr = now.toTimeString().split(' ')[0]; 
             
-            // Push internal log object into the session history tracker array
             sessionHistoryData.push({ type: type, diagnosis: diagnosisText, fix: suggestionText });
             
             const logItem = document.createElement('div');
@@ -159,7 +166,7 @@
 
             startBtn.style.display = 'none'; 
             sweepBtn.style.display = 'inline-block'; 
-            finalAnalysisBtn.style.display = 'inline-block'; // Show final calculation trigger
+            finalAnalysisBtn.style.display = 'inline-block'; 
             statusText.innerText = "Status: Analyzing Live...";
             isAnalyzing = true;
             lastUiUpdateTime = Date.now();
@@ -214,14 +221,12 @@
             analyze();
         });
 
-        // NEW: Final History Analysis Engine 
         finalAnalysisBtn.addEventListener('click', () => {
             if (sessionHistoryData.length === 0) {
                 alert("Please record some live analysis data first before optimizing.");
                 return;
             }
 
-            // Aggregate metrics counters
             let mudCount = 0;
             let harshCount = 0;
             let balancedCount = 0;
@@ -235,11 +240,9 @@
             totalLogsCount.innerText = sessionHistoryData.length;
             finalReportBox.style.display = "block";
 
-            // Calculate ratios
             const total = sessionHistoryData.length;
             let reportHtml = "<h4>🔍 Environmental Trend Discoveries:</h4><ul>";
 
-            // Conditional diagnostic generation logic based on timeline distribution
             if (mudCount / total > 0.4) {
                 reportHtml += `<li><strong>Dominant Problem (Bass Mud):</strong> Over ${Math.round((mudCount/total)*100)}% of your session encountered standing waves below 250Hz. <br><span style="color:#ff9800;"><strong>Execution Action:</strong> Your monitors are boundary-coupling with the room structure. You must physically shift your mixing desk at least 8 inches away from rear boundaries or manually insert a shelving filter at 120Hz down by 3dB on your hardware setup.</span></li>`;
             }
@@ -255,7 +258,6 @@
             reportHtml += "</ul>";
             finalReportDetails.innerHTML = reportHtml;
             
-            // Scroll down automatically to show the user their actionable report
             finalReportBox.scrollIntoView({ behavior: 'smooth' });
         });
 
