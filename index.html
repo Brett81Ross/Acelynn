@@ -46,6 +46,11 @@
         .diagnostic-title { font-size: 16px; font-weight: bold; color: #f1f5f9; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
         .diagnostic-text { color: #cbd5e1; font-size: 14px; margin-bottom: 12px; padding-left: 24px; }
         
+        /* EQ Table Styles */
+        .eq-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; background: #0f0a1c; border-radius: 6px; overflow: hidden; }
+        .eq-table th { background: #2f1854; color: #00adb5; padding: 10px; text-align: left; }
+        .eq-table td { padding: 10px; border-bottom: 1px solid #25183a; color: #e2e8f0; }
+        
         ul { padding-left: 20px; }
         li { margin-bottom: 8px; }
     </style>
@@ -79,7 +84,7 @@
         </div>
     </div>
 
-    <!-- UPGRADED: Professional Master Session Summary Box -->
+    <!-- Master Session Summary Box -->
     <div id="final-report-box">
         <h3 style="color: #ff4b5c; margin-top: 0; font-size: 20px; border-bottom: 2px solid #ff4b5c; padding-bottom: 10px;">🏆 Master Session Optimization Strategy</h3>
         <p style="font-size: 15px; color: #94a3b8;"><strong>Total Sequence Points Evaluated:</strong> <span id="total-logs-count" style="color: #fff; font-weight: bold;">0</span></p>
@@ -227,7 +232,6 @@
             analyze();
         });
 
-        // UPGRADED: Professional-Tier Data Parsing & Resolution Engine
         finalAnalysisBtn.addEventListener('click', () => {
             if (sessionHistoryData.length === 0) {
                 alert("Please record some live analysis data first before optimizing.");
@@ -252,12 +256,11 @@
             const harshPct = Math.round((harshCount / total) * 100);
             const balancedPct = Math.round((balancedCount / total) * 100);
 
-            // Constructing deep professional summary architecture
             let reportHtml = `<div style="background:#1f1635; padding:15px; border-radius:6px; margin-bottom:20px; border:1px solid #3c2475;">
                 <strong>📊 Acoustic Spectrum Allocation:</strong> Balanced Duty Cycle: ${balancedPct}% | Low Boundary Coupling: ${mudPct}% | Mid-Range Comb Dispersion: ${harshPct}%
             </div>`;
 
-            // Tier 1: Low-End Evaluation (Room Modes & SBIR)
+            // Tier 1: Low-End Evaluation
             reportHtml += `<div class="diagnostic-section">
                 <div class="diagnostic-title">🔊 1. Low-End Geometry & Sub-Bass Phase Decay</div>`;
             if (mudPct > 20) {
@@ -275,7 +278,7 @@
             }
             reportHtml += `</div>`;
 
-            // Tier 2: Mid-Range Evaluation (Comb Filtering & Acoustic Glare)
+            // Tier 2: Mid-Range Evaluation
             reportHtml += `<div class="diagnostic-section">
                 <div class="diagnostic-title">⚡ 2. Early Reflections & Comb Filtering Matrix (2kHz - 4kHz)</div>`;
             if (harshPct > 20) {
@@ -284,7 +287,6 @@
                     <strong>Execution Fix Matrix:</strong>
                     <br>• <strong>Monitor Angle Realignment:</strong> Avoid placing your studio monitors completely flat on the desk surface. Use isolation pads (like IsoAcoustics) and tilt them upward or lower their height until they form a perfect equilateral triangle pointing directly to your ears at a 38% depth listening configuration.
                     <br>• <strong>Deploy Ceiling Clouds:</strong> Suspend a broadband absorption panel (ceiling cloud) directly above your head and mixing console to catch short vertical axis reflections.
-                    <br>• <strong>Dynamic DSP Treatment:</strong> Since physical changes take time, insert a surgical dynamic EQ slot directly on your master output rail. Set a fast-acting compression threshold pulling down -2.5dB on a narrow bandwidth centered precisely at 3.15kHz.
                 </div>`;
             } else {
                 reportHtml += `<div class="diagnostic-text" style="color:#10b981;">
@@ -293,9 +295,60 @@
             }
             reportHtml += `</div>`;
 
-            // Tier 3: Global Room Advice Tiers
+            // NEW: Tier 3: Parametric Equalizer Analysis & Numerical Target Matrix
             reportHtml += `<div class="diagnostic-section">
-                <div class="diagnostic-title">🛠️ 3. Professional Hardware Calibration Next Steps</div>
+                <div class="diagnostic-title">🎛️ 3. Surgical Parametric Equalizer Correction Blueprint</div>
+                <div class="diagnostic-text">
+                    <strong>Diagnosis: Parametric Attenuation Target Calibration.</strong> To mathematically flatten the monitor environment system before it strikes your ears, apply these targeted structural filtering curves directly to your software equalizer plugin (e.g., FabFilter Pro-Q 3, Sonarworks, or DAW Master Bus parametric strip):
+                    
+                    <table class="eq-table">
+                        <thead>
+                            <tr>
+                                <th>Band Position</th>
+                                <th>Target Frequency</th>
+                                <th>Gain Calculation</th>
+                                <th>Q-Factor (Bandwidth)</th>
+                                <th>Filter Profile Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Band 1 (Sub-Bass Mode)</td>
+                                <td>45 Hz</td>
+                                <td>${mudPct > 20 ? '-4.5 dB' : '0.0 dB (Flat)'}</td>
+                                <td>4.0 (Narrow Notch)</td>
+                                <td>Parametric Bell</td>
+                            </tr>
+                            <tr>
+                                <td>Band 2 (Boundary Mud)</td>
+                                <td>130 Hz</td>
+                                <td>${mudPct > 20 ? '-3.0 dB' : '0.0 dB (Flat)'}</td>
+                                <td>2.5 (Medium Bell)</td>
+                                <td>Parametric Bell</td>
+                            </tr>
+                            <tr>
+                                <td>Band 3 (Comb Reflection)</td>
+                                <td>3,150 Hz (3.1kHz)</td>
+                                <td>${harshPct > 20 ? '-2.5 dB' : '0.0 dB (Flat)'}</td>
+                                <td>5.0 (Surgical Sharp)</td>
+                                <td>Dynamic Notch / Bell</td>
+                            </tr>
+                            <tr>
+                                <td>Band 4 (Air Presence Tuning)</td>
+                                <td>12,000 Hz (12kHz)</td>
+                                <td>+1.0 dB</td>
+                                <td>0.7 (Wide Smoothing)</td>
+                                <td>High Shelf</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <br><em>*Pro tip: Ensure your DAW equalizer plugin is switched to <strong>Linear Phase Mode</strong> when executing sharp low-end notch corrections to prevent phase-shifting smear around your transient points.</em>
+                </div>
+            </div>`;
+
+            // Tier 4: Global Room Advice Tiers
+            reportHtml += `<div class="diagnostic-section">
+                <div class="diagnostic-title">🛠️ 4. Professional Hardware Calibration Next Steps</div>
                 <div class="diagnostic-text">
                     • <strong>Bypass Phone Microphones:</strong> Standard phone microphones compress signals automatically past 95dB and roll off below 40Hz. Always link a linear, omnidirectional measurement capsule (like the Behringer ECM8000) into an external interface before saving target curve metrics.
                     <br>• <strong>Round-Trip Hardware Calibration:</strong> Run a continuous system validation profile inside free software utilities like Room EQ Wizard (REW) to parse a calibration file directly, creating a perfectly flat response curve tailored to your specific gear variables.
