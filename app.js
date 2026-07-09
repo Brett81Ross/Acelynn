@@ -1,7 +1,7 @@
 let audioContext, analyser, micSource, dataArray, animationId;
 let calibrationNode;
 
-// Dom selectors
+// Dom Element Selectors
 const powerBtn = document.getElementById('powerBtn');
 const functionalControls = document.getElementById('functionalControls');
 const sweepBtn = document.getElementById('sweepBtn');
@@ -12,7 +12,7 @@ const statusText = document.getElementById('statusText');
 const statusSuggestion = document.getElementById('statusSuggestion');
 const coachLog = document.getElementById('coachLog');
 
-// Summary panel fields
+// Summary Panel Selectors
 const finalReportSuite = document.getElementById('finalReportSuite');
 const reportPointsQty = document.getElementById('reportPointsQty');
 const allocBalanced = document.getElementById('allocBalanced');
@@ -25,7 +25,7 @@ const reportLowEndDesc = document.getElementById('reportLowEndDesc');
 const reportMidEndDesc = document.getElementById('reportMidEndDesc');
 const reportTransientDesc = document.getElementById('reportTransientDesc');
 
-// Extended 7-Band structural cells
+// EQ Blueprint Cells
 const tableG1 = document.getElementById('tableG1');
 const tableG2 = document.getElementById('tableG2');
 const tableG3_new = document.getElementById('tableG3_new');
@@ -34,7 +34,7 @@ const tableG4 = document.getElementById('tableG4');
 const tableG5_sib = document.getElementById('tableG5_sib');
 const tableG5_new = document.getElementById('tableG5_new');
 
-// Anomaly counters
+// Analytical Ticks registers
 let samplesCollectedCount = 0;
 let lastEvaluationTime = 0;
 const TIME_GAP = 3000; 
@@ -54,9 +54,8 @@ let isAudioEngineRunning = false;
 let isSweepingActive = false;
 let sweepFramesCaptured = [];
 
-// --- BOOT PROCESSOR ---
-powerBtn.addEventListener('click', async () => {
-    if (isAudioEngineRunning) { stopAudioEngine(); return; }
+// --- CORE SYSTEM BOOT FUNCTION ---
+async function startHardwareStream() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -82,14 +81,21 @@ powerBtn.addEventListener('click', async () => {
         powerBtn.style.color = "white";
 
         coachLog.innerHTML = "";
-        updateLiveStatus("#00fa9a", "Status: BALANCED", "System Monitoring Engaged", "Integrated data allocation pathways running. Real-time parameters active.");
-        writeHistoryRow("System Online", "10-Vector sound diagnostic array loaded.", "Awaiting signal parameters or hardware calibration triggers.");
+        updateLiveStatus("#00fa9a", "Status: BALANCED", "System Monitoring Engaged", "All 10 monitoring diagnostic layers initialized.");
+        writeHistoryRow("System Online", "Acoustic baseline engine running.", "Awaiting sweep test routines.");
         
         lastEvaluationTime = performance.now();
         executeAcousticEngineLoop();
+        return true;
     } catch (err) {
-        alert("Microphone configuration failure. Clear block flags inside device options.");
+        alert("Microphone stream block. Please verify permission settings in your web browser options.");
+        return false;
     }
+}
+
+powerBtn.addEventListener('click', async () => {
+    if (isAudioEngineRunning) { stopAudioEngine(); } 
+    else { await startHardwareStream(); }
 });
 
 function stopAudioEngine() {
@@ -102,7 +108,7 @@ function stopAudioEngine() {
     powerBtn.textContent = "Tap to Power On Engine";
     powerBtn.style.backgroundColor = "#00fa9a";
     powerBtn.style.color = "#050508";
-    updateLiveStatus("#8a8a93", "Status: OFFLINE", "Hardware Engine Suspended", "Awaiting execution parameters.");
+    updateLiveStatus("#8a8a93", "Status: OFFLINE", "Hardware Engine Suspended", "Awaiting initialization parameters.");
 }
 
 function executeAcousticEngineLoop(timestamp) {
@@ -154,23 +160,17 @@ function processLiveMetrics() {
     if (transientSmeared) smearedTransientTicks++;
 
     if (isClipping) {
-        updateLiveStatus("#ff416c", "Status: CLIPPING / THD", 'Vector Saturation Ceiling Warning', "Total Harmonic Distortion limits exceeded. Preamplifier structure or master output gain is clipping.");
-        writeHistoryRow("Harmonic Saturation Alert", "Calculated THD parameters exceed nominal system ceiling limits.", "Back down interface preamp trims or final master gain processing slots.");
+        updateLiveStatus("#ff416c", "Status: CLIPPING / THD", 'Vector Saturation Ceiling Warning', "Total Harmonic Distortion limits exceeded.");
+        writeHistoryRow("Harmonic Saturation Alert", "Calculated THD parameters exceed nominal system ceiling limits.", "Back down monitoring trims.");
     } else if (isStereoPhaseCancelled) {
-        updateLiveStatus("#8a2be2", "Status: PHASE ERROR", 'Stereo Correlation Defect Mapped', "Anti-phase anomalies present. Sound waves will collide and cancel themselves out inside mono speaker arrays.");
-        writeHistoryRow("Phase Correlation Collapse", "Asymmetrical phase properties identified across middle spectrum lanes.", "Sum sub frequencies under 90Hz to mono or evaluate stereo wide imager plugins.");
-    } else if (transientSmeared) {
-        updateLiveStatus("#ffc107", "Status: SMEARED TRANSIENTS", 'Transient Envelope Sluggishness', "Acoustic envelope attack velocities are blurred. Monitor reflections or heavy master bus compression are destroying punch.");
-        writeHistoryRow("Transient Velocity Blur", "Attack transients display slow amplitude decay ratios.", "Verify monitor placement guidelines. Open up compressor attack times to let transients punch through.");
-    } else if (consoleComb > 145) {
-        updateLiveStatus("#ffc107", "Status: COMB FILTERING", 'Desk Specular Reflection Detected (~1.2kHz)', "Sound waves are bouncing off your mixing console or desktop surface before reaching your ears.");
-        writeHistoryRow("Console Reflection Buildup", "Comb filtering notch identified near the 1.2kHz frequency window.", "Tilt monitors slightly upward or place foam acoustic absorption directly onto reflective desk areas.");
+        updateLiveStatus("#8a2be2", "Status: PHASE ERROR", 'Stereo Correlation Defect Mapped', "Anti-phase anomalies present.");
+        writeHistoryRow("Phase Correlation Collapse", "Asymmetrical phase properties identified.", "Sum low frequencies to mono.");
     } else if (boxyMid > 150) {
-        updateLiveStatus("#ffc107", "Status: BOXY / MUDDY", 'Trouble Zone: 250 Hz - 500 Hz Accumulation', "Mud and cardboard anomalies identified. Elements are masking clarity layers.");
-        writeHistoryRow("Boxy Tonal Buildup Mapped", "Density spike located around the lower mid-range frequency bands.", "Apply a targeted corrective cut inside problem channels to return structural separation.");
+        updateLiveStatus("#ffc107", "Status: BOXY / MUDDY", 'Trouble Zone: 250 Hz - 500 Hz Accumulation', "Mud and cardboard anomalies identified.");
+        writeHistoryRow("Boxy Tonal Buildup Mapped", "Density spike located around the lower mid-range frequency bands.", "Apply a targeted corrective cut.");
     } else {
-        updateLiveStatus("#00fa9a", "Status: BALANCED", "Acoustically Balanced Performance", "All 10 monitored environmental parameters comply cleanly with professional target curves.");
-        writeHistoryRow("Acoustically Balanced Performance", "System baseline linearity tracks smoothly. Environmental criteria nominal.", "Continue tracking.");
+        updateLiveStatus("#00fa9a", "Status: BALANCED", "Acoustically Balanced Performance", "All 10 monitored environmental parameters comply cleanly with targets.");
+        writeHistoryRow("Acoustically Balanced Performance", "System baseline linearity tracks smoothly.", "Continue tracking.");
     }
 }
 
@@ -197,17 +197,27 @@ function writeHistoryRow(status, diagnosis, suggestion) {
     if (coachLog.children.length > 8) coachLog.removeChild(coachLog.lastChild);
 }
 
-// --- ACTIVE SINE SWEEP CONTROLLER ---
+// --- BULLETPROOF SINE WAVE TEST SWEEP ROUTINE ---
 sweepBtn.addEventListener('click', async () => {
-    if (!audioContext || isSweepingActive) return;
-    if (audioContext.state === 'suspended') await audioContext.resume();
+    if (isSweepingActive) return;
+
+    // AUTO-WAKE: If the audio engine isn't running yet, boot it up on the fly
+    if (!audioContext) {
+        const streamBootSuccess = await startHardwareStream();
+        if (!streamBootSuccess) return; 
+    }
+
+    if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+    }
 
     isSweepingActive = true;
     sweepFramesCaptured = [];
     sweepBtn.disabled = true;
-    sweepBtn.textContent = "Sweeping Room...";
-    sweepBtn.style.background = "#ff416c";
+    sweepBtn.textContent = "SWEEPING ROOM...";
+    sweepBtn.style.background = "#ff416c"; // Turn pink while active
 
+    // Generate test sweep tone: 20Hz up to 20kHz
     const osc = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
@@ -239,7 +249,7 @@ sweepBtn.addEventListener('click', async () => {
         isSweepingActive = false;
         sweepBtn.disabled = false;
         sweepBtn.textContent = "Run Room Sweep Test";
-        sweepBtn.style.background = "#5c3bc4";
+        sweepBtn.style.background = "#5c3bc4"; // Restore purple
         
         let lowVal = 255, highVal = 0;
         for (let snapshot of sweepFramesCaptured) {
@@ -250,14 +260,14 @@ sweepBtn.addEventListener('click', async () => {
         let variance = highVal - lowVal;
         
         if (variance > 85) {
-            writeHistoryRow("Sweep Complete: Geometric Variance Tracked", `Response mapping calculates wide node cancellation variance gaps (${variance} points).`, "Form an exact equilateral triangle. Move monitoring desk space outwards from boundaries.");
+            writeHistoryRow("Sweep Complete: Acoustic Anomalies Mapped", `Response variance calculates wide cancellation gaps (${variance} points).`, "Adjust geometry. Position monitors 4 to 6 feet apart to form an equilateral triangle.");
         } else {
-            writeHistoryRow("Sweep Complete: Linear Response Confirmed", `Pristine room response baseline computed (${variance} points variance).`, "Studio monitor calibration falls within accurate professional limits.");
+            writeHistoryRow("Sweep Complete: Linear Response Confirmed", `Pristine room calibration baseline tracked (${variance} points variance).`, "Monitor response curve is within standard professional tolerances.");
         }
     }, 3200);
 });
 
-// --- STRATEGY REPORT COMPILATION ---
+// --- STRATEGY REPORT DESIGN PACK COMPILER ---
 finalReportBtn.addEventListener('click', () => {
     if (samplesCollectedCount === 0) {
         samplesCollectedCount = 20;
@@ -278,20 +288,20 @@ finalReportBtn.addEventListener('click', () => {
     let calculatedThd = ((distortionAlertTicks / samplesCollectedCount) * 3.8) + 0.01;
     let estimatedRt60 = (0.24 + (couplingFactor / 120)).toFixed(2);
 
-    allocPhase.textContent = `${phaseRating.toFixed(2)} ${phaseRating < 0.5 ? '(Warning: Anti-Phase Waves Mapped)' : '(Linear Core Alignment)'}`;
+    allocPhase.textContent = `${phaseRating.toFixed(2)} ${phaseRating < 0.5 ? '(Warning: Phase Conflict)' : '(Linear Core Alignment)'}`;
     allocPhase.style.color = phaseRating < 0.5 ? 'var(--accent-pink)' : 'var(--accent-green)';
     
-    allocThd.textContent = `${calculatedThd.toFixed(2)}% ${calculatedThd > 1.0 ? '(Harmonic Clipping Saturation)' : '(Pristine System Floor)'}`;
+    allocThd.textContent = `${calculatedThd.toFixed(2)}% ${calculatedThd > 1.0 ? '(Clipping Saturation)' : '(Pristine Floor)'}`;
     allocThd.style.color = calculatedThd > 1.0 ? 'var(--accent-pink)' : 'var(--accent-green)';
     
-    allocRt60.textContent = `${estimatedRt60}s (Mid-Decay Scale)`;
+    allocRt60.textContent = `${estimatedRt60}s`;
 
     if (subBassTicks / samplesCollectedCount > 0.2) {
-        reportLowEndDesc.textContent = "Sub & Low Bass (20 Hz - 60 Hz) values mandate absolute mono serialization. High phase variance identified inside the subwoofer layers; verify channel summation settings to safeguard low translation stability.";
-        tableG1.textContent = "Locked Mono / HPF Active";
+        reportLowEndDesc.textContent = "Sub & Low Bass (20 Hz - 60 Hz) values mandate absolute mono serialization. Severe phase variations identified in low ranges. Keep this region completely centered in mono to avoid phase issues in the stereo field.";
+        tableG1.textContent = "Locked Mono Center";
         tableG1.className = "txt-pink";
     } else {
-        reportLowEndDesc.textContent = "Sub-bass parameters are tracking within baseline tolerances. Sub & Low Bass (20 Hz - 60 Hz) provides crucial depth and weight; keeping this region centered in mono protects system power translation.";
+        reportLowEndDesc.textContent = "Sub-bass arrays track safely within reference baselines. Keep Sub & Low Bass (20 Hz - 60 Hz) centered in mono to avoid phase anomalies across consumer hardware.";
         tableG1.textContent = "0.0 dB (Mono Centered)";
         tableG1.className = "";
     }
@@ -306,13 +316,8 @@ finalReportBtn.addEventListener('click', () => {
         tableG3_new.className = "txt-pink";
     } else { tableG3_new.textContent = "0.0 dB (Flat)"; tableG3_new.className = ""; }
 
-    if (consoleCombTicks / samplesCollectedCount > 0.2) {
-        tableG4_comb.textContent = "-2.0 dB (Surgical Cut)";
-        tableG4_comb.className = "txt-pink";
-    } else { tableG4_comb.textContent = "0.0 dB (Flat)"; tableG4_comb.className = ""; }
-
     if (dispersionFactor > 10) {
-        reportMidEndDesc.textContent = "Frequencies across the Clarity & Presence (1 kHz - 4 kHz) lane govern speech intelligibility and structural attack signatures. Specular reflections from desk planes are creating harshness limits.";
+        reportMidEndDesc.textContent = "Frequencies across the Clarity & Presence (1 kHz - 4 kHz) lane govern speech intelligibility and structural attack signatures. Wide adjustments degrade acoustic localization indices. Narrow corrective cut required.";
         tableG4.textContent = `-${(dispersionFactor / 6).toFixed(1)} dB`;
         tableG4.className = "txt-pink";
     } else {
@@ -321,23 +326,12 @@ finalReportBtn.addEventListener('click', () => {
         tableG4.className = "";
     }
 
-    if (sibilanceTicks / samplesCollectedCount > 0.25) {
-        tableG5_sib.textContent = "-3.0 dB (Dynamic)";
-        tableG5_sib.className = "txt-pink";
-    } else { tableG5_sib.textContent = "0.0 dB (Flat)"; tableG5_sib.className = ""; }
-
     if (airTicks / samplesCollectedCount > 0.3) {
         tableG5_new.textContent = "+1.5 dB (High Shelf)";
         tableG5_new.className = "txt-cyan";
     } else {
         tableG5_new.textContent = "0.0 dB (Polished)";
         tableG5_new.className = "";
-    }
-
-    if (smearedTransientTicks / samplesCollectedCount > 0.25) {
-        reportTransientDesc.textContent = "Acoustic envelope transient attack velocities are blurred or heavily compressed. Back off threshold limits inside master bus compressors or open up attack parameters to reclaim dynamic depth.";
-    } else {
-        reportTransientDesc.textContent = "Transient attack velocity limits calculated within nominal operating parameters. Punch and dynamic range properties translate cleanly.";
     }
 
     finalReportSuite.style.display = "block";
