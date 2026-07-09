@@ -2,7 +2,7 @@
 let currentEvaluatedItem = null;
 
 // Replace this with your generated Reverb Access Token for development testing
-const REVERB_ACCESS_TOKEN = "YOUR_SAVED_PERSONAL_ACCESS_TOKEN"; 
+const REVERB_ACCESS_TOKEN = "a1350a74e75826b0ecf03b1d6513c1b455022d5f60c130e35af0e698848c24ca"; 
 
 // UI Event Listeners
 document.getElementById('photo-btn').addEventListener('click', () => {
