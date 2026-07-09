@@ -15,6 +15,7 @@
         body { font-family: Arial, sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
         #coach-box { margin-top: 20px; padding: 20px; border-radius: 10px; background: #1e1e1e; border: 2px solid #333; transition: all 0.5s ease; }
         #post-analysis-box { margin-top: 20px; padding: 20px; border-radius: 10px; background: #1a233a; border: 2px solid #4a5568; display: none; text-align: left; }
+        #final-report-box { margin-top: 20px; padding: 20px; border-radius: 10px; background: #25183a; border: 2px solid #6f42c1; display: none; text-align: left; }
         
         /* History Dropdown Styles */
         #history-container { margin-top: 20px; background: #1a1a1a; border: 1px solid #444; border-radius: 10px; overflow: hidden; text-align: left; }
@@ -27,10 +28,13 @@
         .WARNING { border-color: #ff9800 !important; color: #ff9800; }
         .CRITICAL { border-color: #f44336 !important; color: #f44336; }
         .BALANCED { border-color: #4caf50 !important; color: #4caf50; }
-        .controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        
+        .controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         button { padding: 12px 24px; font-size: 16px; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
         #start-btn { background: #00adb5; }
         #sweep-btn { background: #6f42c1; display: none; }
+        #final-analysis-btn { background: #e23e57; display: none; }
+        
         ul { padding-left: 20px; }
         li { margin-bottom: 8px; }
     </style>
@@ -43,6 +47,7 @@
     <div class="controls">
         <button id="start-btn">Start Live Analysis</button>
         <button id="sweep-btn">Run Room Sweep Test</button>
+        <button id="final-analysis-btn">Generate Final Session Analysis</button>
     </div>
 
     <div id="coach-box" class="BALANCED">
@@ -61,6 +66,12 @@
         </div>
     </div>
 
+    <div id="final-report-box">
+        <h3 style="color: #ff4b5c; margin-top: 0;">🏆 Master Session Optimization Strategy</h3>
+        <p><strong>Total Sequence Points Evaluated:</strong> <span id="total-logs-count">0</span></p>
+        <div id="final-report-details"></div>
+    </div>
+
     <div id="post-analysis-box">
         <h3 style="color: #00adb5; margin-top: 0;">📊 Room Calibration & Post-Analysis Report</h3>
         <p><strong>Calculated Room Profile Variance:</strong> <span id="variance-val">Analyzing...</span></p>
@@ -70,15 +81,19 @@
     <script>
         const startBtn = document.getElementById('start-btn');
         const sweepBtn = document.getElementById('sweep-btn');
+        const finalAnalysisBtn = document.getElementById('final-analysis-btn');
         const statusText = document.getElementById('status');
         const diagnosisText = document.getElementById('diagnosis');
         const suggestionText = document.getElementById('suggestion');
         const coachBox = document.getElementById('coach-box');
         const postBox = document.getElementById('post-analysis-box');
+        const finalReportBox = document.getElementById('final-report-box');
+        
         const varianceVal = document.getElementById('variance-val');
         const reportDetails = document.getElementById('report-details');
+        const totalLogsCount = document.getElementById('total-logs-count');
+        const finalReportDetails = document.getElementById('final-report-details');
         
-        // History Elements
         const historyHeader = document.getElementById('history-header');
         const historyContent = document.getElementById('history-content');
         const historyArrow = document.getElementById('history-arrow');
@@ -94,10 +109,11 @@
         let longTermMids = [];
         let longTermHighs = [];
 
+        // Trackers specifically for final history processing algorithms
+        let sessionHistoryData = [];
         let lastUiUpdateTime = 0;
         const UI_UPDATE_INTERVAL = 2000; 
 
-        // Toggle the history rolldown list view
         historyHeader.addEventListener('click', () => {
             if (historyContent.style.display === "block") {
                 historyContent.style.display = "none";
@@ -108,12 +124,14 @@
             }
         });
 
-        // Updated function to handle multi-line history logging with fixes
-        function logToHistory(diagnosisText, suggestionText) {
+        function logToHistory(diagnosisText, suggestionText, type) {
             if (emptyHistory) emptyHistory.remove();
             
             const now = new Date();
             const timeStr = now.toTimeString().split(' ')[0]; 
+            
+            // Push internal log object into the session history tracker array
+            sessionHistoryData.push({ type: type, diagnosis: diagnosisText, fix: suggestionText });
             
             const logItem = document.createElement('div');
             logItem.className = 'history-item';
@@ -141,6 +159,7 @@
 
             startBtn.style.display = 'none'; 
             sweepBtn.style.display = 'inline-block'; 
+            finalAnalysisBtn.style.display = 'inline-block'; // Show final calculation trigger
             statusText.innerText = "Status: Analyzing Live...";
             isAnalyzing = true;
             lastUiUpdateTime = Date.now();
@@ -165,11 +184,14 @@
                 if (currentTime - lastUiUpdateTime >= UI_UPDATE_INTERVAL) {
                     let currentStatusMessage = "";
                     let currentSuggestionMessage = "";
+                    let logType = "BALANCED";
                     
                     if (lowEndEnergy > 2000) { 
+                        logType = "BASS";
                         currentStatusMessage = "Muddy Low-End Buildup Detected";
                         currentSuggestionMessage = "Your bass frequencies are overwhelming the space. Try backing away from walls or adding a high-pass filter.";
                     } else if (harshZoneEnergy > 1800) {
+                        logType = "HARSH";
                         currentStatusMessage = "Harsh Presence Zone Peak Detected";
                         currentSuggestionMessage = "Vocals or upper mids are piercing. Apply a slight EQ dip around 3 kHz.";
                     } else {
@@ -183,13 +205,58 @@
                         currentSuggestionMessage
                     );
                     
-                    logToHistory(currentStatusMessage, currentSuggestionMessage);
+                    logToHistory(currentStatusMessage, currentSuggestionMessage, logType);
                     lastUiUpdateTime = currentTime; 
                 }
 
                 requestAnimationFrame(analyze);
             }
             analyze();
+        });
+
+        // NEW: Final History Analysis Engine 
+        finalAnalysisBtn.addEventListener('click', () => {
+            if (sessionHistoryData.length === 0) {
+                alert("Please record some live analysis data first before optimizing.");
+                return;
+            }
+
+            // Aggregate metrics counters
+            let mudCount = 0;
+            let harshCount = 0;
+            let balancedCount = 0;
+
+            sessionHistoryData.forEach(item => {
+                if (item.type === "BASS") mudCount++;
+                if (item.type === "HARSH") harshCount++;
+                if (item.type === "BALANCED") balancedCount++;
+            });
+
+            totalLogsCount.innerText = sessionHistoryData.length;
+            finalReportBox.style.display = "block";
+
+            // Calculate ratios
+            const total = sessionHistoryData.length;
+            let reportHtml = "<h4>🔍 Environmental Trend Discoveries:</h4><ul>";
+
+            // Conditional diagnostic generation logic based on timeline distribution
+            if (mudCount / total > 0.4) {
+                reportHtml += `<li><strong>Dominant Problem (Bass Mud):</strong> Over ${Math.round((mudCount/total)*100)}% of your session encountered standing waves below 250Hz. <br><span style="color:#ff9800;"><strong>Execution Action:</strong> Your monitors are boundary-coupling with the room structure. You must physically shift your mixing desk at least 8 inches away from rear boundaries or manually insert a shelving filter at 120Hz down by 3dB on your hardware setup.</span></li>`;
+            }
+            if (harshCount / total > 0.4) {
+                reportHtml += `<li><strong>Dominant Problem (High-Mid Fatigue):</strong> Piercing resonances between 2kHz–4kHz spikes appeared in ${Math.round((harshCount/total)*100)}% of evaluations. <br><span style="color:#f44336;"><strong>Execution Action:</strong> This points directly to severe acoustic reflection desk comb filtering. Place absorption panels at your primary side reflection walls, or deploy a dynamic processor targeting the 3.2kHz bracket on your vocal or master output rails.</span></li>`;
+            }
+            if (balancedCount / total > 0.7) {
+                reportHtml += `<li><strong>Dominant State (Optimized Room):</strong> Your creative environment maintained exceptional geometric phase alignment for the majority of monitoring.<br><span style="color:#4caf50;"><strong>Execution Action:</strong> No structural corrections necessary. Room response parameters match targets perfectly. Proceed safely with tracking.</span></li>`;
+            } else if (mudCount === harshCount && mudCount > 0) {
+                reportHtml += `<li><strong>Erratic Transient Fluctuations:</strong> The room balance keeps jumping between extreme low muddiness and high sharpness.<br><span style="color:#00adb5;"><strong>Execution Action:</strong> Your monitoring translation is highly unstable. Calibrate your playback system level to a locked 78dB SPL standard to ensure your ears receive flat linearity.</span></li>`;
+            }
+
+            reportHtml += "</ul>";
+            finalReportDetails.innerHTML = reportHtml;
+            
+            // Scroll down automatically to show the user their actionable report
+            finalReportBox.scrollIntoView({ behavior: 'smooth' });
         });
 
         sweepBtn.addEventListener('click', () => {
@@ -219,7 +286,7 @@
                 sweepBtn.innerText = "Run Room Sweep Test";
                 statusText.innerText = "Status: Post-Analysis Diagnostics Complete";
                 generatePostAnalysisReport();
-                logToHistory("Ran Room Sweep Test Profile", "Check global layout configurations in the post-analysis container below.");
+                logToHistory("Ran Room Sweep Test Profile", "Check global layout configurations in the post-analysis container below.", "SWEEP");
             }, 3600);
         });
 
@@ -263,11 +330,10 @@
             suggestionText.innerText = `Suggestion: ${suggestion}`;
         }
 
-        // NEW: Active Service Worker registration routine
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Acelynn Pro Engine Connected to Home Screen Launcher.'))
+                .then(reg => console.log('Acelynn Pro Engine Connected.'))
                 .catch(err => console.log('Connection failed: ', err));
             });
         }
