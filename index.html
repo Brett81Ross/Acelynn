@@ -1,3 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acelynn Pro</title>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --card-color: #0e0e14;
+            --panel-bg: #151522;
+            --table-header: #201a35;
+            --accent-purple: #8a2be2;
+            --accent-green: #00fa9a;
+            --accent-pink: #ff416c;
+            --accent-cyan: #00ffff;
+            --text-main: #b0b3b8;
+            --text-bright: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        header { text-align: center; margin-bottom: 24px; }
+        h1 { margin: 0; font-size: 2rem; color: #45f3ff; font-weight: 700; letter-spacing: 0.5px; }
+        p.subtitle { color: #8a8a93; margin: 6px 0 0 0; font-size: 0.85rem; line-height: 1.4; }
+
+        .btn-master {
+            width: 100%; background: #00fa9a; color: #050508; border: none;
+            padding: 16px; border-radius: 8px; font-weight: 800; font-size: 1.1rem;
+            margin-bottom: 16px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        .btn-group {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+            opacity: 0.5; pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-group.unlocked { opacity: 1; pointer-events: auto; }
+
+        .btn-action {
+            padding: 14px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; border: none; text-transform: none; color: white;
+        }
+        #sweepBtn { background: #5c3bc4; }
+        #finalReportBtn { background: #e03b5a; }
+        .btn-action:active { opacity: 0.8; }
+
+        .status-box {
+            border: 2px solid #8a8a93; border-radius: 12px; padding: 24px;
+            text-align: center; margin-bottom: 20px; background-color: transparent;
+            transition: all 0.3s ease;
+        }
+        .status-title { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; color: #8a8a93; letter-spacing: 0.5px; }
+        .status-diag { font-size: 1rem; color: #8a8a93; margin-bottom: 16px; font-weight: 500; }
+        .status-sugg { font-size: 0.9rem; color: #8a8a93; line-height: 1.4; }
+
+        .section-card {
+            background-color: #111116; border-radius: 12px; padding: 16px; margin-bottom: 20px;
+        }
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.9rem; font-weight: 600; color: var(--text-bright); margin-bottom: 12px;
+        }
+        
+        .log-container { display: flex; flex-direction: column; gap: 10px; }
+        .log-item { padding: 12px 0; border-bottom: 1px solid #1c1c24; font-size: 0.85rem; }
+        .log-item:last-child { border-bottom: none; }
+        .log-meta { color: #45f3ff; font-weight: 600; margin-bottom: 4px; }
+        .log-body { color: var(--text-bright); margin-left: 10px; margin-bottom: 2px; }
+        .log-fix { color: #8a8a93; margin-left: 10px; font-style: italic; }
+
+        .report-suite {
+            background: linear-gradient(145deg, #130f26, #090714);
+            border: 1px solid #ff416c; border-radius: 12px; padding: 20px;
+            margin-top: 20px; display: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .report-main-title {
+            font-size: 1.1rem; font-weight: 700; color: #ff416c; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,65,108,0.2); padding-bottom: 8px;
+        }
+        .eval-points-lbl { font-size: 0.9rem; color: var(--text-bright); margin-bottom: 14px; }
+        
+        .allocation-box {
+            background-color: var(--panel-bg); border-radius: 6px; padding: 12px;
+            font-size: 0.85rem; line-height: 1.5; color: var(--text-bright); margin-bottom: 12px;
+        }
+        .allocation-box strong { color: var(--accent-cyan); }
+
+        .report-block { margin-bottom: 22px; }
+        .block-title { font-size: 0.95rem; font-weight: 700; color: var(--text-bright); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .block-diag { font-size: 0.85rem; color: #00fa9a; line-height: 1.4; margin-bottom: 4px; }
+        .block-diag span { color: var(--text-bright); font-weight: normal; }
+
+        .table-responsive { overflow-x: auto; margin-top: 10px; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+        th { background-color: var(--table-header); color: #00ffff; padding: 10px; font-weight: 600; }
+        td { background-color: var(--card-color); padding: 12px 10px; border-bottom: 1px solid #1a1a26; color: var(--text-bright); }
+        tr:last-child td { border-bottom: none; }
+        .txt-cyan { color: #00ffff; }
+        .txt-purple { color: #a485ff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Acelynn Pro</h1>
+        <p class="subtitle">Laboratory Acoustic Calibration & Integrated Mastering Diagnosis Suite</p>
+    </header>
+
+    <button class="btn-master" id="powerBtn">Tap to Power On Engine</button>
+
+    <div class="btn-group" id="functionalControls">
+        <button class="btn-action" id="sweepBtn">Run Room Sweep Test</button>
+        <button class="btn-action" id="finalReportBtn">Generate Final Session Analysis</button>
+    </div>
+
+    <div class="status-box" id="statusContainer">
+        <div class="status-title" id="statusHeader">Status: OFFLINE</div>
+        <div class="status-diag" id="statusText">Awaiting Hardware Initialization</div>
+        <div class="status-sugg" id="statusSuggestion">Suggestion: Tap the green button above to grant microphone access and engage monitoring frameworks.</div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header">
+            <span>📋 Real-Time Diagnostic Timeline Log</span>
+        </div>
+        <div class="log-container" id="coachLog">
+            <div class="log-item">
+                <div class="log-meta">System Dormant</div>
+                <div class="log-body">↳ Multi-variable sound metrics will compile here inside the running session container.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-suite" id="finalReportSuite">
+        <div class="report-main-title">🏆 Master Session Optimization Strategy</div>
+        <div class="eval-points-lbl">Total Sequence Points Evaluated: <span id="reportPointsQty" style="font-weight:700;">0</span></div>
+        
+        <div class="allocation-box">
+            📊 <strong>Acoustic Macro Profiles:</strong> Balanced Duty Cycle: <span id="allocBalanced">88%</span> | Low Boundary Coupling: <span id="allocCoupling">0%</span> | Mid-Range Comb Dispersion: <span id="allocDispersion">12%</span>
+        </div>
+
+        <div class="allocation-box" style="border-left: 3px solid var(--accent-purple);">
+            🛡️ <strong>Phase & Distortion Matrix Indices:</strong> Stereo Correlation: <span id="allocPhase">+0.88</span> | Total Signal Distortion (THD+N): <span id="allocThd">0.02%</span> | Estimated RT60 Decay: <span id="allocRt60">0.24s</span>
+        </div>
+
+        <div class="report-block">
+            <div class="block-title">🔊 1. Low-End Geometry & Sub-Bass Phase Decay</div>
+            <div class="block-diag">Diagnosis: <span id="reportLowEndDesc">Analyzing metrics...</span></div>
+        </div>
+
+        <div class="report-block">
+            <div class="block-title">⚡ 2. Desktop Specular Reflections & Comb Filtering Matrix (250Hz - 2kHz)</div>
+            <div class="block-diag">Diagnosis: <span id="reportMidEndDesc">Analyzing metrics...</span></div>
+        </div>
+
+        <div class="report-block">
+            <div class="block-title">🔮 3. Transient Envelope Compression & Electrical Ceiling</div>
+            <div class="block-diag">Diagnosis: <span id="reportTransientDesc">Transient attack velocity limits calculated within nominal operating parameters.</span></div>
+        </div>
+
+        <div class="report-block">
+            <div class="block-title">🎛️ 4. Surgical Parametric Equalizer Correction Blueprint</div>
+            <div class="block-diag">Diagnosis: Parametric Attenuation Target Calibration. <span>Apply these micro-calibrated filtering adjustments straight to your master bus or room processing environment:</span></div>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Band Position</th>
+                            <th>Target Frequency</th>
+                            <th>Gain Calculation</th>
+                            <th>Q-Factor (Bandwidth)</th>
+                            <th>Filter Profile Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Band 1 (Sub-Bass Phase Lock)</td>
+                            <td class="txt-cyan">20 Hz - 60 Hz</td>
+                            <td id="tableG1">0.0 dB (Mono Center)</td>
+                            <td class="txt-purple">Mono Extraction Matrix</td>
+                            <td>Brickwall Utility Filter</td>
+                        </tr>
+                        <tr>
+                            <td>Band 2 (Punch & Boom Fundamental)</td>
+                            <td class="txt-cyan">80 Hz - 250 Hz</td>
+                            <td id="tableG2">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 6.5 (Narrow Cut)</td>
+                            <td>Parametric Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 3 (Mud & Desk Reflections)</td>
+                            <td class="txt-cyan">250 Hz - 500 Hz</td>
+                            <td id="tableG3_new">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 3.5 (Surgical Notch)</td>
+                            <td>Parametric Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 4 (Console Comb Filtering)</td>
+                            <td class="txt-cyan">1,200 Hz</td>
+                            <td id="tableG4_comb">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 5.0 (Surgical Notch)</td>
+                            <td>Dynamic Notch</td>
+                        </tr>
+                        <tr>
+                            <td>Band 5 (Clarity Presence Anchor)</td>
+                            <td class="txt-cyan">1 kHz - 4 kHz</td>
+                            <td id="tableG4">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 0.8 (Wide Smooth)</td>
+                            <td>Parametric / Dynamic Bell</td>
+                        </tr>
+                        <tr>
+                            <td>Band 6 (Sibilance & Harshness)</td>
+                            <td class="txt-cyan">6 kHz - 10 kHz</td>
+                            <td id="tableG5_sib">0.0 dB (Flat)</td>
+                            <td class="txt-purple">Q = 4.0 (Precision Band)</td>
+                            <td>Dynamic De-Esser Split</td>
+                        </tr>
+                        <tr>
+                            <td>Band 7 (Air Presence Tuning)</td>
+                            <td class="txt-cyan">10 kHz - 20 kHz</td>
+                            <td id="tableG5_new">+0.5 dB (Polished)</td>
+                            <td class="txt-purple">Q = 0.7 (Wide Smoothing)</td>
+                            <td>High Shelf / 20kHz LPF</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
 let audioContext, analyser, micSource, dataArray, animationId;
 let calibrationNode;
 
@@ -48,12 +292,13 @@ const TIME_GAP = 3000;
 // --- 1. SAFE BOOT PROCESSOR ---
 async function startHardwareStream() {
     try {
-        // Bulletproof mic request: No advanced constraints that cause Android WebViews to crash
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        await audioContext.resume(); // Guarantee engine starts properly
+        
         analyser = audioContext.createAnalyser();
-        analyser.fftSize = 1024; // Stable resolution
+        analyser.fftSize = 1024;
         
         micSource = audioContext.createMediaStreamSource(stream);
 
@@ -65,7 +310,6 @@ async function startHardwareStream() {
         micSource.connect(calibrationNode);
         calibrationNode.connect(analyser);
         
-        // Using Uint8Array to prevent -Infinity NaN crashes
         dataArray = new Uint8Array(analyser.frequencyBinCount);
         isAudioEngineRunning = true;
         
@@ -82,7 +326,6 @@ async function startHardwareStream() {
         executeAcousticEngineLoop();
         return true;
     } catch (err) {
-        // If it crashes, print the EXACT error to the screen so we can debug it
         writeHistoryRow("#ff416c", "CRITICAL BOOT ERROR", err.name || "Unknown Error", err.message || "Could not access microphone.");
         alert("Microphone blocked. Check the diagnostic log on screen.");
         return false;
@@ -121,7 +364,6 @@ function executeAcousticEngineLoop(timestamp) {
     }
 }
 
-// Safely calculates average energy for a frequency range
 function getAverageEnergyForRange(startFreq, endFreq) {
     const nyquist = audioContext.sampleRate / 2;
     const startIndex = Math.max(0, Math.round((startFreq / nyquist) * dataArray.length));
@@ -227,7 +469,6 @@ sweepBtn.addEventListener('click', async () => {
         sweepBtn.textContent = "Run Room Sweep Test";
         sweepBtn.style.background = "#5c3bc4";
         
-        // DSP Math: Average frames into a singular acoustic profile
         for (let i = 0; i < roomAcousticProfile.length; i++) {
             let binSum = 0;
             for (let f = 0; f < sweepFramesCaptured.length; f++) {
@@ -261,7 +502,6 @@ function calculateEqCut(startFreq, endFreq, targetCurveOffset = 0) {
         }
     }
 
-    // Convert raw byte energy difference to estimated decibels
     let rawDifference = bandPeak - (roomBaseline + targetCurveOffset);
     let estimatedDbDiff = rawDifference / 5.0; 
     
@@ -328,3 +568,6 @@ function applyCellLogic(element, value, suffix) {
         element.textContent = value + suffix;
     }
 }
+</script>
+</body>
+</html>
