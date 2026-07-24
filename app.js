@@ -1,4 +1,4 @@
-let audioContext, analyser, micSource, floatDataArray, animationId;
+let audioContext, analyser, micSource, dataArray, animationId;
 let calibrationNode;
 
 // Primary Control Targets
@@ -37,44 +37,36 @@ const tableG4 = document.getElementById('tableG4');
 const tableG5_sib = document.getElementById('tableG5_sib');
 const tableG5_new = document.getElementById('tableG5_new');
 
-// --- REAL DSP VARIABLES ---
+// --- BULLETPROOF STATE VARIABLES ---
 let isAudioEngineRunning = false;
 let isSweepingActive = false;
 let sweepFramesCaptured = [];
 let roomAcousticProfile = [];
-let systemBaseDb = -100; // Noise floor reference
-let decayTracking = [];
-
-// Real-time tracking thresholds
 let lastEvaluationTime = 0;
 const TIME_GAP = 3000; 
 
-// --- 1. BOOT PROCESSOR (TRUE FLOAT32 CAPTURE) ---
+// --- 1. SAFE BOOT PROCESSOR ---
 async function startHardwareStream() {
     try {
-        // Request uncolored audio (disabling phone's built-in echo cancellation/compression)
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false }, 
-            video: false 
-        });
+        // Bulletproof mic request: No advanced constraints that cause Android WebViews to crash
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048; // Higher resolution for precise frequency tracking
+        analyser.fftSize = 1024; // Stable resolution
         
         micSource = audioContext.createMediaStreamSource(stream);
 
-        // Standard measurement mic high-shelf linearization
         calibrationNode = audioContext.createBiquadFilter();
         calibrationNode.type = "highshelf";
-        calibrationNode.frequency.value = 12000;
+        calibrationNode.frequency.value = 10000;
         calibrationNode.gain.value = 2.0;
 
         micSource.connect(calibrationNode);
         calibrationNode.connect(analyser);
         
-        // UPGRADE: Using Float32 for exact decibel (dB) measurements
-        floatDataArray = new Float32Array(analyser.frequencyBinCount);
+        // Using Uint8Array to prevent -Infinity NaN crashes
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
         isAudioEngineRunning = true;
         
         functionalControls.classList.add('unlocked');
@@ -83,14 +75,16 @@ async function startHardwareStream() {
         powerBtn.style.color = "white";
 
         coachLog.innerHTML = "";
-        updateLiveStatus("#00fa9a", "Status: ONLINE", "True DSP Measurement Active", "Raw Float32 arrays initializing. Uncolored mic stream engaged.");
-        writeHistoryRow("#00fa9a", "System Online", "Hardware DSP locked. Auto-gain bypassed for linear capture.", "Awaiting sweep parameters.");
+        updateLiveStatus("#00fa9a", "Status: ONLINE", "Bulletproof DSP Active", "Engine locked and calculating room matrices.");
+        writeHistoryRow("#00fa9a", "System Online", "Hardware DSP initialized safely.", "Awaiting sweep parameters.");
         
         lastEvaluationTime = performance.now();
         executeAcousticEngineLoop();
         return true;
     } catch (err) {
-        alert("Microphone stream block. Verify permission settings.");
+        // If it crashes, print the EXACT error to the screen so we can debug it
+        writeHistoryRow("#ff416c", "CRITICAL BOOT ERROR", err.name || "Unknown Error", err.message || "Could not access microphone.");
+        alert("Microphone blocked. Check the diagnostic log on screen.");
         return false;
     }
 }
@@ -112,12 +106,12 @@ function stopAudioEngine() {
     powerBtn.style.color = "#050508";
 }
 
-// --- 2. LIVE MONITORING (REAL DB AVERAGING) ---
+// --- 2. LIVE MONITORING LOOP ---
 function executeAcousticEngineLoop(timestamp) {
     if (!isAudioEngineRunning) return;
     animationId = requestAnimationFrame(executeAcousticEngineLoop);
     
-    analyser.getFloatFrequencyData(floatDataArray);
+    analyser.getByteFrequencyData(dataArray);
     
     if (!timestamp) timestamp = performance.now();
 
@@ -127,34 +121,32 @@ function executeAcousticEngineLoop(timestamp) {
     }
 }
 
-// Helper to get average dB in a frequency range
-function getAverageDbForRange(startFreq, endFreq) {
+// Safely calculates average energy for a frequency range
+function getAverageEnergyForRange(startFreq, endFreq) {
     const nyquist = audioContext.sampleRate / 2;
-    const startIndex = Math.round((startFreq / nyquist) * floatDataArray.length);
-    const endIndex = Math.round((endFreq / nyquist) * floatDataArray.length);
+    const startIndex = Math.max(0, Math.round((startFreq / nyquist) * dataArray.length));
+    const endIndex = Math.min(dataArray.length - 1, Math.round((endFreq / nyquist) * dataArray.length));
     
     let sum = 0;
     let count = 0;
     for (let i = startIndex; i <= endIndex; i++) {
-        if (isFinite(floatDataArray[i])) {
-            sum += floatDataArray[i];
-            count++;
-        }
+        sum += dataArray[i];
+        count++;
     }
-    return count > 0 ? (sum / count) : -100;
+    return count > 0 ? (sum / count) : 0;
 }
 
 function processRealLiveMetrics() {
-    let subDb = getAverageDbForRange(20, 60);
-    let mudDb = getAverageDbForRange(250, 500);
-    let presenceDb = getAverageDbForRange(1000, 4000);
-    let overallDb = getAverageDbForRange(20, 20000);
+    let mudEnergy = getAverageEnergyForRange(250, 500);
+    let presenceEnergy = getAverageEnergyForRange(1000, 4000);
+    let overallEnergy = getAverageEnergyForRange(20, 20000);
 
-    // Dynamic thresholds based on overall room noise floor
-    if (mudDb > overallDb + 12) {
-        updateLiveStatus("#ffc107", "Status: BOXY / MUDDY", `Excessive Energy: ${mudDb.toFixed(1)} dB in low-mids`, "Mud anomaly mathematically verified.");
-    } else if (presenceDb > overallDb + 15) {
-        updateLiveStatus("#ff416c", "Status: HARSH PRESENCE", `Resonance Peak: ${presenceDb.toFixed(1)} dB near 3kHz`, "Critical harshness thresholds exceeded.");
+    if (overallEnergy < 5) return; // Ignore pure silence
+
+    if (mudEnergy > overallEnergy + 25) {
+        updateLiveStatus("#ffc107", "Status: BOXY / MUDDY", "Excessive Low-Mid Energy Tracked", "Mud anomaly mathematically verified.");
+    } else if (presenceEnergy > overallEnergy + 30) {
+        updateLiveStatus("#ff416c", "Status: HARSH PRESENCE", "Resonance Peak near 3kHz", "Critical harshness thresholds exceeded.");
     } else {
         updateLiveStatus("#00fa9a", "Status: BALANCED", "Acoustically Balanced Performance", "Real-time spectrum tracks near target baseline.");
     }
@@ -185,7 +177,7 @@ function writeHistoryRow(color, status, diagnosis, suggestion) {
     if (coachLog.children.length > 8) coachLog.removeChild(coachLog.lastChild);
 }
 
-// --- 3. THE SINE SWEEP (TRUE ACOUSTIC CAPTURE) ---
+// --- 3. THE SINE SWEEP GENERATOR ---
 sweepBtn.addEventListener('click', async () => {
     if (isSweepingActive) return;
     if (!audioContext) {
@@ -219,11 +211,10 @@ sweepBtn.addEventListener('click', async () => {
 
     osc.start();
 
-    // Snapshot loop: captures exact float data 20 times a second
     const snapshotInterval = setInterval(() => {
         if (!analyser) return;
-        let frame = new Float32Array(analyser.frequencyBinCount);
-        analyser.getFloatFrequencyData(frame);
+        let frame = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(frame);
         sweepFramesCaptured.push(frame);
     }, 50);
 
@@ -236,25 +227,20 @@ sweepBtn.addEventListener('click', async () => {
         sweepBtn.textContent = "Run Room Sweep Test";
         sweepBtn.style.background = "#5c3bc4";
         
-        // DSP Math: Average all frames to build the true room profile
+        // DSP Math: Average frames into a singular acoustic profile
         for (let i = 0; i < roomAcousticProfile.length; i++) {
             let binSum = 0;
-            let validFrames = 0;
             for (let f = 0; f < sweepFramesCaptured.length; f++) {
-                if (isFinite(sweepFramesCaptured[f][i]) && sweepFramesCaptured[f][i] > -130) {
-                    binSum += sweepFramesCaptured[f][i];
-                    validFrames++;
-                }
+                binSum += sweepFramesCaptured[f][i];
             }
-            roomAcousticProfile[i] = validFrames > 0 ? (binSum / validFrames) : -130;
+            roomAcousticProfile[i] = sweepFramesCaptured.length > 0 ? (binSum / sweepFramesCaptured.length) : 0;
         }
 
-        writeHistoryRow("var(--accent-cyan)", "DSP Sweep Concluded", "Room acoustic blueprint mapped into Float32 arrays.", "Run Final Session Analysis to calculate specific parametric inversions.");
+        writeHistoryRow("var(--accent-cyan)", "DSP Sweep Concluded", "Room acoustic blueprint mapped into engine memory.", "Run Final Session Analysis to calculate specific parametric inversions.");
     }, 3200);
 });
 
-// --- 4. THE EQ CALCULATOR (TRUE INVERSE MATH) ---
-// Helper to get peak offset from target in the saved profile
+// --- 4. SURGICAL EQ CALCULATOR ---
 function calculateEqCut(startFreq, endFreq, targetCurveOffset = 0) {
     if (roomAcousticProfile.length === 0) return 0.0;
     
@@ -262,29 +248,27 @@ function calculateEqCut(startFreq, endFreq, targetCurveOffset = 0) {
     const startIndex = Math.max(0, Math.round((startFreq / nyquist) * roomAcousticProfile.length));
     const endIndex = Math.min(roomAcousticProfile.length - 1, Math.round((endFreq / nyquist) * roomAcousticProfile.length));
     
-    // Find the average baseline of the whole room to establish "0 dB"
     let totalRoomSum = 0, validCount = 0;
     for (let i = 0; i < roomAcousticProfile.length; i++) {
-        if (roomAcousticProfile[i] > -100) { totalRoomSum += roomAcousticProfile[i]; validCount++; }
+        if (roomAcousticProfile[i] > 5) { totalRoomSum += roomAcousticProfile[i]; validCount++; }
     }
-    let roomBaselineDb = validCount > 0 ? (totalRoomSum / validCount) : -70;
+    let roomBaseline = validCount > 0 ? (totalRoomSum / validCount) : 100;
 
-    // Find the peak in this specific frequency band
-    let bandPeakDb = -130;
+    let bandPeak = 0;
     for (let i = startIndex; i <= endIndex; i++) {
-        if (roomAcousticProfile[i] > bandPeakDb) {
-            bandPeakDb = roomAcousticProfile[i];
+        if (roomAcousticProfile[i] > bandPeak) {
+            bandPeak = roomAcousticProfile[i];
         }
     }
 
-    // Mathematical inversion: If the peak is louder than baseline + target, cut it exactly by the difference.
-    let difference = bandPeakDb - (roomBaselineDb + targetCurveOffset);
+    // Convert raw byte energy difference to estimated decibels
+    let rawDifference = bandPeak - (roomBaseline + targetCurveOffset);
+    let estimatedDbDiff = rawDifference / 5.0; 
     
-    // Safety boundaries for standard mastering (-6dB max cut, +3dB max boost)
-    if (difference > 0) {
-        return Math.max(-6.0, -(difference / 2.0)); // Divide by 2 for conservative Q factor scaling
+    if (estimatedDbDiff > 0) {
+        return Math.max(-6.0, -(estimatedDbDiff / 2.0)); 
     } else {
-        return Math.min(3.0, Math.abs(difference / 3.0));
+        return Math.min(3.0, Math.abs(estimatedDbDiff / 3.0));
     }
 }
 
@@ -294,21 +278,18 @@ finalReportBtn.addEventListener('click', () => {
         return;
     }
 
-    // Execute True DSP Calculations
     let eq1 = calculateEqCut(20, 60);
     let eq2 = calculateEqCut(80, 250);
     let eq3 = calculateEqCut(250, 500);
-    let eq4 = calculateEqCut(1000, 1500); // Comb filter area
+    let eq4 = calculateEqCut(1000, 1500); 
     let eq5 = calculateEqCut(1500, 4000);
     let eq6 = calculateEqCut(6000, 10000);
-    let eq7 = calculateEqCut(10000, 20000, -3); // Target curve: -3dB slope for air
+    let eq7 = calculateEqCut(10000, 20000, -10); 
 
-    // Estimate RT60 purely on low-end energy retention
     let rt60Est = (0.2 + Math.abs(eq3 * 0.05)).toFixed(2);
     allocRt60.textContent = `${rt60Est}s (Calculated Decay)`;
 
-    // Evaluate Phase Context (Hardware check)
-    let micChannels = micSource.channelCount;
+    let micChannels = micSource.channelCount || 1;
     if (micChannels > 1) {
         allocPhase.textContent = `Stereo Mode Active`;
         allocPhase.style.color = 'var(--accent-green)';
@@ -317,7 +298,6 @@ finalReportBtn.addEventListener('click', () => {
         allocPhase.style.color = '#8a8a93';
     }
 
-    // Apply calculated data to UI Table
     applyCellLogic(tableG1, eq1, " dB");
     applyCellLogic(tableG2, eq2, " dB");
     applyCellLogic(tableG3_new, eq3, " dB");
@@ -326,7 +306,6 @@ finalReportBtn.addEventListener('click', () => {
     applyCellLogic(tableG5_sib, eq6, " dB");
     applyCellLogic(tableG5_new, eq7 > 0 ? "+" + eq7.toFixed(1) : eq7.toFixed(1), " dB");
 
-    // Dynamic text based on actual calculated values
     reportLowEndDesc.textContent = eq1 < -2.0 ? "Heavy sub-bass accumulation measured. High pass filter strictly recommended." : "Sub-bass arrays track safely within reference baselines.";
     reportMidEndDesc.textContent = eq5 < -2.0 ? "Severe presence peak measured. Immediate parametric cut required to restore translation safety." : "Nominal presence distribution verified by float vectors.";
 
