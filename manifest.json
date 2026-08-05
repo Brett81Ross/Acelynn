@@ -1,6 +1,6 @@
 {
   "short_name": "Acelynn Pro",
-  "name": "Acelynn Pro Audio Analyzer",
+  "name": "Acelynn Pro — Live Mix Coach",
   "icons": [
     {
       "src": "acelynnpro.png",
@@ -10,8 +10,8 @@
     }
   ],
   "start_url": "./index.html",
-  "background_color": "#121212",
-  "theme_color": "#00adb5",
+  "background_color": "#080814",
+  "theme_color": "#080814",
   "display": "standalone",
   "orientation": "portrait"
 }
