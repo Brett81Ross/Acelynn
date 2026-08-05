@@ -1,370 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acelynn Pro - Live Tracker</title>
-    <style>
-        :root {
-            --bg-color: #050508;
-            --card-color: #0e0e14;
-            --panel-bg: #151522;
-            --table-header: #201a35;
-            --accent-purple: #8a2be2;
-            --accent-green: #00fa9a;
-            --accent-pink: #ff416c;
-            --accent-cyan: #00ffff;
-            --text-main: #b0b3b8;
-            --text-bright: #ffffff;
-        }
-
-        body {
-            margin: 0;
-            padding: 16px;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
-        .container { max-width: 600px; margin: 0 auto; }
-        
-        header { text-align: center; margin-bottom: 24px; }
-        h1 { margin: 0; font-size: 2rem; color: #45f3ff; font-weight: 700; letter-spacing: 0.5px; }
-        p.subtitle { color: #8a8a93; margin: 6px 0 0 0; font-size: 0.85rem; line-height: 1.4; }
-
-        .btn-master {
-            width: 100%; background: #00fa9a; color: #050508; border: none;
-            padding: 16px; border-radius: 8px; font-weight: 800; font-size: 1.1rem;
-            margin-bottom: 16px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-master:active { transform: scale(0.98); }
-
-        /* --- LIVE INSTRUMENT DASHBOARD --- */
-        .live-dash {
-            background: linear-gradient(145deg, #130f26, #090714);
-            border: 2px solid var(--accent-purple); border-radius: 12px; padding: 24px;
-            text-align: center; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(138,43,226,0.15);
-            transition: all 0.3s ease;
-            display: none;
-        }
-        .live-dash.active { display: block; }
-        
-        .dash-label { font-size: 0.8rem; color: #8a8a93; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
-        .dash-instrument { font-size: 1.8rem; font-weight: 800; color: var(--text-bright); margin-bottom: 16px; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
-        
-        .dash-fix-box {
-            background-color: var(--card-color); border-left: 4px solid var(--accent-cyan);
-            border-radius: 6px; padding: 16px; text-align: left;
-        }
-        .dash-fix-title { font-size: 0.9rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px; }
-        .dash-fix-desc { font-size: 0.85rem; color: var(--text-bright); line-height: 1.5; }
-
-        .meter-container {
-            display: flex; gap: 4px; height: 40px; margin-bottom: 20px; align-items: flex-end;
-            background-color: var(--card-color); padding: 8px; border-radius: 8px;
-        }
-        .meter-bar { flex: 1; background-color: var(--panel-bg); border-radius: 2px; transition: height 0.05s ease; position: relative; }
-        .meter-bar.sub { background-color: #ff416c; }
-        .meter-bar.bass { background-color: #ff8c00; }
-        .meter-bar.mid { background-color: #ffd700; }
-        .meter-bar.pres { background-color: #00fa9a; }
-        .meter-bar.air { background-color: #00ffff; }
-
-        .section-card {
-            background-color: #111116; border-radius: 12px; padding: 16px; margin-bottom: 20px;
-        }
-        .section-header {
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 0.9rem; font-weight: 600; color: var(--text-bright); margin-bottom: 12px;
-        }
-        
-        .log-container { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; }
-        .log-item { padding: 12px; border-bottom: 1px solid #1c1c24; font-size: 0.85rem; background-color: var(--card-color); border-radius: 6px; border-left: 4px solid #333; animation: slideDown 0.3s ease; }
-        .log-item:last-child { border-bottom: none; }
-        .log-time { font-size: 0.7rem; color: #8a8a93; float: right; font-weight: bold; }
-        .log-meta { font-weight: 700; margin-bottom: 4px; text-transform: uppercase; }
-        .log-body { color: var(--text-bright); margin-bottom: 2px; }
-        .log-fix { color: #8a8a93; font-style: italic; margin-top: 6px; }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080814">
+  <meta name="description" content="Acelynn Pro is a mobile-first live spectrum analyzer and mix coach.">
+  <link rel="manifest" href="manifest.json">
+  <title>Acelynn Pro — Mix Coach</title>
+  <style>
+    :root { --bg:#080814; --panel:#121221; --panel2:#19192b; --line:#2b2b46; --ink:#f6f5ff; --muted:#aaa9bb; --cyan:#73f3ff; --violet:#9f7cff; --lime:#78f0b1; --orange:#ffb25b; --pink:#ff6a98; }
+    * { box-sizing:border-box; } body { margin:0; min-width:320px; background:radial-gradient(circle at 16% -10%,#28204b 0,transparent 33rem),var(--bg); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input { font:inherit; } .app { width:min(760px,100%); margin:auto; padding:calc(18px + env(safe-area-inset-top)) 16px calc(34px + env(safe-area-inset-bottom)); }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:19px; } .brand { display:flex; align-items:center; gap:11px; } .mark { display:grid; place-items:center; width:43px; height:43px; border-radius:14px; color:#11101c; font-weight:950; font-size:19px; background:linear-gradient(135deg,var(--cyan),var(--violet) 58%,var(--pink)); box-shadow:0 9px 25px #7d5fff42; } h1 { margin:0; font-size:1.18rem; line-height:1; letter-spacing:-.035em; } .eyebrow { color:var(--muted); font-size:.66rem; font-weight:800; letter-spacing:.13em; text-transform:uppercase; margin-top:5px; } .mode-pill { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:.72rem; font-weight:750; } .dot { width:8px; height:8px; border-radius:50%; background:#5a5968; } .dot.live { background:var(--lime); box-shadow:0 0 0 5px #78f0b121; }
+    .card { background:linear-gradient(145deg,#171729,#10101d); border:1px solid var(--line); border-radius:20px; box-shadow:0 14px 35px #0000002a; } .hero { padding:16px; overflow:hidden; } .source-tabs { display:grid; grid-template-columns:1fr 1fr; gap:7px; padding:5px; background:#0a0a14; border-radius:13px; } .tab { border:0; padding:11px 8px; border-radius:9px; background:transparent; color:var(--muted); font-weight:800; font-size:.77rem; cursor:pointer; } .tab.active { background:var(--panel2); color:var(--ink); box-shadow:0 2px 8px #00000042; }
+    .start-area { padding:17px 3px 3px; } .start-area h2 { font-size:1.12rem; margin:0 0 7px; letter-spacing:-.025em; } .start-area p { color:var(--muted); font-size:.82rem; line-height:1.42; margin:0 0 16px; } .primary { width:100%; border:0; border-radius:13px; padding:15px; cursor:pointer; font-weight:900; letter-spacing:.015em; color:#071218; background:linear-gradient(105deg,var(--cyan),#8eeaff 45%,var(--lime)); box-shadow:0 9px 23px #73f3ff26; } .primary.stop { color:#fff; background:linear-gradient(105deg,#ed4e7b,var(--pink)); } .upload { display:block; width:100%; padding:14px; border:1px dashed #565574; border-radius:13px; color:var(--cyan); text-align:center; font-weight:800; font-size:.84rem; cursor:pointer; } .upload input { display:none; } .file-name { min-height:18px; text-align:center; color:var(--muted); font-size:.73rem; margin-top:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .viz { position:relative; height:204px; margin-top:16px; border-radius:15px; overflow:hidden; background:linear-gradient(180deg,#090a16,#111120); border:1px solid #2a2a45; } canvas { display:block; width:100%; height:100%; } .gridlabel { position:absolute; top:10px; left:11px; color:#807f9c; font-size:.61rem; font-weight:800; letter-spacing:.08em; } .f-labels { position:absolute; display:flex; justify-content:space-between; inset:auto 10px 8px; color:#6f6e87; font-size:.58rem; }
+    .now { display:flex; align-items:center; justify-content:space-between; margin:14px 2px 0; } .now .label { color:var(--muted); font-weight:800; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; } #status { font-size:.8rem; font-weight:800; color:var(--cyan); } .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; } .metric { background:#0b0b16; border:1px solid #292941; padding:10px; border-radius:12px; min-width:0; } .metric small { display:block; color:var(--muted); font-size:.61rem; font-weight:800; text-transform:uppercase; letter-spacing:.07em; } .metric strong { display:block; font-size:1.03rem; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .section { margin-top:15px; padding:15px; } .section-title { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:.87rem; font-weight:900; } .score { color:var(--lime); font-size:.78rem; } .bands { display:grid; gap:11px; margin-top:15px; } .band { display:grid; grid-template-columns:55px 1fr 37px; align-items:center; gap:9px; } .band label { color:var(--muted); font-size:.68rem; font-weight:800; } .track { height:8px; overflow:hidden; border-radius:100px; background:#0a0a14; } .fill { width:3%; height:100%; border-radius:inherit; transition:width .1s linear; } .band output { color:#d4d3df; font-size:.69rem; text-align:right; font-variant-numeric:tabular-nums; }
+    .coach { border-left:3px solid var(--violet); } .coach-head { display:flex; gap:10px; align-items:center; } .coach-icon { width:31px; height:31px; display:grid; place-items:center; border-radius:10px; background:#9f7cff1c; color:var(--violet); font-weight:950; } #coachTitle { font-size:.86rem; font-weight:900; } #coachText { color:#c5c4d0; font-size:.82rem; line-height:1.46; margin:10px 0 0; } .hint { color:#77768b; font-size:.68rem; line-height:1.4; margin:15px 2px 0; text-align:center; } .hidden { display:none!important; }
+    @media (min-width:620px) { .app { padding-top:30px; } .viz { height:250px; } .metrics { gap:12px; } }
+  </style>
 </head>
 <body>
-
-<div class="container">
+  <main class="app">
     <header>
-        <h1>Acelynn Pro</h1>
-        <p class="subtitle">Live Spectrum Classification & Real-Time Mixing Advisor</p>
+      <div class="brand"><div class="mark">A</div><div><h1>Acelynn Pro</h1><div class="eyebrow">Live Mix Coach</div></div></div>
+      <div class="mode-pill"><span class="dot" id="dot"></span><span id="modeText">READY</span></div>
     </header>
-
-    <button class="btn-master" id="powerBtn">Tap to Engage Audio Engine</button>
-
-    <!-- LIVE DASHBOARD -->
-    <div class="live-dash" id="liveDashboard">
-        <div class="dash-label">Dominant Source Detected</div>
-        <div class="dash-instrument" id="detectedInstrument">Listening...</div>
-        
-        <!-- Live Frequency Meters -->
-        <div class="dash-label" style="text-align: left; margin-bottom: 4px; font-size: 0.7rem;">Spectrum Energy (Sub | Bass | Mids | Pres | Air)</div>
-        <div class="meter-container">
-            <div class="meter-bar sub" id="barSub" style="height: 5%;"></div>
-            <div class="meter-bar bass" id="barBass" style="height: 5%;"></div>
-            <div class="meter-bar mid" id="barMid" style="height: 5%;"></div>
-            <div class="meter-bar pres" id="barPres" style="height: 5%;"></div>
-            <div class="meter-bar air" id="barAir" style="height: 5%;"></div>
-        </div>
-
-        <div class="dash-fix-box">
-            <div class="dash-fix-title" id="fixTitle">Awaiting Input</div>
-            <div class="dash-fix-desc" id="fixDesc">Play an instrument or vocal track through your studio monitors to begin continuous evaluation.</div>
-        </div>
-    </div>
-
-    <div class="section-card">
-        <div class="section-header">
-            <span>📋 Continuous Diagnostics Log</span>
-        </div>
-        <div class="log-container" id="coachLog">
-            <div class="log-item">
-                <div class="log-meta" style="color: #45f3ff;">System Dormant</div>
-                <div class="log-body">Real-time source mapping will populate here.</div>
-            </div>
-        </div>
-    </div>
-</div>
-
+    <section class="card hero">
+      <div class="source-tabs"><button class="tab active" data-source="mic">Live microphone</button><button class="tab" data-source="file">Audio file</button></div>
+      <div class="start-area" id="micPanel"><h2>Hear what your mix is doing.</h2><p>Use your phone’s mic while music plays, or connect an interface. Acelynn reads the frequency balance in real time.</p><button class="primary" id="micButton">Start live analysis</button></div>
+      <div class="start-area hidden" id="filePanel"><h2>Analyze a track.</h2><p>Pick an audio file to play it through the analyzer. Nothing is uploaded—your track stays on this device.</p><label class="upload">Choose audio file<input id="fileInput" type="file" accept="audio/*"></label><div class="file-name" id="fileName">MP3, WAV, M4A, and most audio files work</div></div>
+      <div class="viz"><span class="gridlabel">FREQUENCY SPECTRUM</span><canvas id="spectrum"></canvas><div class="f-labels"><span>20 Hz</span><span>100</span><span>1k</span><span>10k</span><span>20k</span></div></div>
+      <div class="now"><span class="label">Listening for</span><strong id="status">Start analysis</strong></div>
+      <div class="metrics"><div class="metric"><small>Peak</small><strong id="peakValue">— dB</strong></div><div class="metric"><small>Average</small><strong id="rmsValue">— dB</strong></div><div class="metric"><small>Focus</small><strong id="focusValue">—</strong></div></div>
+    </section>
+    <section class="card section"><div class="section-title"><span>Frequency balance</span><span class="score" id="balanceScore">Waiting for audio</span></div><div class="bands">
+      <div class="band"><label>Sub</label><div class="track"><div class="fill" id="subFill" style="background:#ff6a98"></div></div><output id="subOut">—</output></div>
+      <div class="band"><label>Bass</label><div class="track"><div class="fill" id="bassFill" style="background:#ffb25b"></div></div><output id="bassOut">—</output></div>
+      <div class="band"><label>Mids</label><div class="track"><div class="fill" id="midFill" style="background:#ffe27a"></div></div><output id="midOut">—</output></div>
+      <div class="band"><label>Presence</label><div class="track"><div class="fill" id="presFill" style="background:#78f0b1"></div></div><output id="presOut">—</output></div>
+      <div class="band"><label>Air</label><div class="track"><div class="fill" id="airFill" style="background:#73f3ff"></div></div><output id="airOut">—</output></div>
+    </div></section>
+    <section class="card section coach"><div class="coach-head"><div class="coach-icon">✦</div><div id="coachTitle">Your next move</div></div><p id="coachText">Start listening and Acelynn will call out the strongest part of the mix and give you one useful adjustment at a time.</p></section>
+    <p class="hint">Acelynn Pro measures sound levels and frequency balance. It does not identify isolated instruments or replace a proper calibrated studio meter.</p>
+  </main>
+  <audio id="audioPlayer" class="hidden" controls></audio>
 <script>
-let audioContext, analyser, micSource, floatDataArray, animationId;
-
-// Interface Elements
-const powerBtn = document.getElementById('powerBtn');
-const liveDashboard = document.getElementById('liveDashboard');
-const detectedInstrument = document.getElementById('detectedInstrument');
-const fixTitle = document.getElementById('fixTitle');
-const fixDesc = document.getElementById('fixDesc');
-const coachLog = document.getElementById('coachLog');
-
-// Meter Bars
-const barSub = document.getElementById('barSub');
-const barBass = document.getElementById('barBass');
-const barMid = document.getElementById('barMid');
-const barPres = document.getElementById('barPres');
-const barAir = document.getElementById('barAir');
-
-let isAudioEngineRunning = false;
-let lastLogTime = 0;
-const LOG_INTERVAL = 4000; // Drop a log every 4 seconds to prevent UI flooding
-let currentDominantSource = "None";
-
-async function startHardwareStream() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false }, 
-            video: false 
-        });
-        
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        await audioContext.resume(); 
-        
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048; // High resolution for instrument detection
-        analyser.smoothingTimeConstant = 0.8;
-        
-        micSource = audioContext.createMediaStreamSource(stream);
-        micSource.connect(analyser);
-        
-        floatDataArray = new Float32Array(analyser.frequencyBinCount);
-        isAudioEngineRunning = true;
-        
-        powerBtn.textContent = "Shut Down Engine";
-        powerBtn.style.backgroundColor = "#ff416c";
-        powerBtn.style.color = "white";
-        
-        liveDashboard.classList.add('active');
-        coachLog.innerHTML = "";
-        writeHistoryRow("#00fa9a", "DSP Online", "Continuous spectrum classification active.", "Awaiting signal...");
-
-        executeAcousticEngineLoop();
-    } catch (err) {
-        alert("Microphone connection failed. Check device permissions.");
-    }
-}
-
-powerBtn.addEventListener('click', async () => {
-    if (isAudioEngineRunning) {
-        isAudioEngineRunning = false;
-        cancelAnimationFrame(animationId);
-        if (micSource) micSource.disconnect();
-        if (audioContext) audioContext.close();
-        
-        powerBtn.textContent = "Tap to Engage Audio Engine";
-        powerBtn.style.backgroundColor = "#00fa9a";
-        powerBtn.style.color = "#050508";
-        liveDashboard.classList.remove('active');
-        writeHistoryRow("#8a8a93", "System Offline", "Monitoring suspended.", "");
-    } else {
-        await startHardwareStream();
-    }
-});
-
-function getAverageDbForRange(startFreq, endFreq) {
-    const nyquist = audioContext.sampleRate / 2;
-    const startIndex = Math.max(0, Math.round((startFreq / nyquist) * floatDataArray.length));
-    const endIndex = Math.min(floatDataArray.length - 1, Math.round((endFreq / nyquist) * floatDataArray.length));
-    
-    let sum = 0, count = 0;
-    for (let i = startIndex; i <= endIndex; i++) {
-        if (isFinite(floatDataArray[i])) {
-            sum += floatDataArray[i];
-            count++;
-        }
-    }
-    return count > 0 ? (sum / count) : -130;
-}
-
-// Convert -130dB to 0dB into a percentage (0% to 100%) for UI meters
-function dbToPercentage(db) {
-    const minDb = -100;
-    const maxDb = -20;
-    if (db < minDb) return 0;
-    if (db > maxDb) return 100;
-    return ((db - minDb) / (maxDb - minDb)) * 100;
-}
-
-function executeAcousticEngineLoop(timestamp) {
-    if (!isAudioEngineRunning) return;
-    animationId = requestAnimationFrame(executeAcousticEngineLoop);
-    
-    analyser.getFloatFrequencyData(floatDataArray);
-    
-    if (!timestamp) timestamp = performance.now();
-
-    // Map standard musical frequency bands
-    let subDb = getAverageDbForRange(20, 60);      // Rumble/Sub
-    let bassDb = getAverageDbForRange(60, 250);    // Punch/Bottom
-    let midDb = getAverageDbForRange(250, 2000);   // Body/Mud/Honk
-    let presDb = getAverageDbForRange(2000, 6000); // Attack/Crunch/Clarity
-    let airDb = getAverageDbForRange(6000, 20000); // Sparkle/Sizzle
-
-    // Update Live Meters
-    barSub.style.height = `${dbToPercentage(subDb)}%`;
-    barBass.style.height = `${dbToPercentage(bassDb)}%`;
-    barMid.style.height = `${dbToPercentage(midDb)}%`;
-    barPres.style.height = `${dbToPercentage(presDb)}%`;
-    barAir.style.height = `${dbToPercentage(airDb)}%`;
-
-    // Baseline noise floor calculation
-    let noiseFloor = -85; 
-    let maxDb = Math.max(subDb, bassDb, midDb, presDb, airDb);
-
-    if (maxDb < noiseFloor) {
-        detectedInstrument.textContent = "Silence";
-        detectedInstrument.style.color = "#8a8a93";
-        fixTitle.textContent = "Awaiting Audio Input";
-        fixTitle.style.color = "#8a8a93";
-        fixDesc.textContent = "No significant spectral energy detected.";
-        return;
-    }
-
-    // --- CONTINUOUS INSTRUMENT CLASSIFICATION LOGIC ---
-    let source = "Unknown";
-    let fixHdr = "Adjustment Blueprint";
-    let fixTxt = "";
-    let color = "#ffffff";
-
-    // Sub-Bass & Kick Dominance
-    if (subDb > bassDb && subDb > midDb) {
-        source = "Kick Drum / Sub-Bass";
-        color = "#ff416c";
-        if (getAverageDbForRange(250, 400) > noiseFloor + 10) {
-            fixHdr = "Remove Boxiness";
-            fixTxt = "Sub-bass is hitting hard, but low-mid energy is bleeding. Highpass other instruments at 50Hz. Apply a narrow cut around 250Hz-300Hz to remove cardboard/boxiness from the kick.";
-        } else {
-            fixHdr = "Solid Low-End Translation";
-            fixTxt = "Sub frequencies (40-60Hz) are dominant. Ensure this region is summed to mono to prevent stereo phase cancellation.";
-        }
-    } 
-    // Bass Guitar & Synth Dominance
-    else if (bassDb > subDb && bassDb > midDb && bassDb > presDb) {
-        source = "Bass / Lower Toms";
-        color = "#ff8c00";
-        if (subDb < noiseFloor + 5) {
-            fixHdr = "Enhance Sub Weight";
-            fixTxt = "Punch is present, but sub-weight is missing. Boost 60Hz-80Hz gently, or apply harmonic saturation to thicken the bottom end.";
-        } else {
-            fixHdr = "Bass Fundamental Nominal";
-            fixTxt = "Bass fundamental (60-200Hz) is carrying the mix. Check 400Hz—if it sounds muddy, cut slightly to increase clarity.";
-        }
-    } 
-    // Vocal / Snare / Guitar Dominance (Mid & Presence)
-    else if ((presDb > bassDb || midDb > bassDb) && (presDb > airDb)) {
-        if (presDb > midDb + 5) {
-            source = "Vocals / Snare Attack";
-            color = "#00fa9a";
-            let sibilance = getAverageDbForRange(6000, 8000);
-            if (sibilance > noiseFloor + 20) {
-                fixHdr = "Sibilance / Harshness Warning";
-                fixTxt = "Harsh high-mids detected. Attack tones (2-6kHz) are highly sensitive to human ears. Cut 3kHz to reduce 'shoutiness' or use a De-Esser at 7kHz to tame sibilant 'S' sounds.";
-            } else {
-                fixHdr = "Presence Zone Active";
-                fixTxt = "Vocal intelligibility or snare crack is pushing through clearly. Boost 10kHz slightly if vocals need more expensive-sounding 'air'.";
-            }
-        } else {
-            source = "Acoustic Guitars / Keys";
-            color = "#ffd700";
-            if (midDb > noiseFloor + 30) {
-                fixHdr = "Combat Low-Mid Mud";
-                fixTxt = "High accumulation of energy between 250Hz-500Hz. This range creates warmth, but quickly turns into mud. Sweep a narrow Q cut around 300Hz to carve out space.";
-            } else {
-                fixHdr = "Mid-Range Warmth";
-                fixTxt = "Instrument body frequencies (500Hz-2kHz) are active. This is the 'meat' of the music.";
-            }
-        }
-    } 
-    // Cymbal & Air Dominance
-    else if (airDb > midDb && airDb > bassDb) {
-        source = "Cymbals / Hi-Hats";
-        color = "#00ffff";
-        fixHdr = "Control Top-End Sizzle";
-        fixTxt = "High frequencies (6kHz-20kHz) are dominating. If the mix sounds piercing or brittle, apply a low-pass filter around 18kHz or gently dip 8kHz-10kHz to reduce ear fatigue.";
-    }
-
-    // Update Dashboard UI seamlessly
-    if (currentDominantSource !== source) {
-        detectedInstrument.textContent = source;
-        detectedInstrument.style.color = color;
-        fixTitle.textContent = fixHdr;
-        fixTitle.style.color = color;
-        fixDesc.textContent = fixTxt;
-        currentDominantSource = source;
-    }
-
-    // Push to timeline log every X seconds if active
-    if (timestamp - lastLogTime > LOG_INTERVAL && source !== "Unknown") {
-        writeHistoryRow(color, source, fixHdr, fixTxt);
-        lastLogTime = timestamp;
-    }
-}
-
-function writeHistoryRow(color, instrument, diagnosis, fix) {
-    const stamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const lineItem = document.createElement('div');
-    lineItem.className = 'log-item';
-    lineItem.style.borderLeftColor = color;
-    lineItem.innerHTML = `
-        <div class="log-time">${stamp}</div>
-        <div class="log-meta" style="color: ${color}">${instrument} Detected</div>
-        <div class="log-body">↳ <strong>Status:</strong> ${diagnosis}</div>
-        <div class="log-fix"><strong>Adjustment:</strong> ${fix}</div>
-    `;
-    coachLog.insertBefore(lineItem, coachLog.firstChild);
-    if (coachLog.children.length > 12) coachLog.removeChild(coachLog.lastChild);
-}
+(() => {
+  const $ = id => document.getElementById(id);
+  const canvas = $('spectrum'), ctx = canvas.getContext('2d');
+  const bands = [{id:'sub', min:20,max:60,name:'Sub'},{id:'bass',min:60,max:250,name:'Bass'},{id:'mid',min:250,max:2000,name:'Mids'},{id:'pres',min:2000,max:6000,name:'Presence'},{id:'air',min:6000,max:18000,name:'Air'}];
+  let audioCtx, analyser, source, stream, fileUrl, running=false, raf, activeSource='mic', data, timeData, lastCoach=0;
+  function setMode(live, label) { $('dot').classList.toggle('live',live); $('modeText').textContent=label; }
+  function setCoach(title, text, color='#9f7cff') { $('coachTitle').textContent=title; $('coachText').textContent=text; document.querySelector('.coach').style.borderLeftColor=color; document.querySelector('.coach-icon').style.color=color; }
+  function dB(value) { return value <= 0 ? -100 : Math.max(-100,20*Math.log10(value/255)); }
+  async function setupContext() { if (!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') await audioCtx.resume(); analyser=audioCtx.createAnalyser(); analyser.fftSize=2048; analyser.smoothingTimeConstant=.78; analyser.minDecibels=-100; analyser.maxDecibels=-20; data=new Uint8Array(analyser.frequencyBinCount); timeData=new Uint8Array(analyser.fftSize); }
+  function stop() { running=false; cancelAnimationFrame(raf); if(stream) stream.getTracks().forEach(t=>t.stop()); stream=null; if(source) { try{source.disconnect()}catch(e){} } source=null; $('audioPlayer').pause(); $('audioPlayer').src=''; $('micButton').textContent='Start live analysis'; $('micButton').classList.remove('stop'); setMode(false,'READY'); $('status').textContent='Start analysis'; }
+  async function startMic() { try { stop(); await setupContext(); stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}}); source=audioCtx.createMediaStreamSource(stream); source.connect(analyser); running=true; $('micButton').textContent='Stop live analysis'; $('micButton').classList.add('stop'); setMode(true,'LIVE'); $('status').textContent='Listening…'; setCoach('Live analysis active','Play your mix near the microphone. For a reliable read, keep the phone still and avoid talking directly into it.','#78f0b1'); loop(); } catch(e) { setCoach('Microphone needed','Acelynn needs microphone permission for live analysis. Allow it in your browser settings, then try again.','#ff6a98'); } }
+  async function startFile(file) { try { stop(); await setupContext(); if(fileUrl) URL.revokeObjectURL(fileUrl); fileUrl=URL.createObjectURL(file); const player=$('audioPlayer'); player.src=fileUrl; player.controls=true; player.classList.remove('hidden'); source=audioCtx.createMediaElementSource(player); source.connect(analyser); analyser.connect(audioCtx.destination); await player.play(); running=true; setMode(true,'TRACK'); $('status').textContent='Playing track'; $('fileName').textContent=file.name; setCoach('Track analysis active','Acelynn is reading the playback spectrum. Listen for balance, then use the advice below as a starting point—not a rule.','#73f3ff'); loop(); player.onended=stop; } catch(e) { setCoach('Could not play that file','Try a standard MP3, WAV, or M4A file. Your browser may not support this audio format.','#ff6a98'); } }
+  function rangeEnergy(min,max) { const nyquist=audioCtx.sampleRate/2, a=Math.max(0,Math.floor(min/nyquist*data.length)), b=Math.min(data.length-1,Math.ceil(max/nyquist*data.length)); let sum=0; for(let i=a;i<=b;i++)sum+=data[i]; return sum/Math.max(1,b-a+1); }
+  function updateCoach(values, avg) { const max=Math.max(...values), idx=values.indexOf(max), dominant=bands[idx].name; $('focusValue').textContent=dominant; if(avg<8) { $('status').textContent='Waiting for signal'; setCoach('Need a little more sound','There is not enough steady audio yet. Turn the track up a little or move closer to the speaker.','#9f7cff'); return; } $('status').textContent=dominant+' is leading'; const sub=values[0],bass=values[1],mid=values[2],pres=values[3],air=values[4]; if(sub>mid*1.8&&sub>bass*1.25) setCoach('Low-end is taking over','Try a high-pass filter on non-bass tracks and check 35–60 Hz for rumble. Keep the true sub area clean and intentional.','#ff6a98'); else if(bass>mid*1.65) setCoach('Bass-forward balance','The punch zone is strong. If the mix feels cloudy, make a small cut around 180–350 Hz before reaching for more top end.','#ffb25b'); else if(mid>Math.max(sub,bass)*1.8) setCoach('Midrange is crowded','Mids are carrying most of the energy. Sweep gently around 300–700 Hz for mud, then 1–2 kHz for nasal buildup.','#ffe27a'); else if(pres>mid*1.45) setCoach('Presence is aggressive','Clarity is good, but sustained 2–6 kHz can get tiring. Try a tiny dynamic EQ cut where the sharpness lives.','#78f0b1'); else if(air>pres*1.45) setCoach('Top end is very bright','There is a lot of high-frequency energy. Check 8–12 kHz for hiss, cymbal buildup, or vocal sibilance.','#73f3ff'); else setCoach('Balance is looking healthy','No frequency area is wildly overpowering the others. Use your ears now: compare quietly against a reference track you trust.','#78f0b1'); }
+  function draw() { const rect=canvas.getBoundingClientRect(), ratio=window.devicePixelRatio||1, w=Math.round(rect.width*ratio),h=Math.round(rect.height*ratio); if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;} ctx.setTransform(ratio,0,0,ratio,0,0); const W=rect.width,H=rect.height; ctx.clearRect(0,0,W,H); ctx.strokeStyle='#24243c';ctx.lineWidth=1; for(let y=30;y<H;y+=35){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();} const grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#73f3ff');grad.addColorStop(.55,'#9f7cff');grad.addColorStop(1,'#ff6a98');ctx.fillStyle=grad; const n=data.length; for(let x=0;x<W;x+=3){const i=Math.min(n-1,Math.floor(Math.pow(x/W,2.25)*(n-1)));const v=data[i]/255;const bar=Math.max(2,v*(H-23));ctx.fillRect(x,H-18-bar,2,bar);} }
+  function loop() { if(!running)return; analyser.getByteFrequencyData(data); analyser.getByteTimeDomainData(timeData); const vals=bands.map(b=>rangeEnergy(b.min,b.max)); bands.forEach((b,i)=>{$(b.id+'Fill').style.width=Math.max(3,Math.min(100,vals[i]/1.7))+'%';$(b.id+'Out').textContent=dB(vals[i]).toFixed(0)+' dB';}); let peak=0,sum=0; for(const v of timeData){const n=(v-128)/128;peak=Math.max(peak,Math.abs(n));sum+=n*n;} const rms=Math.sqrt(sum/timeData.length); $('peakValue').textContent=(20*Math.log10(Math.max(peak,.00001))).toFixed(1)+' dB'; $('rmsValue').textContent=(20*Math.log10(Math.max(rms,.00001))).toFixed(1)+' dB'; const avg=vals.reduce((a,b)=>a+b,0)/vals.length; const spread=Math.max(...vals)-Math.min(...vals); $('balanceScore').textContent=avg<8?'Waiting for audio':spread<48?'Balanced':'Needs attention'; if(performance.now()-lastCoach>700){updateCoach(vals,avg);lastCoach=performance.now();} draw(); raf=requestAnimationFrame(loop); }
+  document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{if(tab.dataset.source===activeSource)return; stop(); activeSource=tab.dataset.source; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===tab)); $('micPanel').classList.toggle('hidden',activeSource!=='mic');$('filePanel').classList.toggle('hidden',activeSource!=='file'); }));
+  $('micButton').addEventListener('click',()=>running?stop():startMic()); $('fileInput').addEventListener('change',e=>{if(e.target.files[0])startFile(e.target.files[0]);}); window.addEventListener('resize',draw); if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
 </script>
 </body>
 </html>
