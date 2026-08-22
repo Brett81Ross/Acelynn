@@ -1,17 +1,19 @@
 {
   "short_name": "Acelynn Pro",
-  "name": "Acelynn Pro — Mix Check Workspace",
+  "name": "Acelynn Pro",
   "icons": [
     {
-      "src": "acelynnpro.png",
-      "type": "image/png",
+      "src": "./acelynnpro.png",
       "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "./index.html",
-  "background_color": "#080814",
-  "theme_color": "#080814",
+  "start_url": "./?source=pwa",
+  "background_color": "#050509",
+  "theme_color": "#050509",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "description": "Intelligent audio diagnostics by Cactus🌵Byte Studios™",
+  "scope": "./"
 }
