@@ -1,5 +1,5 @@
-const CACHE_NAME = 'acelynn-pro-v1.1.1';
-const ASSETS = ['./', './index.html', './manifest.json', './acelynnpro.png'];
+const CACHE_NAME = 'acelynn-pro-v1.1.2';
+const ASSETS = ['./', './index.html', './manifest.json', './acelynnpro.png', './demo-help.js'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();

@@ -1,0 +1,31 @@
+/* Acelynn Pro™ — Cactus🌵Byte Demo & Help Standard */
+(()=>{
+  'use strict';
+  const KEY='cbs_demo_seen:acelynn-pro:1';
+  const DISMISS='cbs_demo_dismissed:acelynn-pro:1';
+  const steps=[
+    ['Choose the source','Use Live microphone to check what reaches the listener through the room/speakers, or Audio file to analyze a track directly on this device.'],
+    ['Pick a listening profile','Choose Balanced, Bass / hip-hop, Acoustic, or Vocal Clarity, then choose Full Mix, Room / Speaker, or Detail / Harshness depending on what you want to inspect.'],
+    ['Start a consistent check','For microphone mode, allow mic access, keep the phone in one place, and use a consistent listening volume. Moving the phone changes the room reading.'],
+    ['Read Mix Health and the spectrum','Use Mix Health as a quick directional score. Peak, Average, Range, Focus, and the live spectrum show level and frequency behavior while audio is running.'],
+    ['Use the Frequency Map','Sub, Bass, Mids, Presence, and Air show relative band energy against the selected listening profile. Treat the target as a reference, not a rule.'],
+    ['Follow Your Next Move','Acelynn highlights the biggest differences and suggests places to listen. Make one change at a time, compare to a trusted reference track, and trust your ears.'],
+    ['Save snapshots','Save Current Check to build an on-device session history. Export Session Report creates a local JSON report from saved snapshots.'],
+    ['Know the privacy and limits','Selected audio files stay on this device and are not uploaded. Acelynn Pro is a practical mix-check guide, not calibrated studio monitoring or certified loudness metering.']
+  ];
+  const style=document.createElement('style');style.textContent=`
+    .ac-help-trigger{position:fixed;right:16px;bottom:18px;z-index:90;width:46px;height:46px;border-radius:15px;border:1px solid #4c466f;background:#151529;color:#fff;font-weight:950;font-size:18px;box-shadow:0 12px 32px #0008;cursor:pointer}
+    .ac-help-backdrop{position:fixed;inset:0;z-index:10000;background:#000c;display:none;align-items:flex-end;justify-content:center;padding-top:env(safe-area-inset-top)}.ac-help-backdrop.open{display:flex}
+    .ac-help-panel{width:min(100%,760px);max-height:92dvh;overflow:auto;background:linear-gradient(160deg,#111122,#090914);color:#f7f6ff;border:1px solid #45436c;border-bottom:0;border-radius:28px 28px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -26px 76px #000b}
+    .ac-help-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.ac-help-kicker{font:900 9px system-ui;letter-spacing:.18em;color:#73f3ff}.ac-help-head h2{margin:4px 0 0;font:900 21px system-ui}.ac-help-x{width:40px;height:40px;border-radius:50%;border:1px solid #45436c;background:#19192c;color:#fff;font-size:22px;cursor:pointer}
+    .ac-help-sub{color:#aaa9bb;font:12px/1.5 system-ui}.ac-help-video{border:1px dashed #4b496b;border-radius:17px;padding:15px;background:#0d0d1b;color:#9c9bb0;font:12px/1.5 system-ui}.ac-help-video strong{color:#f7f6ff}.ac-help-steps{display:grid;gap:9px;margin-top:13px}.ac-help-step{border:1px solid #32324d;border-radius:15px;padding:12px;background:#121220}.ac-help-step strong{display:block;color:#78f0b1;font:800 12px system-ui}.ac-help-step span{display:block;margin-top:4px;color:#bbb9c8;font:11px/1.45 system-ui}.ac-help-note{margin-top:13px;border:1px solid #5b4b2c;border-radius:14px;padding:11px;background:#21190b;color:#ead6a0;font:11px/1.45 system-ui}.ac-help-check{display:flex;gap:8px;align-items:flex-start;margin-top:12px;color:#aaa9bb;font:11px/1.4 system-ui}.ac-help-done{width:100%;margin-top:13px;border:0;border-radius:14px;padding:13px;background:linear-gradient(110deg,#73f3ff,#9f7cff 55%,#78f0b1);color:#090a16;font-weight:950;cursor:pointer}
+    @media(min-width:700px){.ac-help-backdrop{align-items:center;padding:24px}.ac-help-panel{border-bottom:1px solid #45436c;border-radius:28px;max-height:88vh}}
+  `;document.head.appendChild(style);
+  const trigger=document.createElement('button');trigger.className='ac-help-trigger';trigger.type='button';trigger.textContent='?';trigger.title='How to use Acelynn Pro';trigger.setAttribute('aria-label','How to use Acelynn Pro');document.body.appendChild(trigger);
+  const backdrop=document.createElement('div');backdrop.className='ac-help-backdrop';backdrop.innerHTML=`<section class="ac-help-panel" role="dialog" aria-modal="true" aria-labelledby="acHelpTitle"><div class="ac-help-head"><div><div class="ac-help-kicker">ACELYNN PRO™ · v1.1.2 DEMO & HELP</div><h2 id="acHelpTitle">How to check a mix</h2></div><button class="ac-help-x" aria-label="Close help">×</button></div><p class="ac-help-sub">A short walkthrough for live room checks, audio-file analysis, frequency balance, coaching, and saved sessions.</p><div class="ac-help-video"><strong>60-second demo video slot ready.</strong><br>The written walkthrough is active now; the recorded demo can be added later without changing the analyzer.</div><div class="ac-help-steps">${steps.map((s,i)=>`<div class="ac-help-step"><strong>${i+1}. ${s[0]}</strong><span>${s[1]}</span></div>`).join('')}</div><div class="ac-help-note"><strong>Mix-check note:</strong> Acelynn Pro is directional. Room acoustics, phone microphones, playback systems, and source material all affect readings. Use references and your ears before making final mix decisions.</div><label class="ac-help-check"><input type="checkbox" class="ac-help-dont"><span>Don’t show this automatically again. The ? button always reopens Help.</span></label><button class="ac-help-done">START MIX CHECK</button></section>`;document.body.appendChild(backdrop);
+  const dont=backdrop.querySelector('.ac-help-dont');
+  const close=()=>{try{if(dont.checked)localStorage.setItem(DISMISS,'1')}catch{}backdrop.classList.remove('open')};
+  const open=(auto=false)=>{backdrop.classList.add('open');if(auto)try{localStorage.setItem(KEY,'1')}catch{}};
+  trigger.onclick=()=>open(false);backdrop.querySelector('.ac-help-x').onclick=close;backdrop.querySelector('.ac-help-done').onclick=close;backdrop.addEventListener('click',e=>{if(e.target===backdrop)close()});
+  try{if(localStorage.getItem(KEY)!=='1'&&localStorage.getItem(DISMISS)!=='1')setTimeout(()=>open(true),900)}catch{}
+})();
