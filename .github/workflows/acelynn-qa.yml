@@ -1,0 +1,40 @@
+name: Acelynn v1.2.0 QA
+
+on:
+  pull_request:
+  push:
+    branches:
+      - sprint-1-v1.2.0-data-foundation
+
+jobs:
+  data-foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - name: Static module syntax
+        run: |
+          node --check js/meta.js
+          node --check js/db.js
+          node --check js/storage.js
+          node --check js/migration.js
+          node --check js/app.js
+      - name: Shell parity guard
+        run: cmp -s app-base.html index.html
+      - name: Locked ABL guard
+        run: |
+          grep -q "32 logarithmic coarse spectral bins" V1.2.0_ABL_LOCK.md
+          grep -q "100 ms, 500 ms, and 2 s" V1.2.0_ABL_LOCK.md
+          grep -q '"deploymentEnabled":false' vercel.json
+      - name: Service-worker retirement guard
+        run: |
+          test ! -f sw.js
+          grep -q "cleanupLegacyServiceWorker" js/app.js
+          grep -q "html.replace" api/demo-shell.js
+      - name: Privacy guard
+        run: |
+          ! grep -R --exclude='*.md' -E "indexedDB.*(Blob|ArrayBuffer)|put\(.*audio" js tests
