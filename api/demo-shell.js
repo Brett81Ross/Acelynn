@@ -3,11 +3,23 @@ module.exports=async function handler(req,res){
   try{
     const proto=req.headers['x-forwarded-proto']||'https';
     const host=req.headers.host;
-    const source=await fetch(`${proto}://${host}/app-base.html`,{headers:{'Cache-Control':'no-cache'}});
+    const base=`${proto}://${host}`;
+    const [source,metaSource]=await Promise.all([
+      fetch(`${base}/app-base.html`,{headers:{'Cache-Control':'no-cache'}}),
+      fetch(`${base}/js/meta.js`,{headers:{'Cache-Control':'no-cache'}})
+    ]);
     if(!source.ok)throw new Error(`app-base.html request failed (${source.status})`);
     let html=await source.text();
-    html=html.replace('<div>© 2026 Acelynn Pro™</div>','<div>© 2026 Acelynn Pro™ · v1.1.2 · Demo & Help</div>');
-    if(!html.includes('/demo-help.js'))html=html.replace('</body>','<script src="/demo-help.js?v=1.1.2"></script>\n</body>');
+    let version='1.2.0';
+    if(metaSource.ok){
+      const metaText=await metaSource.text();
+      const match=metaText.match(/version:\s*['\"]([^'\"]+)/);
+      if(match)version=match[1];
+    }
+    html=html.replace("if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})",'void 0');
+    html=html.replace('<div>© 2026 Acelynn Pro™</div>',`<div>© 2026 Acelynn Pro™ · v${version} · Demo & Help</div>`);
+    if(!html.includes('/demo-help.js'))html=html.replace('</body>',`<script src="/demo-help.js?v=${version}"></script>\n</body>`);
+    if(!html.includes('/js/app.js'))html=html.replace('</body>',`<script type="module" src="/js/app.js?v=${version}"></script>\n</body>`);
     res.statusCode=200;
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');

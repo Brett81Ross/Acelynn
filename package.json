@@ -1,0 +1,15 @@
+{
+  "name": "acelynn-pro-studio",
+  "private": true,
+  "version": "1.2.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "qa": "npm test"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.0.1",
+    "jsdom": "^26.1.0",
+    "vitest": "^3.2.4"
+  }
+}
