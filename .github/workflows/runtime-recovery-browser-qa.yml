@@ -1,8 +1,9 @@
 name: Acelynn Pro Runtime Recovery Browser QA
 
+# Runs on the isolated QA branch first, then re-validates the canonical recovery branch after squash integration.
 on:
   push:
-    branches: [phase7-runtime-recovery-qa]
+    branches: [phase7-runtime-recovery-qa, android-signing-cutover-data-recovery]
     paths:
       - 'acelynn-recovery.js'
       - 'index.html'
