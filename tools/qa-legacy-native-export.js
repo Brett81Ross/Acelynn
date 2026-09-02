@@ -72,6 +72,13 @@ assert.match(client,/acelynn-snapshots/);
 const shell=fs.readFileSync(path.join(root,'api','demo-shell.js'),'utf8');
 assert.match(shell,/legacy-native-export\.js\?v=phase7-migration1/);
 
+const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
+const bypass=sw.indexOf("url.pathname === '/api/native-backup-download'");
+const genericCachePut=sw.indexOf('cache.put(request, copy)');
+assert.ok(bypass>=0,'service worker must special-case the migration download endpoint');
+assert.ok(genericCachePut>0&&bypass<genericCachePut,'network-only migration bypass must run before generic cache writes');
+assert.match(sw,/fetch\(request, \{ cache: 'no-store' \}\)/);
+
 const vercel=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
 assert.equal(vercel.git.deploymentEnabled,false,'staging branch must not auto-deploy');
 
@@ -79,5 +86,6 @@ console.log('Acelynn legacy native export QA GREEN');
 console.log('- native CactusByte UA is intercepted before the legacy blob handler');
 console.log('- HTTPS backup endpoint returns a validated no-store JSON attachment');
 console.log('- malformed/wrong-app/empty/oversized snapshot payloads are rejected');
+console.log('- migration download endpoint is network-only and excluded from legacy Cache Storage');
 console.log('- browser blob export source is not replaced globally');
 console.log('- Vercel Git deployment is disabled on this staging branch');

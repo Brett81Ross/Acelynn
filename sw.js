@@ -20,6 +20,14 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const request = event.request;
+  const url = new URL(request.url);
+
+  // Migration backups must never enter Cache Storage. Existing native wrappers hand this
+  // HTTPS URL to Android, so keep it network-only even while the legacy service worker exists.
+  if (url.origin === self.location.origin && url.pathname === '/api/native-backup-download') {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith(
