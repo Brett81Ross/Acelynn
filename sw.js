@@ -9,15 +9,17 @@ self.addEventListener('activate',event=>{
     await Promise.all(keys.filter(key=>key.startsWith(LEGACY_CACHE_PREFIX)).map(key=>caches.delete(key)));
     await self.clients.claim();
 
-    // The production domain currently serves a static index at /. Force already-open legacy
-    // WebViews through one fresh navigation after this worker activates so the migration shell
-    // below takes control without requiring the user to clear data or reinstall anything.
+    // The legacy wrapper can already have the old static root page open before this worker
+    // activates. Do not navigate that page back to / and depend on same-turn fetch interception:
+    // runtime proof showed the stale page can win that race. Navigate directly to the injected
+    // migration shell instead so the bridge is present on the very first controlled refresh.
+    const migrationUrl=new URL(MIGRATION_SHELL,self.location.origin).href;
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     await Promise.all(windows.map(client=>{
       try{
         const url=new URL(client.url);
         if(url.origin===self.location.origin&&(url.pathname==='/'||url.pathname==='/index.html')){
-          return client.navigate(url.href);
+          return client.navigate(migrationUrl);
         }
       }catch(error){}
       return Promise.resolve();
