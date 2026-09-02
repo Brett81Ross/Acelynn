@@ -1,0 +1,42 @@
+name: Acelynn Legacy Native Export QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - phase7-legacy-native-export-hotfix
+    paths:
+      - 'api/demo-shell.js'
+      - 'api/native-backup-download.js'
+      - 'legacy-native-export.js'
+      - 'tools/qa-legacy-native-export.js'
+      - 'vercel.json'
+      - '.github/workflows/legacy-native-export-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-native-export-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Syntax check migration files
+        run: |
+          node --check legacy-native-export.js
+          node --check api/native-backup-download.js
+          node --check api/demo-shell.js
+          node --check tools/qa-legacy-native-export.js
+
+      - name: Run legacy native export contract QA
+        run: node tools/qa-legacy-native-export.js
+
+      - name: Confirm staging cannot auto-deploy
+        run: node -e "const v=require('./vercel.json'); if(v.git?.deploymentEnabled!==false) process.exit(1); console.log('Vercel Git deployment disabled for staging branch.')"
