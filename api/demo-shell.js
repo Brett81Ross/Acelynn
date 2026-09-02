@@ -8,7 +8,7 @@ module.exports=async function handler(req,res){
     let html=await source.text();
     html=html.replace('<div>© 2026 Acelynn Pro™</div>','<div>© 2026 Acelynn Pro™ · v1.1.2 · Demo & Help</div>');
     if(!html.includes('/demo-help.js'))html=html.replace('</body>','<script src="/demo-help.js?v=1.1.2"></script>\n</body>');
-    if(!html.includes('/native-install.js'))html=html.replace('</body>','<script src="/native-install.js" defer></script>\n</body>');
+    if(!html.includes('/legacy-export-bridge.js'))html=html.replace('</body>','<script src="/legacy-export-bridge.js?v=cutover1"></script>\n</body>');
     res.statusCode=200;
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
