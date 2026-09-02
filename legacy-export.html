@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#080814">
+  <title>Save Acelynn Pro Backup</title>
+  <style>
+    :root{color-scheme:dark;--bg:#080814;--panel:#141424;--line:#343450;--ink:#f7f6ff;--muted:#aaa9bb;--cyan:#73f3ff;--lime:#78f0b1;--red:#ff6a98}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif}.wrap{width:min(620px,100%);margin:auto;padding:28px 18px}.card{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}h1{margin:0 0 8px;font-size:1.35rem}.muted{color:var(--muted);line-height:1.45}.ok{color:var(--lime);font-weight:800}.bad{color:var(--red);font-weight:800}.actions{display:grid;gap:10px;margin-top:18px}button{width:100%;padding:14px;border-radius:12px;border:0;font:inherit;font-weight:850;cursor:pointer}.primary{background:linear-gradient(100deg,var(--cyan),var(--lime));color:#071218}.secondary{background:#202035;color:var(--ink);border:1px solid var(--line)}textarea{width:100%;min-height:180px;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#090913;color:var(--ink);font:12px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical}.warning{margin-top:16px;padding:12px;border-left:3px solid #ffe27a;background:#ffe27a12;color:#eee2af;line-height:1.45}.hidden{display:none!important}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <section class="card">
+    <h1>Save your Acelynn Pro backup</h1>
+    <p id="status" class="muted">Reading the backup from your secure migration link…</p>
+    <div id="ready" class="hidden">
+      <p class="ok" id="summary"></p>
+      <div class="actions">
+        <button class="primary" id="download">Download Acelynn backup</button>
+        <button class="secondary" id="copy">Copy backup text</button>
+      </div>
+      <textarea id="backupText" readonly aria-label="Acelynn backup text"></textarea>
+      <div class="warning"><strong>Before uninstalling Acelynn Pro:</strong> confirm the JSON file is visible in Downloads. If downloading fails, copy this backup text into Notes or another app and keep it until the new Acelynn Pro has restored your checks.</div>
+    </div>
+  </section>
+</main>
+<script>
+(()=>{
+  'use strict';
+  const status=document.getElementById('status'),ready=document.getElementById('ready'),summary=document.getElementById('summary'),backupText=document.getElementById('backupText');
+  let payload=null;
+
+  function reject(message){status.className='bad';status.textContent=message;ready.classList.add('hidden')}
+  function parse(){
+    const hash=location.hash||'';
+    if(!hash.startsWith('#v1='))throw new Error('This Acelynn backup link is missing or invalid. Return to Acelynn Pro and export again.');
+    const decoded=decodeURIComponent(hash.slice(4));
+    const parsed=JSON.parse(decoded);
+    if(!parsed||parsed.app!=='Acelynn Pro'||!Array.isArray(parsed.snapshots)||parsed.snapshots.length<1||parsed.snapshots.length>12)throw new Error('This backup is not a valid Acelynn Pro migration backup.');
+    return parsed;
+  }
+
+  function download(){
+    const text=JSON.stringify(payload,null,2);
+    const blob=new Blob([text],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='acelynn-session-report.json';
+    a.rel='noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    status.className='ok';
+    status.textContent='Download started. Confirm acelynn-session-report.json appears in Downloads before uninstalling the old app.';
+  }
+
+  async function copy(){
+    const text=backupText.value;
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(text)}else{backupText.focus();backupText.select();if(!document.execCommand('copy'))throw new Error('copy failed')}
+      status.className='ok';status.textContent='Backup text copied. Paste it into Notes or another app before uninstalling Acelynn Pro.';
+    }catch(error){backupText.focus();backupText.select();status.className='bad';status.textContent='Automatic copy was blocked. The backup text is selected below; copy it manually and save it outside Acelynn Pro.'}
+  }
+
+  try{
+    payload=parse();
+    const text=JSON.stringify(payload,null,2);
+    backupText.value=text;
+    summary.textContent=payload.snapshots.length+' saved check'+(payload.snapshots.length===1?'':'s')+' ready to preserve.';
+    status.textContent='Your backup stayed on this device. Tap Download, then verify the JSON file exists before uninstalling Acelynn Pro.';
+    ready.classList.remove('hidden');
+    document.getElementById('download').addEventListener('click',download);
+    document.getElementById('copy').addEventListener('click',copy);
+  }catch(error){reject((error&&error.message)||'This backup could not be read.')}
+})();
+</script>
+</body>
+</html>
