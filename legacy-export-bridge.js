@@ -68,6 +68,9 @@
     const button = document.getElementById('exportButton');
     if (!button || button.dataset.cactusbyteLegacyExportBridge === '1') return false;
 
+    // Clone the existing button to deliberately remove the old blob:-URL click listener.
+    // renderSnapshots() looks the button up by id each time, so future disabled/enabled state
+    // updates continue to target this replacement element.
     const replacement = button.cloneNode(true);
     replacement.dataset.cactusbyteLegacyExportBridge = '1';
     button.replaceWith(replacement);
@@ -80,6 +83,9 @@
         );
         const bridgeUrl = buildBridgeUrl(env.location.origin, payload);
 
+        // The download attribute causes Android WebView to invoke its DownloadListener. The
+        // historical wrapper then ACTION_VIEWs this normal HTTPS URL, which an external browser
+        // can open. The backup payload is after # and therefore is not sent to Vercel.
         const launcher = document.createElement('a');
         launcher.href = bridgeUrl;
         launcher.download = 'acelynn-pro-backup-launch.html';
