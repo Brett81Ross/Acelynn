@@ -4,6 +4,7 @@ const {chromium}=require('playwright');
 
 const BASE='http://127.0.0.1:4173/';
 const KEY='acelynn-snapshots';
+const LEGACY_SW='legacy-sw-test.js';
 const snap=(id,score=70)=>({time:id,profile:'Balanced mix',score,focus:'Mids',bands:[20,40,80,55,30]});
 
 async function stored(page){return page.evaluate(key=>JSON.parse(localStorage.getItem(key)||'[]'),KEY)}
@@ -18,11 +19,39 @@ async function importBackup(page,payload,name='backup.json'){
 }
 
 (async()=>{
+  fs.writeFileSync(LEGACY_SW,"self.addEventListener('install',event=>{self.skipWaiting()});self.addEventListener('activate',event=>{event.waitUntil(self.clients.claim())});\n",'utf8');
   const browser=await chromium.launch({headless:true});
   try{
     const context=await browser.newContext({acceptDownloads:true,viewport:{width:360,height:800}});
     const page=await context.newPage();
     await page.goto(BASE,{waitUntil:'domcontentloaded'});
+
+    // Prove the live shell retires an already-installed legacy worker and only Acelynn-owned caches.
+    await page.evaluate(async()=>{
+      localStorage.setItem('acelynn-retirement-sentinel','keep');
+      const oldCache=await caches.open('acelynn-pro-v1.1.2');
+      await oldCache.put('/legacy-marker',new Response('legacy'));
+      const unrelated=await caches.open('unrelated-test-cache');
+      await unrelated.put('/keep-marker',new Response('keep'));
+      await navigator.serviceWorker.register('/legacy-sw-test.js');
+      await navigator.serviceWorker.ready;
+    });
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(async()=>{
+      const registrations=await navigator.serviceWorker.getRegistrations();
+      const keys=await caches.keys();
+      return registrations.length===0&&!keys.some(key=>key.startsWith('acelynn-pro-'));
+    });
+    const retired=await page.evaluate(async()=>({
+      registrations:(await navigator.serviceWorker.getRegistrations()).length,
+      caches:await caches.keys(),
+      sentinel:localStorage.getItem('acelynn-retirement-sentinel')
+    }));
+    assert.equal(retired.registrations,0,'legacy service worker registration is removed');
+    assert.ok(!retired.caches.some(key=>key.startsWith('acelynn-pro-')),'legacy Acelynn caches are removed');
+    assert.ok(retired.caches.includes('unrelated-test-cache'),'unrelated cache is preserved');
+    assert.equal(retired.sentinel,'keep','service-worker retirement does not clear localStorage');
+    await page.evaluate(async()=>{await caches.delete('unrelated-test-cache');localStorage.removeItem('acelynn-retirement-sentinel')});
 
     // Clean-install legacy restore: preserve the newest 12, oldest -> newest in storage.
     await clear(page);
@@ -70,12 +99,13 @@ async function importBackup(page,payload,name='backup.json'){
 
     // Narrow-screen regression for the actual recovery controls.
     const box=await page.locator('#restoreButton').boundingBox();
-    assert.ok(box&&box.width>250&&box.height>=40,'restore control remains usable on narrow phone viewport');
+    assert.ok(box&&box.width>250&&box.height>=48,'restore control remains usable on narrow phone viewport');
     assert.ok((await page.locator('#sessionCount').textContent()).includes('saved'),'session state remains visible after recovery');
 
     console.log('Acelynn Pro browser recovery round-trip QA passed.');
     await context.close();
   }finally{
     await browser.close();
+    if(fs.existsSync(LEGACY_SW))fs.unlinkSync(LEGACY_SW);
   }
-})().catch(error=>{console.error(error);process.exit(1)});
+})().catch(error=>{console.error(error);if(fs.existsSync(LEGACY_SW))fs.unlinkSync(LEGACY_SW);process.exit(1)});
