@@ -1,52 +1,11 @@
-const CACHE_NAME = 'acelynn-pro-v1.1.2';
-const ASSETS = ['./', './index.html', './manifest.json', './acelynnpro.png', './demo-help.js'];
-
-self.addEventListener('install', event => {
-  self.skipWaiting();
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+const LEGACY_CACHE_PREFIX='acelynn-pro-';
+self.addEventListener('install',event=>{self.skipWaiting()});
+self.addEventListener('activate',event=>{
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(key=>key.startsWith(LEGACY_CACHE_PREFIX)).map(key=>caches.delete(key)));
+    await self.registration.unregister();
+    await self.clients.claim();
+  })());
 });
-
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key.startsWith('acelynn-pro-') && key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener('fetch', event => {
-  const request = event.request;
-
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request)
-        .then(response => {
-          if (response && response.status === 200 && request.method === 'GET') {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-
-      return cached || network;
-    })
-  );
-});
+// Intentionally no fetch handler. This worker exists only to retire the legacy cache/service worker.
