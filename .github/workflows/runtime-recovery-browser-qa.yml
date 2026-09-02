@@ -1,6 +1,7 @@
 name: Acelynn Pro Runtime Recovery Browser QA
 
 # Runs on isolated Phase 7 QA branches first, then re-validates the canonical recovery branch after squash integration.
+# The service-worker retirement branch also uses this workflow as its deterministic settle gate.
 on:
   push:
     branches: [phase7-runtime-recovery-qa, phase7-remove-service-worker, android-signing-cutover-data-recovery]
