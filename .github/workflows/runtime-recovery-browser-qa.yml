@@ -1,13 +1,15 @@
 name: Acelynn Pro Runtime Recovery Browser QA
 
-# Runs on the isolated QA branch first, then re-validates the canonical recovery branch after squash integration.
+# Runs on isolated Phase 7 QA branches first, then re-validates the canonical recovery branch after squash integration.
+# The service-worker retirement branch also uses this workflow as its deterministic settle gate.
 on:
   push:
-    branches: [phase7-runtime-recovery-qa, android-signing-cutover-data-recovery]
+    branches: [phase7-runtime-recovery-qa, phase7-remove-service-worker, android-signing-cutover-data-recovery]
     paths:
       - 'acelynn-recovery.js'
       - 'index.html'
       - 'app-base.html'
+      - 'sw.js'
       - 'tools/apply-signing-cutover-data-recovery.py'
       - 'tools/qa-signing-cutover-data-recovery.mjs'
       - 'tools/qa-recovery-browser.cjs'
@@ -59,8 +61,10 @@ jobs:
         run: |
           grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
           test ! -d .vercel/output
+          test ! -e sw.js
           unexpected="$(git diff --name-only | grep -Ev '^(index.html|app-base.html)$' || true)"
           test -z "$unexpected" || { echo "Unexpected working-tree changes: $unexpected" >&2; exit 1; }
+          test ! -e legacy-sw-test.js
           echo 'No Vercel deployment, APK install, uninstall, or signing cutover executed.'
       - name: Commit deterministic recovery shell if needed
         shell: bash
@@ -75,7 +79,7 @@ jobs:
           test "$changed" = "$expected"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'recovery: enforce Acelynn Pro mobile recovery target'
+          git commit -m 'recovery: retire Acelynn Pro legacy service worker'
           git push origin HEAD:${GITHUB_REF_NAME}
       - name: Stop local test server
         if: always()

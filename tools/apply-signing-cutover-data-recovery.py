@@ -38,8 +38,17 @@ for path in FILES:
             raise SystemExit(f"{path}: missing recovery handler anchor")
         text=text.replace(old_handlers,new_handlers,1)
 
+    legacy_sw="if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})"
+    retire_sw="async function retireLegacyServiceWorker(){if('serviceWorker'in navigator){try{const registrations=await navigator.serviceWorker.getRegistrations();await Promise.all(registrations.map(registration=>registration.unregister()))}catch(e){}}if('caches'in window){try{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('acelynn-pro-')).map(key=>caches.delete(key)))}catch(e){}}}retireLegacyServiceWorker()"
+    if retire_sw not in text:
+        if legacy_sw not in text:
+            raise SystemExit(f"{path}: missing legacy service-worker registration anchor")
+        text=text.replace(legacy_sw,retire_sw,1)
+
     if "localStorage.clear(" in text:
         raise SystemExit(f"{path}: destructive localStorage.clear() is forbidden")
+    if "serviceWorker.register(" in text:
+        raise SystemExit(f"{path}: service-worker registration must remain removed")
 
     path.write_text(text,encoding="utf-8")
     print(f"{path}: {'patched' if text!=original else 'already deterministic'}")

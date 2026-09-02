@@ -65,11 +65,18 @@ assert(index===base,'index/app-base parity');
 for(const html of [index,base]){
  assert(html.includes('<script src="acelynn-recovery.js"></script>'),'recovery engine loaded');
  assert(html.includes('Restore / merge backup'),'restore UI present');
+ assert(html.includes('min-height:48px'),'recovery touch target');
  assert(html.includes('acelynn-pro-pre-import-backup.json'),'pre-import backup present');
  assert(html.indexOf('downloadJson(AcelynnRecovery.createBackup(snapshots)')<html.indexOf('snapshots=AcelynnRecovery.restore(localStorage,incoming)'),'pre-import backup precedes restore write');
  assert(!html.includes('localStorage.clear('),'no destructive clear');
  assert(html.includes("AcelynnRecovery.parseBackupText(raw)"),'validated restore parse');
+ assert(!html.includes('serviceWorker.register('),'service worker registration removed');
+ assert(html.includes('navigator.serviceWorker.getRegistrations()'),'stale service worker enumeration');
+ assert(html.includes('registration.unregister()'),'stale service worker unregister');
+ assert(html.includes("key.startsWith('acelynn-pro-')"),'Acelynn cache filtering');
+ assert(html.includes('caches.delete(key)'),'stale Acelynn cache deletion');
 }
+assert(!fs.existsSync('sw.js'),'service worker source removed');
 const vercel=fs.readFileSync('vercel.json','utf8');
 assert(/"deploymentEnabled"\s*:\s*false/.test(vercel),'Vercel Git deployment stays disabled');
 console.log('Acelynn Pro signing-cutover data recovery QA passed.');
