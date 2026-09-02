@@ -1,0 +1,61 @@
+name: Acelynn Pro Runtime Recovery Browser QA
+
+on:
+  push:
+    branches: [phase7-runtime-recovery-qa]
+    paths:
+      - 'acelynn-recovery.js'
+      - 'index.html'
+      - 'app-base.html'
+      - 'tools/qa-signing-cutover-data-recovery.mjs'
+      - 'tools/qa-recovery-browser.cjs'
+      - '.github/workflows/runtime-recovery-browser-qa.yml'
+      - 'vercel.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact QA branch
+        uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Run recovery engine regression QA
+        run: |
+          node tools/qa-signing-cutover-data-recovery.mjs
+          node --check acelynn-recovery.js
+      - name: Install isolated Playwright test dependency
+        run: |
+          mkdir -p /tmp/acelynn-browser
+          cd /tmp/acelynn-browser
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Serve exact staged Acelynn shell
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/acelynn-http.log 2>&1 &
+          echo $! >/tmp/acelynn-http.pid
+          for i in {1..20}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/acelynn-http.log
+          exit 1
+      - name: Run real browser export restore merge round trip
+        env:
+          NODE_PATH: /tmp/acelynn-browser/node_modules
+        run: node tools/qa-recovery-browser.cjs
+      - name: Verify deployment boundary
+        run: |
+          grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
+          test ! -d .vercel/output
+          git diff --exit-code
+          echo 'No Vercel deployment, APK install, uninstall, or signing cutover executed.'
+      - name: Stop local test server
+        if: always()
+        run: |
+          test ! -f /tmp/acelynn-http.pid || kill "$(cat /tmp/acelynn-http.pid)" 2>/dev/null || true
