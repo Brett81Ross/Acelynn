@@ -34,7 +34,15 @@ assert(!Object.prototype.hasOwnProperty.call(clean,'__proto__')&&!Object.prototy
 const merged=R.mergeSnapshots([a],[a,b]);
 assert(merged.length===2&&merged[0].time===a.time&&merged[1].time===b.time,'current-first dedupe merge');
 const many=Array.from({length:20},(_,i)=>({...a,time:`t${i}`}));
-assert(R.mergeSnapshots([],many).length===12,'12 snapshot cap');
+const capped=R.mergeSnapshots([],many);
+assert(capped.length===12,'12 snapshot cap');
+assert(capped[0].time==='t8'&&capped[11].time==='t19','clean restore keeps newest 12 in chronological storage order');
+const next={...a,time:'t20'};
+const afterNextSave=[...capped,next].slice(-12);
+assert(afterNextSave[0].time==='t9'&&afterNextSave[11].time==='t20','next save drops oldest restored snapshot, not newest');
+const currentMany=Array.from({length:15},(_,i)=>({...a,time:`c${i}`}));
+const currentCapped=R.mergeSnapshots(currentMany,[]);
+assert(currentCapped[0].time==='c3'&&currentCapped[11].time==='c14','oversized current storage retains newest 12 in chronology');
 
 class FakeStorage{
  constructor(raw=null,fail=false){this.raw=raw;this.fail=fail;this.calls=0}
@@ -45,6 +53,7 @@ class FakeStorage{
 const storage=new FakeStorage(JSON.stringify([a]));
 const restored=R.restore(storage,[b]);
 assert(restored.length===2&&JSON.parse(storage.raw).length===2,'successful restore write');
+assert(restored[0].time===a.time&&restored[1].time===b.time,'restore persists chronological order');
 const before=JSON.stringify([a]);
 const failing=new FakeStorage(before,true);
 throws(()=>R.restore(failing,[b]),'simulated write failure','write failure surfaced');
