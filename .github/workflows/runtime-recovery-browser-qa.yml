@@ -7,6 +7,7 @@ on:
       - 'acelynn-recovery.js'
       - 'index.html'
       - 'app-base.html'
+      - 'tools/apply-signing-cutover-data-recovery.py'
       - 'tools/qa-signing-cutover-data-recovery.mjs'
       - 'tools/qa-recovery-browser.cjs'
       - '.github/workflows/runtime-recovery-browser-qa.yml'
@@ -14,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   browser-recovery:
@@ -23,6 +24,10 @@ jobs:
     steps:
       - name: Checkout exact QA branch
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Apply deterministic recovery shell
+        run: python3 tools/apply-signing-cutover-data-recovery.py
       - name: Use Node.js
         uses: actions/setup-node@v5
         with:
@@ -49,12 +54,28 @@ jobs:
         env:
           NODE_PATH: /tmp/acelynn-browser/node_modules
         run: node tools/qa-recovery-browser.cjs
-      - name: Verify deployment boundary
+      - name: Verify deployment and generated-source boundary
         run: |
           grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
           test ! -d .vercel/output
-          git diff --exit-code
+          unexpected="$(git diff --name-only | grep -Ev '^(index.html|app-base.html)$' || true)"
+          test -z "$unexpected" || { echo "Unexpected working-tree changes: $unexpected" >&2; exit 1; }
           echo 'No Vercel deployment, APK install, uninstall, or signing cutover executed.'
+      - name: Commit deterministic recovery shell if needed
+        shell: bash
+        run: |
+          git add index.html app-base.html
+          if git diff --cached --quiet; then
+            echo 'Generated Acelynn Pro runtime recovery shell already settled.'
+            exit 0
+          fi
+          changed="$(git diff --cached --name-only | sort)"
+          expected=$'app-base.html\nindex.html'
+          test "$changed" = "$expected"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'recovery: enforce Acelynn Pro mobile recovery target'
+          git push origin HEAD:${GITHUB_REF_NAME}
       - name: Stop local test server
         if: always()
         run: |
