@@ -48,12 +48,15 @@
     return parseBackupObject(payload);
   }
   function mergeSnapshots(currentValues,backupValues){
-    const current=normalizeList(Array.isArray(currentValues)?currentValues:[]);
+    const current=normalizeList(Array.isArray(currentValues)?currentValues:[]).slice(-MAX_STORED_SNAPSHOTS);
     const backup=normalizeList(Array.isArray(backupValues)?backupValues:[]);
     const seen=new Set(),merged=[];
     for(const item of current){const k=key(item);if(!seen.has(k)){seen.add(k);merged.push(item)}}
-    for(let i=backup.length-1;i>=0&&merged.length<MAX_STORED_SNAPSHOTS;i--){const item=backup[i],k=key(item);if(!seen.has(k)){seen.add(k);merged.push(item)}}
-    return merged.slice(0,MAX_STORED_SNAPSHOTS);
+    const uniqueBackup=[];
+    for(const item of backup){const k=key(item);if(!seen.has(k)){seen.add(k);uniqueBackup.push(item)}}
+    const slots=Math.max(0,MAX_STORED_SNAPSHOTS-merged.length);
+    if(slots)merged.push(...uniqueBackup.slice(-slots));
+    return merged.slice(-MAX_STORED_SNAPSHOTS);
   }
   function createBackup(snapshots){
     return{app:APP,schema:SCHEMA,version:VERSION,created:new Date().toISOString(),snapshots:normalizeList(Array.isArray(snapshots)?snapshots:[]).slice(-MAX_STORED_SNAPSHOTS)};
