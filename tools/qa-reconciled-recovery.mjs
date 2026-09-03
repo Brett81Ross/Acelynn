@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
-import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url);
-const recovery=require('../acelynn-recovery.js');
-const bridge=require('../legacy-export-bridge.js');
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+function loadLegacyCommonJs(path){
+  const code=fs.readFileSync(path,'utf8');
+  const module={exports:{}};
+  const context=vm.createContext({module,exports:module.exports,globalThis:{},console,URL,TextEncoder,TextDecoder,setTimeout,clearTimeout});
+  vm.runInContext(code,context,{filename:path});
+  return module.exports;
+}
+
+const recovery=loadLegacyCommonJs('acelynn-recovery.js');
+const bridge=loadLegacyCommonJs('legacy-export-bridge.js');
 const snap=(id,score=70)=>({time:id,profile:'Balanced mix',score,focus:'Mids',bands:[20,40,80,55,30]});
 
 assert.equal(recovery.APP,'Acelynn Pro');
