@@ -1,4 +1,4 @@
-const VERSION='1.2.0';
+const VERSION='1.3.0';
 const LOGO_SRC='/acelynnpro.png';
 const SIGNAL_FLOOR_DBFS=-72;
 
@@ -32,7 +32,8 @@ function transformShell(input){
   let html=String(input||'');
   if(!html.includes('Acelynn Pro'))throw new Error('Acelynn shell transform received the wrong document');
 
-  html=html.replace(/<div>© 2026 Acelynn Pro™(?: · v[0-9.]+(?: · Demo & Help)?)?<\/div>/,'<div>© 2026 Acelynn Pro™ · v1.2.0</div>');
+  html=html.replace(/<div>© 2026 Acelynn Pro™(?: · v[0-9.]+(?: · Demo & Help)?)?<\/div>/,`<div>© 2026 Acelynn Pro™ · v${VERSION}</div>`);
+  html=html.replace(/<div class="acelynn-splash-meta">v[0-9.]+ · Cactus🌵Byte Studios™<\/div>/,`<div class="acelynn-splash-meta">v${VERSION} · Cactus🌵Byte Studios™</div>`);
 
   if(!html.includes('class="mark acelynn-logo"')){
     html=replaceOnceOrThrow(html,'<div class="mark">A</div>',`<div class="mark acelynn-logo"><img src="${LOGO_SRC}" alt="Acelynn Pro logo"></div>`,'header logo anchor');
