@@ -1,8 +1,8 @@
-name: Acelynn Pro Recovery Staging QA
+name: Acelynn Pro Recovery + v1.3 Browser QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, abl-acelynn-pro-v1-3-professional-metering]
     paths:
       - 'acelynn-recovery.js'
       - 'legacy-export-bridge.js'
@@ -19,12 +19,17 @@ on:
       - 'js/spectral.js'
       - 'js/insights.js'
       - 'js/ui-enhancements.js'
+      - 'js/metering-core.js'
+      - 'js/metering-processor.js'
+      - 'js/metering-engine.js'
+      - 'js/metering-ui.js'
       - 'tools/reconcile-acelynn-main.py'
       - 'tools/apply-hotfix-shell.cjs'
       - 'tools/qa-reconciled-recovery.mjs'
       - 'tools/qa-reconciled-static.mjs'
       - 'tools/qa-recovery-browser.cjs'
       - 'tools/qa-hotfix-browser.cjs'
+      - 'tools/qa-metering-browser.cjs'
       - '.github/workflows/acelynn-recovery-staging-qa.yml'
       - 'vercel.json'
   workflow_dispatch:
@@ -35,14 +40,14 @@ permissions:
 jobs:
   recovery-staging:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - name: Checkout exact staging branch
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Apply deterministic recovery reconciliation
+      - name: Apply deterministic recovery and v1.3 reconciliation
         if: github.ref_name != 'repair-acelynn-v1-2-production-shell'
         run: python3 tools/reconcile-acelynn-main.py
 
@@ -58,7 +63,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Apply production hotfix directly to served shells
+      - name: Apply versioned served-shell transform
         run: node tools/apply-hotfix-shell.cjs
 
       - name: Run recovery compatibility static and runtime syntax QA
@@ -70,12 +75,16 @@ jobs:
           node --check js/storage.js
           node --check js/insights.js
           node --check js/ui-enhancements.js
+          node --check js/metering-core.js
+          node --check js/metering-processor.js
+          node --check js/metering-engine.js
+          node --check js/metering-ui.js
           node --check api/shell-transform.cjs
           node --check api/demo-shell.js
           node tools/qa-reconciled-recovery.mjs
           node tools/qa-reconciled-static.mjs
 
-      - name: Build exact transformed hotfix shell for browser QA
+      - name: Build exact transformed shell for browser QA
         run: node -e "const fs=require('node:fs');const {transformShell}=require('./api/shell-transform.cjs');fs.writeFileSync('hotfix-preview.html',transformShell(fs.readFileSync('app-base.html','utf8')))"
 
       - name: Install isolated Playwright dependency
@@ -99,10 +108,16 @@ jobs:
           NODE_PATH: /tmp/acelynn-browser/node_modules
         run: node tools/qa-recovery-browser.cjs
 
-      - name: Run real browser logo splash footer and valid-signal hotfix QA
+      - name: Run real browser logo splash footer valid-signal and fallback QA
         env:
           NODE_PATH: /tmp/acelynn-browser/node_modules
         run: node tools/qa-hotfix-browser.cjs
+
+      - name: Run real Chromium AudioWorklet professional metering QA
+        if: github.ref_name == 'abl-acelynn-pro-v1-3-professional-metering'
+        env:
+          NODE_PATH: /tmp/acelynn-browser/node_modules
+        run: node tools/qa-metering-browser.cjs
 
       - name: Verify no deployment boundary was crossed
         run: |
@@ -117,7 +132,7 @@ jobs:
         run: |
           git add index.html app-base.html
           if git diff --cached --quiet; then
-            echo 'Acelynn Pro recovery/v1.2 production shell already reconciled.'
+            echo 'Acelynn Pro shell already reconciled.'
             exit 0
           fi
           changed="$(git diff --cached --name-only | sort)"
@@ -125,7 +140,11 @@ jobs:
           test "$changed" = "$expected"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'runtime: bake Acelynn Pro v1.2 production hotfix into served shells'
+          if [ "${GITHUB_REF_NAME}" = "abl-acelynn-pro-v1-3-professional-metering" ]; then
+            git commit -m 'runtime: reconcile Acelynn Pro v1.3 professional metering shell'
+          else
+            git commit -m 'runtime: reconcile Acelynn Pro recovery shell'
+          fi
           git push origin HEAD:${GITHUB_REF_NAME}
 
       - name: Stop local test server
