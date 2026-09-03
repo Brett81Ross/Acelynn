@@ -9,9 +9,13 @@ const base=read('app-base.html');
 const sw=read('sw.js');
 const shell=read('api/demo-shell.js');
 const vercel=read('vercel.json');
+const runtime=read('js/runtime.js');
+const insights=read('js/insights.js');
+const enhancements=read('js/ui-enhancements.js');
 const directBridge='\n<script src="/legacy-export-bridge.js?v=cutover1"></script>';
 const recoveryTag='<script src="/acelynn-recovery.js"></script>';
 const runtimeTag='<script type="module" src="/js/runtime.js"></script>';
+const enhancementsTag='<script type="module" src="/js/ui-enhancements.js"></script>';
 const normalizeApprovedIndexDrift=text=>text.replace(directBridge,'').replace('</script>\n</body></html>','</script></body></html>').replace(/\n+$/,'');
 
 assert.equal(count(index,directBridge),1,'static index keeps exactly one approved direct legacy bridge');
@@ -20,10 +24,13 @@ assert.equal(count(index,recoveryTag),1,'static index loads recovery engine exac
 assert.equal(count(base,recoveryTag),1,'app-base loads recovery engine exactly once');
 assert.equal(count(index,runtimeTag),1,'static index loads v1.2 runtime exactly once');
 assert.equal(count(base,runtimeTag),1,'app-base loads v1.2 runtime exactly once');
+assert.equal(count(index,enhancementsTag),1,'static index loads v1.2 enhancement UI exactly once');
+assert.equal(count(base,enhancementsTag),1,'app-base loads v1.2 enhancement UI exactly once');
 assert.equal(normalizeApprovedIndexDrift(index),base.replace(/\n+$/,''),'index/app-base may differ only by the approved direct bridge and exact formatting it introduced');
 for(const html of [index,base]){
   assert(html.includes(recoveryTag),'recovery engine uses origin-absolute URL');
   assert(html.includes(runtimeTag),'v1.2 runtime uses origin-absolute module URL');
+  assert(html.includes(enhancementsTag),'v1.2 enhancement UI uses origin-absolute module URL');
   assert(html.includes('Restore / merge backup'),'restore UI present');
   assert(html.includes('min-height:48px'),'restore touch target is at least 48px');
   assert(html.includes('acelynn-pro-pre-import-backup.json'),'pre-import safety backup present');
@@ -31,9 +38,18 @@ for(const html of [index,base]){
   assert(html.includes('AcelynnRecovery.parseBackupText(raw)'),'restore validates backup before write');
   assert(html.includes('AcelynnV12.clearSourceFile()'),'microphone mode clears prior file identity');
   assert(html.includes('await AcelynnV12.setSourceFile(file)'),'file mode hashes source bytes before analysis');
+  assert(html.includes("button.textContent=running?'Save current check':lastFrame?(lastFrame.saved?'Last check saved':'Save last check')"),'Save button communicates stopped analysis state');
+  assert(html.includes('function capture(){if(!lastFrame||lastFrame.saved)return;'),'capture persists the frozen last frame instead of requiring a running analyzer');
+  assert(!html.includes('function capture(){if(!running)return;'),'stopped analyses must remain saveable');
+  assert(html.includes('AcelynnCoreBridge=Object.freeze'),'core exposes only the narrow enhancement bridge');
+  assert(html.includes("new CustomEvent('acelynn:stopped'"),'stop state notifies enhancement UI');
+  assert(html.includes("new CustomEvent('acelynn:snapshot-saved'"),'saved snapshots notify Mix-Diff UI');
   assert(html.includes('AcelynnV12.persistAnalysis({fftMagnitudes'),'Save Current Check persists the v1.2 structured analysis');
-  assert(html.includes("sourceType:activeSource==='file'?'file':'microphone'"),'runtime records source type');
-  assert(html.includes("perspective:$('analysisMode').value"),'runtime records analysis perspective');
+  assert(html.includes('perspectiveWeightedScore:r.weightedScore??r.score'),'runtime records perspective-weighted health');
+  assert(html.includes('referenceDeltas:diff?.largestChanges||[]'),'runtime records A/B deltas');
+  assert(html.includes('roomSignatureId:room?.id||null'),'runtime records applied room signature');
+  assert(html.includes('sourceType:frame.sourceType'),'stopped-save persistence uses the frozen source identity');
+  assert(html.includes('perspective:frame.perspective'),'stopped-save persistence uses the frozen analysis perspective');
   assert(html.includes("localStorage.setItem('acelynn-snapshots'"),'legacy local snapshot fallback remains intact');
   assert(!html.includes('/js/spectral.js'),'shell does not directly import spectral implementation');
   assert(!html.includes('/js/migration.js'),'shell does not directly import migration implementation');
@@ -48,6 +64,19 @@ for(const html of [index,base]){
   assert(html.includes('All Rights Reserved'),'rights footer remains present');
 }
 
+assert(runtime.includes("const ACTIVE_ROOM_META_KEY = 'activeRoomSignatureId'"),'runtime has persistent active-room pointer');
+assert(runtime.includes('export async function saveRoomSignature'),'runtime persists room signatures');
+assert(runtime.includes('perspectiveWeighted: weightedScore'),'runtime persists weighted health');
+assert(runtime.includes('coachingFindings: cleanFindings'),'runtime persists deterministic findings');
+assert(runtime.includes('referenceDeltas: cleanReferenceDeltas'),'runtime persists Mix-Diff deltas');
+assert(insights.includes('export function calculatePerspectiveHealth'),'perspective engine exists');
+assert(insights.includes('export function applyRoomSignature'),'conservative room compensation exists');
+assert(insights.includes('export function diffSnapshots'),'Mix-Diff engine exists');
+assert(insights.includes('export function buildRuleFindings'),'deterministic live rule coach exists');
+assert(enhancements.includes('Room signature'),'room capture UI exists');
+assert(enhancements.includes('Mix-Diff A/B'),'A/B comparison UI exists');
+assert(enhancements.includes('LIVE RULE METER'),'live rule meter UI exists');
+
 assert(sw.includes("const MIGRATION_SHELL='/api/demo-shell.js'"),'migration fallback worker remains available');
 assert(sw.includes("key.startsWith(LEGACY_CACHE_PREFIX)"),'migration worker only targets Acelynn legacy caches');
 assert(!sw.includes('caches.open('),'migration worker does not create caches');
@@ -59,4 +88,4 @@ assert(/"deploymentEnabled"\s*:\s*false/.test(vercel),'staging branch must not d
 const bridgeBlob=execFileSync('git',['hash-object','legacy-export-bridge.js'],{encoding:'utf8'}).trim();
 assert.equal(bridgeBlob,'4289393f9ad736ab55a4ff525bb80464ac2c1b5e','proven legacy export bridge must remain byte-for-byte unchanged');
 
-console.log('Acelynn Pro reconciled static + v1.2 runtime wiring QA passed.');
+console.log('Acelynn Pro reconciled static + stopped-save + insight UI QA passed.');
