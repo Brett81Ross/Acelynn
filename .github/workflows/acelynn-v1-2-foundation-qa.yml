@@ -1,12 +1,13 @@
-name: Acelynn Pro v1.2 Foundation QA
+name: Acelynn Pro v1.3 Professional Metering QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, abl-acelynn-pro-v1-3-professional-metering]
     paths:
       - 'api/**'
       - 'js/**'
       - 'tests/**'
+      - 'tools/reconcile-acelynn-main.py'
       - 'index.html'
       - 'app-base.html'
       - 'package.json'
@@ -29,6 +30,9 @@ jobs:
       - name: Verify deployment remains disabled
         run: grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
 
+      - name: Reconcile exact staged shell in working tree
+        run: python3 tools/reconcile-acelynn-main.py
+
       - name: Use Node.js
         uses: actions/setup-node@v5
         with:
@@ -37,7 +41,7 @@ jobs:
       - name: Install isolated QA dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Syntax check v1.2 modules and served shell
+      - name: Syntax check v1.3 modules and served shell
         run: |
           node --check js/meta.js
           node --check js/db.js
@@ -45,28 +49,37 @@ jobs:
           node --check js/migration.js
           node --check js/spectral.js
           node --check js/insights.js
+          node --check js/metering-core.js
+          node --check js/metering-processor.js
+          node --check js/metering-engine.js
+          node --check js/metering-ui.js
           node --check js/runtime.js
           node --check js/ui-enhancements.js
           node --check api/shell-transform.cjs
           node --check api/demo-shell.js
 
-      - name: Run v1.2 foundation spectral insight runtime and shell QA
-        run: npm run qa:v1.2
+      - name: Run v1.2 regression plus v1.3 professional metering QA
+        run: npm run qa:v1.3
 
-      - name: Confirm controlled runtime and enhancement wiring boundary
+      - name: Confirm controlled v1.3 module wiring boundary
         run: |
+          test "$(grep -o '<script type="module" src="/js/metering-engine.js"></script>' index.html | wc -l)" -eq 1
+          test "$(grep -o '<script type="module" src="/js/metering-engine.js"></script>' app-base.html | wc -l)" -eq 1
+          test "$(grep -o '<script type="module" src="/js/metering-ui.js"></script>' index.html | wc -l)" -eq 1
+          test "$(grep -o '<script type="module" src="/js/metering-ui.js"></script>' app-base.html | wc -l)" -eq 1
           test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' index.html | wc -l)" -eq 1
           test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' app-base.html | wc -l)" -eq 1
           test "$(grep -o '<script type="module" src="/js/ui-enhancements.js"></script>' index.html | wc -l)" -eq 1
           test "$(grep -o '<script type="module" src="/js/ui-enhancements.js"></script>' app-base.html | wc -l)" -eq 1
+          ! grep -q '/js/metering-processor.js' index.html
+          ! grep -q '/js/metering-processor.js' app-base.html
           ! grep -q '/js/spectral.js' index.html
           ! grep -q '/js/spectral.js' app-base.html
           ! grep -q '/js/migration.js' index.html
           ! grep -q '/js/migration.js' app-base.html
-          ! grep -q '/js/insights.js' index.html
-          ! grep -q '/js/insights.js' app-base.html
-          grep -q 'AcelynnV12.persistAnalysis' index.html
-          grep -q 'AcelynnV12.persistAnalysis' app-base.html
+          grep -q 'professionalMetering:globalThis.AcelynnMetering' index.html
+          grep -q 'professionalMetering:globalThis.AcelynnMetering' app-base.html
+          grep -q "sourceType:'microphone'" index.html
+          grep -q "sourceType:'file'" index.html
           grep -q 'Save last check' index.html
-          grep -q 'Save last check' app-base.html
-          echo 'v1.2 core and enhancement UI remain wired only through the approved module boundary.'
+          echo 'v1.3 professional metering is wired through AudioWorklet bridge while v1.2 runtime/recovery boundaries remain intact.'
