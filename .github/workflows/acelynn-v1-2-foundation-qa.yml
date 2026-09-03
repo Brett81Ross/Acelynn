@@ -6,6 +6,8 @@ on:
     paths:
       - 'js/**'
       - 'tests/**'
+      - 'index.html'
+      - 'app-base.html'
       - 'package.json'
       - 'vitest.config.js'
       - '.github/workflows/acelynn-v1-2-foundation-qa.yml'
@@ -41,14 +43,19 @@ jobs:
           node --check js/storage.js
           node --check js/migration.js
           node --check js/spectral.js
+          node --check js/runtime.js
 
-      - name: Run v1.2 foundation and spectral QA
+      - name: Run v1.2 foundation spectral and runtime QA
         run: npm run qa:v1.2
 
-      - name: Confirm staged-only runtime boundary
+      - name: Confirm controlled runtime wiring boundary
         run: |
+          test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' index.html | wc -l)" -eq 1
+          test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' app-base.html | wc -l)" -eq 1
           ! grep -q '/js/spectral.js' index.html
           ! grep -q '/js/spectral.js' app-base.html
           ! grep -q '/js/migration.js' index.html
           ! grep -q '/js/migration.js' app-base.html
-          echo 'Foundation remains staged-only; production runtime shell is unchanged.'
+          grep -q 'AcelynnV12.persistAnalysis' index.html
+          grep -q 'AcelynnV12.persistAnalysis' app-base.html
+          echo 'v1.2 is wired only through the controlled runtime module.'
