@@ -43,7 +43,15 @@ jobs:
           fetch-depth: 0
 
       - name: Apply deterministic recovery reconciliation
+        if: github.ref_name != 'repair-acelynn-v1-2-production-shell'
         run: python3 tools/reconcile-acelynn-main.py
+
+      - name: Verify production-repair shell source checkpoint
+        if: github.ref_name == 'repair-acelynn-v1-2-production-shell'
+        run: |
+          test "$(git hash-object index.html)" = "628d8a8cb6552143eb15e8ae4058268b1ac24a26"
+          test "$(git hash-object app-base.html)" = "9d37e60d0538fec4bb75015a25c23db11536bdae"
+          echo 'Production repair starts from the exact browser-QA-approved baked shell blobs.'
 
       - name: Use Node.js
         uses: actions/setup-node@v5
