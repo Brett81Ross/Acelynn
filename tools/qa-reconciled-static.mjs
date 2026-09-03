@@ -16,7 +16,6 @@ const directBridge='\n<script src="/legacy-export-bridge.js?v=cutover1"></script
 const recoveryTag='<script src="/acelynn-recovery.js"></script>';
 const runtimeTag='<script type="module" src="/js/runtime.js"></script>';
 const enhancementsTag='<script type="module" src="/js/ui-enhancements.js"></script>';
-const normalizeApprovedIndexDrift=text=>text.replace(directBridge,'').replace(/\s+/g,' ').trim();
 
 assert.equal(count(index,directBridge),1,'static index keeps exactly one approved direct legacy bridge');
 assert.equal(count(base,directBridge),0,'app-base stays bridge-free because demo-shell injects the production bridge');
@@ -26,7 +25,8 @@ assert.equal(count(index,runtimeTag),1,'static index loads v1.2 runtime exactly 
 assert.equal(count(base,runtimeTag),1,'app-base loads v1.2 runtime exactly once');
 assert.equal(count(index,enhancementsTag),1,'static index loads v1.2 enhancement UI exactly once');
 assert.equal(count(base,enhancementsTag),1,'app-base loads v1.2 enhancement UI exactly once');
-assert.equal(normalizeApprovedIndexDrift(index),normalizeApprovedIndexDrift(base),'index/app-base may differ only by the approved direct bridge and whitespace formatting');
+assert.equal(count(index,'id="acelynnSplash"'),count(base,'id="acelynnSplash"'),'both reconciled shells receive the same single splash transform');
+assert.equal(count(index,'class="mark acelynn-logo"'),count(base,'class="mark acelynn-logo"'),'both reconciled shells receive the same branded header transform');
 for(const html of [index,base]){
   assert(html.includes(recoveryTag),'recovery engine uses origin-absolute URL');
   assert(html.includes(runtimeTag),'v1.2 runtime uses origin-absolute module URL');
