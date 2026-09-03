@@ -1,5 +1,4 @@
 from pathlib import Path
-import difflib
 
 FILES=[Path('index.html'),Path('app-base.html')]
 DIRECT_BRIDGE='\n<script src="/legacy-export-bridge.js?v=cutover1"></script>'
@@ -8,6 +7,13 @@ def normalize_approved_index_drift(text):
     text=text.replace(DIRECT_BRIDGE,'')
     text=text.replace('</script>\n</body></html>','</script></body></html>')
     return text
+
+def first_difference(left,right):
+    limit=min(len(left),len(right))
+    for i in range(limit):
+        if left[i]!=right[i]:
+            return i
+    return limit if len(left)!=len(right) else None
 
 for path in FILES:
     text=path.read_text(encoding='utf-8')
@@ -60,7 +66,11 @@ index=FILES[0].read_text(encoding='utf-8')
 base=FILES[1].read_text(encoding='utf-8')
 normalized_index=normalize_approved_index_drift(index)
 if normalized_index != base:
-    diff=''.join(difflib.unified_diff(base.splitlines(True),normalized_index.splitlines(True),fromfile='app-base.html',tofile='normalized index.html',n=2))
-    print('UNAPPROVED SOURCE DRIFT:\n'+diff[:12000])
+    i=first_difference(base,normalized_index)
+    start=max(0,(i or 0)-180)
+    end=min(max(len(base),len(normalized_index)),(i or 0)+180)
+    print(f'UNAPPROVED SOURCE DRIFT: first_difference={i} base_len={len(base)} index_len={len(normalized_index)}')
+    print('BASE_CONTEXT='+repr(base[start:min(end,len(base))]))
+    print('INDEX_CONTEXT='+repr(normalized_index[start:min(end,len(normalized_index))]))
     raise SystemExit('index.html/app-base.html drift exceeds the approved legacy bridge/whitespace difference')
 print('Acelynn Pro source parity: OK (legacy bridge + exact closing-tag whitespace exception only)')
