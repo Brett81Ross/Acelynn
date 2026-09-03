@@ -3,17 +3,23 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 
 const read=path=>fs.readFileSync(path,'utf8');
+const count=(text,needle)=>text.split(needle).length-1;
 const index=read('index.html');
 const base=read('app-base.html');
 const sw=read('sw.js');
 const shell=read('api/demo-shell.js');
 const vercel=read('vercel.json');
 const directBridge='\n<script src="/legacy-export-bridge.js?v=cutover1"></script>';
+const recoveryTag='<script src="/acelynn-recovery.js"></script>';
 const normalizeApprovedIndexDrift=text=>text.replace(directBridge,'').replace('</script>\n</body></html>','</script></body></html>').replace(/\n+$/,'');
 
+assert.equal(count(index,directBridge),1,'static index keeps exactly one approved direct legacy bridge');
+assert.equal(count(base,directBridge),0,'app-base stays bridge-free because demo-shell injects the production bridge');
+assert.equal(count(index,recoveryTag),1,'static index loads recovery engine exactly once');
+assert.equal(count(base,recoveryTag),1,'app-base loads recovery engine exactly once');
 assert.equal(normalizeApprovedIndexDrift(index),base.replace(/\n+$/,''),'index/app-base may differ only by the approved direct bridge and exact formatting it introduced');
 for(const html of [index,base]){
-  assert(html.includes('<script src="/acelynn-recovery.js"></script>'),'recovery engine uses origin-absolute URL');
+  assert(html.includes(recoveryTag),'recovery engine uses origin-absolute URL');
   assert(html.includes('Restore / merge backup'),'restore UI present');
   assert(html.includes('min-height:48px'),'restore touch target is at least 48px');
   assert(html.includes('acelynn-pro-pre-import-backup.json'),'pre-import safety backup present');
