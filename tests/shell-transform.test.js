@@ -11,8 +11,8 @@ function count(text,needle){return text.split(needle).length-1}
 function assertHotfix(html){
   expect(html).toContain(`<img src="${LOGO_SRC}" alt="Acelynn Pro logo">`);
   expect(html).toContain('id="acelynnSplash"');
-  expect(html).toContain('Acelynn Pro™</div><div class="acelynn-splash-meta">v1.2.0 · Cactus🌵Byte Studios™');
-  expect(html).toContain('© 2026 Acelynn Pro™ · v1.2.0');
+  expect(html).toContain('Acelynn Pro™</div><div class="acelynn-splash-meta">v1.3.0 · Cactus🌵Byte Studios™');
+  expect(html).toContain('© 2026 Acelynn Pro™ · v1.3.0');
   expect(html).not.toContain('if(avg<8)');
   expect(html).toContain('signalDb<-72');
   expect(html).toContain('coach(result,vals,vals.reduce((a,b)=>a+b,0)/5,rmsDb);');
@@ -21,9 +21,9 @@ function assertHotfix(html){
   expect(count(html,'splash.classList.add')).toBe(1);
 }
 
-describe('Acelynn v1.2 post-release shell hotfix',()=>{
-  it('treats the screenshot RMS level as a usable signal while rejecting silence',()=>{
-    expect(VERSION).toBe('1.2.0');
+describe('Acelynn v1.3 shell transform',()=>{
+  it('keeps the proven RMS signal gate while advancing staging version metadata',()=>{
+    expect(VERSION).toBe('1.3.0');
     expect(SIGNAL_FLOOR_DBFS).toBe(-72);
     expect(isUsableSignal(-46.5)).toBe(true);
     expect(isUsableSignal(-72)).toBe(true);
@@ -31,7 +31,7 @@ describe('Acelynn v1.2 post-release shell hotfix',()=>{
     expect(isUsableSignal(Number.NaN)).toBe(false);
   });
 
-  it('transforms the exact production base shell with the real logo splash version and RMS gate',()=>{
+  it('transforms the exact staged base shell with the real logo splash version and RMS gate',()=>{
     const html=transformShell(productionBase);
     assertHotfix(html);
     expect(transformShell(html)).toBe(html);
