@@ -3,6 +3,14 @@ import { STORES, openDatabase, requestToPromise } from './db.js';
 import { findVersionsByFileHash, hashAudioContent, meta, read, runWriteTransaction } from './storage.js';
 import { computeSpectralFeatures } from './spectral.js';
 import {
+  applyRoomSignature,
+  buildRuleFindings,
+  calculatePerspectiveHealth,
+  diffSnapshots,
+  estimateRoomConfidence,
+  normalizeBandValues
+} from './insights.js';
+import {
   dryRunLegacyMigration,
   finalizeLegacyBackupAfterCleanLaunch,
   getLegacyBackupStatus,
@@ -10,11 +18,17 @@ import {
 } from './migration.js';
 
 const WORKSPACE_META_KEY = 'defaultWorkspace';
+const ACTIVE_ROOM_META_KEY = 'activeRoomSignatureId';
 let sourceFileHash = null;
 let sourceFileMetadata = null;
 
 function uuid() {
   return globalThis.crypto?.randomUUID?.() || `acelynn-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function finiteOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 async function ensureDefaultWorkspace() {
@@ -101,16 +115,67 @@ export function clearSourceFile() {
   sourceFileMetadata = null;
 }
 
+export async function saveRoomSignature({
+  fftMagnitudes,
+  sampleRate,
+  fftSize,
+  bandValues,
+  confidence = null,
+  name = 'Room signature'
+}) {
+  const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
+  const normalizedBands = normalizeBandValues(bandValues);
+  const id = uuid();
+  const createdAt = Date.now();
+  const record = {
+    id,
+    scope: 'room',
+    name: String(name || 'Room signature').slice(0, 80),
+    createdAt,
+    updatedAt: createdAt,
+    origin: 'v1.2-room-signature',
+    spectralDefinition: APP_META.spectralDefinition,
+    spectralFeatures,
+    normalizedBands,
+    confidence: finiteOrNull(confidence),
+    sourceType: 'microphone'
+  };
+
+  await runWriteTransaction([STORES.REFERENCES, STORES.META], async stores => {
+    await requestToPromise(stores[STORES.REFERENCES].put(record));
+    await requestToPromise(stores[STORES.META].put({ key: ACTIVE_ROOM_META_KEY, value: id, updatedAt: createdAt }));
+  }, { operation: 'saveRoomSignature', roomSignatureId: id });
+  return record;
+}
+
+export async function getActiveRoomSignature() {
+  const active = await meta.get(ACTIVE_ROOM_META_KEY);
+  if (!active?.value) return null;
+  return read.one(STORES.REFERENCES, active.value);
+}
+
+export async function clearActiveRoomSignature() {
+  await meta.remove(ACTIVE_ROOM_META_KEY);
+  return true;
+}
+
 export async function persistAnalysis({
   fftMagnitudes,
   sampleRate,
   fftSize,
   profile,
   score,
+  perspectiveWeightedScore = null,
+  targetProfileMatch = null,
   focus,
   bandValues,
   sourceType,
-  perspective
+  perspective,
+  levels = null,
+  coachingFindings = [],
+  referenceDeltas = [],
+  roomSignatureId = null,
+  roomConfidence = null
 }) {
   const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
   const analysisTimestamp = Date.now();
@@ -124,7 +189,23 @@ export async function persistAnalysis({
 
   const createdAt = Date.now();
   const id = uuid();
-  const normalizedBands = Array.isArray(bandValues) ? bandValues.slice(0, 5).map(value => Number.isFinite(Number(value)) ? Number(value) : null) : [];
+  const normalizedBands = Array.isArray(bandValues) ? bandValues.slice(0, 5).map(value => finiteOrNull(value)) : [];
+  const peakDbfs = finiteOrNull(levels?.peakDbfs);
+  const rmsDbfs = finiteOrNull(levels?.rmsDbfs);
+  const crestDb = finiteOrNull(levels?.crestDb ?? (peakDbfs !== null && rmsDbfs !== null ? peakDbfs - rmsDbfs : null));
+  const cleanFindings = Array.isArray(coachingFindings) ? coachingFindings.slice(0, 5).map(item => ({
+    severity: finiteOrNull(item?.severity),
+    title: String(item?.title || '').slice(0, 140),
+    text: String(item?.text || '').slice(0, 360)
+  })) : [];
+  const cleanReferenceDeltas = Array.isArray(referenceDeltas) ? referenceDeltas.slice(0, 5).map(item => ({
+    name: String(item?.name || '').slice(0, 40),
+    delta: finiteOrNull(item?.delta),
+    direction: String(item?.direction || '').slice(0, 16)
+  })) : [];
+  const rawScore = finiteOrNull(score);
+  const weightedScore = finiteOrNull(perspectiveWeightedScore);
+  const profileMatch = finiteOrNull(targetProfileMatch);
   const record = {
     id,
     songId: workspace.songId,
@@ -147,24 +228,24 @@ export async function persistAnalysis({
       presence: { legacyByteEnergy: normalizedBands[3] ?? null },
       air: { legacyByteEnergy: normalizedBands[4] ?? null }
     },
-    levels: { peakDbfs: null, rmsDbfs: null, crestDb: null },
+    levels: { peakDbfs, rmsDbfs, crestDb },
     dominantFrequencyArea: focus || null,
     spectralFeatures,
     mixHealth: {
-      raw: Number.isFinite(Number(score)) ? Number(score) : null,
-      perspectiveWeighted: null,
-      targetProfileMatch: null
+      raw: rawScore,
+      perspectiveWeighted: weightedScore,
+      targetProfileMatch: profileMatch
     },
     confidence: {
       overall: null,
-      status: 'not-yet-scored',
+      status: 'deterministic-rules',
       claimStrengthFactor: null,
       factors: null
     },
-    coachingFindings: [],
-    referenceDeltas: [],
-    roomSignatureId: null,
-    roomConfidence: null
+    coachingFindings: cleanFindings,
+    referenceDeltas: cleanReferenceDeltas,
+    roomSignatureId: roomSignatureId || null,
+    roomConfidence: finiteOrNull(roomConfidence)
   };
 
   await runWriteTransaction([STORES.VERSIONS, STORES.SONGS], async stores => {
@@ -180,7 +261,16 @@ const runtime = Object.freeze({
   initializeRuntime,
   setSourceFile,
   clearSourceFile,
-  persistAnalysis
+  saveRoomSignature,
+  getActiveRoomSignature,
+  clearActiveRoomSignature,
+  persistAnalysis,
+  calculatePerspectiveHealth,
+  applyRoomSignature,
+  estimateRoomConfidence,
+  diffSnapshots,
+  buildRuleFindings,
+  normalizeBandValues
 });
 
 globalThis.AcelynnV12 = runtime;
