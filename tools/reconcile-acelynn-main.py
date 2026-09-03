@@ -46,16 +46,16 @@ for path in FILES:
     text=replace_once(
         text,
         'micSource=audioCtx.createMediaStreamSource(stream);micSource.connect(analyser);running=true;',
-        "micSource=audioCtx.createMediaStreamSource(stream);if(!(await globalThis.AcelynnMetering?.attach?.(audioCtx,micSource,analyser,{sourceType:'microphone'})))micSource.connect(analyser);running=true;",
+        "micSource=audioCtx.createMediaStreamSource(stream);micSource.connect(analyser);await globalThis.AcelynnMetering?.attach?.(audioCtx,micSource,analyser,{sourceType:'microphone'});running=true;",
         path,
-        'microphone AudioWorklet bridge'
+        'parallel microphone AudioWorklet tap'
     )
     text=replace_once(
         text,
         "if(!mediaSource)mediaSource=audioCtx.createMediaElementSource(p);mediaSource.connect(analyser);analyser.connect(audioCtx.destination);p.classList.remove('hidden');",
-        "if(!mediaSource)mediaSource=audioCtx.createMediaElementSource(p);if(!(await globalThis.AcelynnMetering?.attach?.(audioCtx,mediaSource,analyser,{sourceType:'file'})))mediaSource.connect(analyser);analyser.connect(audioCtx.destination);p.classList.remove('hidden');",
+        "if(!mediaSource)mediaSource=audioCtx.createMediaElementSource(p);mediaSource.connect(analyser);analyser.connect(audioCtx.destination);await globalThis.AcelynnMetering?.attach?.(audioCtx,mediaSource,analyser,{sourceType:'file'});p.classList.remove('hidden');",
         path,
-        'file AudioWorklet bridge'
+        'parallel file AudioWorklet tap'
     )
     text=replace_once(
         text,
@@ -81,6 +81,8 @@ for path in FILES:
     require(text, 'referenceDeltas:diff?.largestChanges||[]', path, 'missing Mix-Diff persistence')
     require(text, 'roomSignatureId:room?.id||null', path, 'missing room signature linkage')
     require(text, 'professionalMetering:globalThis.AcelynnMetering?.getSnapshot?.()||null', path, 'missing professional metering persistence')
+    require(text, "micSource.connect(analyser);await globalThis.AcelynnMetering?.attach?.", path, 'microphone core analyser must remain independent of metering tap')
+    require(text, "mediaSource.connect(analyser);analyser.connect(audioCtx.destination);await globalThis.AcelynnMetering?.attach?.", path, 'file core analyser/playback must remain independent of metering tap')
     require(text, "sourceType:'microphone'", path, 'missing microphone metering attachment')
     require(text, "sourceType:'file'", path, 'missing file metering attachment')
     require(text, "localStorage.setItem('acelynn-snapshots'", path, 'legacy local snapshot fallback missing')
@@ -112,11 +114,11 @@ for needle,label in [
     (METER_ENGINE_TAG,'metering engine'),
     (METER_UI_TAG,'metering UI'),
     ('professionalMetering:globalThis.AcelynnMetering?.getSnapshot?.()||null','metering persistence'),
-    ("sourceType:'microphone'",'microphone metering'),
-    ("sourceType:'file'",'file metering'),
+    ("micSource.connect(analyser);await globalThis.AcelynnMetering?.attach?.",'independent microphone analyser'),
+    ("mediaSource.connect(analyser);analyser.connect(audioCtx.destination);await globalThis.AcelynnMetering?.attach?.",'independent file analyser'),
     ("'Save last check'",'stopped-save state'),
     ('navigator.serviceWorker.getRegistrations()','service-worker retirement')
 ]:
     if needle not in index or needle not in base:
         raise SystemExit(f'index/app-base semantic parity missing: {label}')
-print('Acelynn Pro semantic source parity: OK (v1.3 metering + v1.2 recovery preserved)')
+print('Acelynn Pro semantic source parity: OK (parallel v1.3 metering + v1.2 recovery preserved)')
