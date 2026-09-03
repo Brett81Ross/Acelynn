@@ -11,20 +11,32 @@ const shell=read('api/demo-shell.js');
 const vercel=read('vercel.json');
 const directBridge='\n<script src="/legacy-export-bridge.js?v=cutover1"></script>';
 const recoveryTag='<script src="/acelynn-recovery.js"></script>';
+const runtimeTag='<script type="module" src="/js/runtime.js"></script>';
 const normalizeApprovedIndexDrift=text=>text.replace(directBridge,'').replace('</script>\n</body></html>','</script></body></html>').replace(/\n+$/,'');
 
 assert.equal(count(index,directBridge),1,'static index keeps exactly one approved direct legacy bridge');
 assert.equal(count(base,directBridge),0,'app-base stays bridge-free because demo-shell injects the production bridge');
 assert.equal(count(index,recoveryTag),1,'static index loads recovery engine exactly once');
 assert.equal(count(base,recoveryTag),1,'app-base loads recovery engine exactly once');
+assert.equal(count(index,runtimeTag),1,'static index loads v1.2 runtime exactly once');
+assert.equal(count(base,runtimeTag),1,'app-base loads v1.2 runtime exactly once');
 assert.equal(normalizeApprovedIndexDrift(index),base.replace(/\n+$/,''),'index/app-base may differ only by the approved direct bridge and exact formatting it introduced');
 for(const html of [index,base]){
   assert(html.includes(recoveryTag),'recovery engine uses origin-absolute URL');
+  assert(html.includes(runtimeTag),'v1.2 runtime uses origin-absolute module URL');
   assert(html.includes('Restore / merge backup'),'restore UI present');
   assert(html.includes('min-height:48px'),'restore touch target is at least 48px');
   assert(html.includes('acelynn-pro-pre-import-backup.json'),'pre-import safety backup present');
   assert(html.indexOf('downloadJson(AcelynnRecovery.createBackup(snapshots)')<html.indexOf('snapshots=AcelynnRecovery.restore(localStorage,incoming)'),'pre-import backup precedes restore write');
   assert(html.includes('AcelynnRecovery.parseBackupText(raw)'),'restore validates backup before write');
+  assert(html.includes('AcelynnV12.clearSourceFile()'),'microphone mode clears prior file identity');
+  assert(html.includes('await AcelynnV12.setSourceFile(file)'),'file mode hashes source bytes before analysis');
+  assert(html.includes('AcelynnV12.persistAnalysis({fftMagnitudes'),'Save Current Check persists the v1.2 structured analysis');
+  assert(html.includes("sourceType:activeSource==='file'?'file':'microphone'"),'runtime records source type');
+  assert(html.includes("perspective:$('analysisMode').value"),'runtime records analysis perspective');
+  assert(html.includes("localStorage.setItem('acelynn-snapshots'"),'legacy local snapshot fallback remains intact');
+  assert(!html.includes('/js/spectral.js'),'shell does not directly import spectral implementation');
+  assert(!html.includes('/js/migration.js'),'shell does not directly import migration implementation');
   assert(!html.includes('localStorage.clear('),'destructive localStorage.clear is forbidden');
   assert(!html.includes('serviceWorker.register('),'new service-worker registration remains retired');
   assert(html.includes('navigator.serviceWorker.getRegistrations()'),'stale service workers are enumerated');
@@ -47,4 +59,4 @@ assert(/"deploymentEnabled"\s*:\s*false/.test(vercel),'staging branch must not d
 const bridgeBlob=execFileSync('git',['hash-object','legacy-export-bridge.js'],{encoding:'utf8'}).trim();
 assert.equal(bridgeBlob,'4289393f9ad736ab55a4ff525bb80464ac2c1b5e','proven legacy export bridge must remain byte-for-byte unchanged');
 
-console.log('Acelynn Pro reconciled static QA passed.');
+console.log('Acelynn Pro reconciled static + v1.2 runtime wiring QA passed.');
