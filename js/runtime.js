@@ -32,6 +32,27 @@ function finiteOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function sanitizeProfessionalMetering(input) {
+  if (!input || typeof input !== 'object') return null;
+  return {
+    definition: APP_META.meteringDefinition,
+    standard: String(input.standard || '').slice(0, 120),
+    compliance: String(input.compliance || '').slice(0, 160),
+    measurementDomain: String(input.measurementDomain || '').slice(0, 40),
+    sampleRate: finiteOrNull(input.sampleRate),
+    channelCount: finiteOrNull(input.channelCount),
+    momentaryLufs: finiteOrNull(input.momentaryLufs),
+    shortTermLufs: finiteOrNull(input.shortTermLufs),
+    integratedLufs: finiteOrNull(input.integratedLufs),
+    samplePeakDbfs: finiteOrNull(input.samplePeakDbfs),
+    truePeakEstimateDbtp: finiteOrNull(input.truePeakEstimateDbtp),
+    truePeakMethod: String(input.truePeakMethod || '').slice(0, 80),
+    correlation: finiteOrNull(input.correlation),
+    dcOffset: Array.isArray(input.dcOffset) ? input.dcOffset.slice(0, 2).map(finiteOrNull) : [],
+    dropoutCount: finiteOrNull(input.dropoutCount)
+  };
+}
+
 async function ensureDefaultWorkspace() {
   const existing = await meta.get(WORKSPACE_META_KEY);
   if (existing?.value?.projectId && existing?.value?.songId) {
@@ -52,7 +73,7 @@ async function ensureDefaultWorkspace() {
       name: 'Local Sessions',
       createdAt: now,
       updatedAt: now,
-      metadata: { origin: 'v1.2-runtime' }
+      metadata: { origin: 'v1.3-runtime' }
     }));
     await requestToPromise(stores[STORES.SONGS].put({
       id: songId,
@@ -60,7 +81,7 @@ async function ensureDefaultWorkspace() {
       name: 'Current Analysis',
       createdAt: now,
       updatedAt: now,
-      metadata: { origin: 'v1.2-runtime' }
+      metadata: { origin: 'v1.3-runtime' }
     }));
     await requestToPromise(stores[STORES.META].put({ key: WORKSPACE_META_KEY, value: workspace, updatedAt: now }));
   }, { operation: 'ensureDefaultWorkspace' });
@@ -90,7 +111,7 @@ export async function initializeRuntime() {
     migrationState = await runStartupMigration();
   } catch (error) {
     migrationState = { error: error?.message || String(error), rolledBack: true };
-    console.warn('Acelynn v1.2 legacy migration rolled back:', error);
+    console.warn('Acelynn v1.3 legacy migration rolled back:', error);
   }
   const workspace = await ensureDefaultWorkspace();
   return { workspace, migration: migrationState };
@@ -134,7 +155,7 @@ export async function saveRoomSignature({
     name: String(name || 'Room signature').slice(0, 80),
     createdAt,
     updatedAt: createdAt,
-    origin: 'v1.2-room-signature',
+    origin: 'v1.3-room-signature',
     spectralDefinition: APP_META.spectralDefinition,
     spectralFeatures,
     normalizedBands,
@@ -176,7 +197,8 @@ export async function persistAnalysis({
   coachingFindings = [],
   referenceDeltas = [],
   roomSignatureId = null,
-  roomConfidence = null
+  roomConfidence = null,
+  professionalMetering = null
 }) {
   const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
   const analysisTimestamp = Date.now();
@@ -214,9 +236,10 @@ export async function persistAnalysis({
     versionLabel: new Date(analysisTimestamp).toISOString(),
     analysisTimestamp,
     createdAt,
-    origin: 'v1.2-runtime',
+    origin: 'v1.3-runtime',
     featureSchemaVersion: APP_META.featureSchemaVersion,
     spectralDefinition: APP_META.spectralDefinition,
+    meteringDefinition: APP_META.meteringDefinition,
     fileHash: sourceFileHash,
     sourceType: sourceType || 'unknown',
     sourceMetadata: sourceFileMetadata ? { ...sourceFileMetadata } : {},
@@ -232,6 +255,7 @@ export async function persistAnalysis({
     levels: { peakDbfs, rmsDbfs, crestDb },
     dominantFrequencyArea: focus || null,
     spectralFeatures,
+    professionalMetering: sanitizeProfessionalMetering(professionalMetering),
     mixHealth: {
       raw: rawScore,
       perspectiveWeighted: weightedScore,
@@ -274,7 +298,8 @@ const runtime = Object.freeze({
   normalizeBandValues
 });
 
+globalThis.AcelynnV13 = runtime;
 globalThis.AcelynnV12 = runtime;
 initializeRuntime().catch(error => {
-  console.error('Acelynn v1.2 runtime initialization failed:', error);
+  console.error('Acelynn v1.3 runtime initialization failed:', error);
 });
