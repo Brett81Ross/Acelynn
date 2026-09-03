@@ -20,9 +20,9 @@ async function importBackup(page,payload,name='backup.json'){
 
 (async()=>{
   fs.writeFileSync(LEGACY_SW,"self.addEventListener('install',event=>{self.skipWaiting()});self.addEventListener('activate',event=>{event.waitUntil(self.clients.claim())});\n",'utf8');
-  const browser=await chromium.launch({headless:true});
+  const browser=await chromium.launch({headless:true,args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
   try{
-    const context=await browser.newContext({acceptDownloads:true,viewport:{width:360,height:800}});
+    const context=await browser.newContext({acceptDownloads:true,viewport:{width:360,height:800},permissions:['microphone']});
     const page=await context.newPage();
     await page.goto(BASE,{waitUntil:'domcontentloaded'});
 
@@ -96,7 +96,39 @@ async function importBackup(page,payload,name='backup.json'){
     assert.ok(box&&box.width>250&&box.height>=48,'restore control remains usable on narrow phone viewport');
     assert.ok((await page.locator('#sessionCount').textContent()).includes('saved'),'session state remains visible after recovery');
 
-    console.log('Acelynn Pro browser recovery round-trip QA passed.');
+    await clear(page);
+    await page.waitForFunction(()=>Boolean(window.AcelynnV12&&window.AcelynnCoreBridge&&document.querySelector('#roomSignatureCard')&&document.querySelector('#mixDiffCard')&&document.querySelector('#ruleMeter')));
+    assert.equal(await page.locator('#captureButton').isDisabled(),true,'save starts disabled before any valid analysis frame');
+
+    await page.locator('#micButton').click();
+    await page.waitForFunction(()=>document.querySelector('#stateText')?.textContent==='LIVE'&&!document.querySelector('#captureButton')?.disabled);
+    await page.waitForFunction(()=>!document.querySelector('#roomSignatureButton')?.disabled);
+    await page.locator('#roomSignatureButton').click();
+    await page.waitForFunction(()=>document.querySelector('#roomSignatureStatus')?.textContent.startsWith('Active'));
+    assert.equal(await page.locator('#roomSignatureClearButton').isDisabled(),false,'captured room signature becomes active');
+
+    await page.locator('#micButton').click();
+    await page.waitForFunction(()=>document.querySelector('#stateText')?.textContent==='PAUSED');
+    assert.equal(await page.locator('#captureButton').textContent(),'Save last check','stopped analysis clearly offers the frozen last result');
+    assert.equal(await page.locator('#captureButton').isDisabled(),false,'stopped analysis remains saveable');
+    await page.locator('#captureButton').click();
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acelynn-snapshots')||'[]').length===1);
+    assert.equal(await page.locator('#captureButton').textContent(),'Last check saved','stopped save acknowledges completion');
+    assert.equal(await page.locator('#captureButton').isDisabled(),true,'same frozen frame cannot be duplicated accidentally');
+
+    await page.locator('#analysisMode').selectOption('room');
+    await page.locator('#micButton').click();
+    await page.waitForFunction(()=>document.querySelector('#stateText')?.textContent==='LIVE'&&!document.querySelector('#captureButton')?.disabled);
+    await page.waitForFunction(()=>document.querySelector('.scorebox small')?.textContent==='Room health');
+    await page.locator('#micButton').click();
+    await page.waitForFunction(()=>document.querySelector('#captureButton')?.textContent==='Save last check');
+    await page.locator('#captureButton').click();
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acelynn-snapshots')||'[]').length===2);
+    await page.waitForFunction(()=>document.querySelector('#diffScore')?.textContent!=='Save two checks');
+    assert.ok((await page.locator('#diffRows .diff-row').count())>=1,'Mix-Diff surfaces saved A/B changes');
+    assert.match(await page.locator('#ruleMeterLabel').textContent(),/Last reading|\/100/,'live rule meter retains the last stopped reading');
+
+    console.log('Acelynn Pro browser recovery + stopped-save + room + Mix-Diff QA passed.');
     await context.close();
   }finally{
     await browser.close();
