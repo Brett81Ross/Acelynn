@@ -33,8 +33,8 @@ assert(sw.includes("const MIGRATION_SHELL='/api/demo-shell.js'"),'migration fall
 assert(sw.includes("key.startsWith(LEGACY_CACHE_PREFIX)"),'migration worker only targets Acelynn legacy caches');
 assert(!sw.includes('caches.open('),'migration worker does not create caches');
 assert(!sw.includes('cache.put('),'migration worker does not write caches');
-assert(shell.includes("'/legacy-export-bridge.js?v=cutover1'"),'production shell still injects the proven Android export bridge');
-assert(shell.includes("'/demo-help.js?v=1.1.2'"),'existing demo/help injection remains intact');
+assert(shell.includes('/legacy-export-bridge.js?v=cutover1'),'production shell still injects the proven Android export bridge');
+assert(shell.includes('/demo-help.js?v=1.1.2'),'existing demo/help injection remains intact');
 assert(/"deploymentEnabled"\s*:\s*false/.test(vercel),'staging branch must not deploy to Vercel');
 
 const bridgeBlob=execFileSync('git',['hash-object','legacy-export-bridge.js'],{encoding:'utf8'}).trim();
