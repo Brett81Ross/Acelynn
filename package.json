@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "qa:v1.2": "vitest run tests/v1.2-foundation.test.js tests/spectral.test.js"
+    "qa:v1.2": "vitest run tests/v1.2-foundation.test.js tests/spectral.test.js tests/runtime.test.js"
   },
   "devDependencies": {
     "fake-indexeddb": "6.2.2",
