@@ -18,7 +18,7 @@ const BASE='http://127.0.0.1:4173/hotfix-preview.html';
         getByteTimeDomainData(array){for(let i=0;i<array.length;i++)array[i]=i%2?129:127}
       }
       class FakeAudioContext{
-        constructor(){this.sampleRate=48000;this.state='running';this.destination={}}
+        constructor(){this.sampleRate=48000;this.state='running';this.destination={};this.audioWorklet=null}
         async resume(){this.state='running'}
         createAnalyser(){return new FakeAnalyser()}
         createMediaStreamSource(){return{connect(){},disconnect(){}}}
@@ -35,12 +35,15 @@ const BASE='http://127.0.0.1:4173/hotfix-preview.html';
     const logo=page.locator('.mark.acelynn-logo img');
     await logo.waitFor({state:'visible'});
     assert.match(await logo.getAttribute('src'),/acelynnpro\.png$/,'real Acelynn logo asset is used in header');
-    assert.match(await page.locator('#cactusbyte-standard-footer').textContent(),/v1\.2\.0/,'footer visibly reports v1.2.0');
+    assert.match(await page.locator('#cactusbyte-standard-footer').textContent(),/v1\.3\.0/,'footer visibly reports v1.3.0');
     await page.waitForFunction(()=>!document.querySelector('#acelynnSplash'),null,{timeout:3000});
 
     const source=await page.content();
     assert.ok(!source.includes('if(avg<8)'),'obsolete FFT-byte waiting gate is absent');
     assert.ok(source.includes('signalDb&lt;-72')||source.includes('signalDb<-72'),'RMS signal floor is present');
+    assert.ok(source.includes('/js/metering-engine.js'),'v1.3 metering engine module is present');
+    assert.ok(source.includes('/js/metering-ui.js'),'v1.3 metering UI module is present');
+    await page.waitForFunction(()=>document.querySelector('#professionalMetering'));
 
     await page.locator('#micButton').click();
     await page.waitForFunction(()=>document.querySelector('#stateText')?.textContent==='LIVE');
@@ -50,13 +53,14 @@ const BASE='http://127.0.0.1:4173/hotfix-preview.html';
     assert.notEqual(healthLabel,'Waiting for audio','valid microphone signal produces an analysis result');
     assert.match(rmsText,/-4[0-9]\.[0-9] dB/,'deterministic test signal is in the same usable range as the reported device reading');
     assert.equal(await page.locator('#captureButton').isDisabled(),false,'valid live analysis becomes saveable');
+    assert.match(await page.locator('#inputDiagnostics').textContent(),/Professional AudioWorklet metering is unavailable|Waiting for metering input/,'v1.2 analysis remains usable when AudioWorklet is unavailable');
 
     await page.locator('#micButton').click();
     await page.waitForFunction(()=>document.querySelector('#stateText')?.textContent==='PAUSED');
     assert.equal(await page.locator('#captureButton').textContent(),'Save last check','stopped analysis remains clearly saveable');
     assert.equal(await page.locator('#captureButton').isDisabled(),false,'stopped valid frame remains enabled for save');
 
-    console.log('Acelynn Pro v1.2 logo + splash + footer + valid-signal browser QA passed.');
+    console.log('Acelynn Pro v1.3 logo + splash + footer + valid-signal + metering fallback browser QA passed.');
     await context.close();
   }finally{
     await browser.close();
