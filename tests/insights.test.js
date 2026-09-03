@@ -37,11 +37,13 @@ describe('Acelynn room signature behavior', () => {
     const live = [100, 80, 65, 55, 45];
     const signature = [100, 92, 70, 52, 40];
     const original = [...live];
+    const liveNormalized = normalizeBandValues(live);
     const result = applyRoomSignature(live, signature);
     expect(live).toEqual(original);
     expect(result.adjusted).toHaveLength(5);
     expect(Math.max(...result.corrections.map(Math.abs))).toBeLessThanOrEqual(14);
-    expect(result.adjusted[0]).toBeLessThan(normalizeBandValues(live)[0]);
+    expect(result.corrections[0]).toBeGreaterThan(0);
+    expect(result.adjusted[0] - result.adjusted[2]).toBeLessThan(liveNormalized[0] - liveNormalized[2]);
   });
 
   it('scores stable multi-frame room captures higher than unstable captures', () => {
@@ -76,5 +78,18 @@ describe('Acelynn Mix-Diff and live rule coach', () => {
     expect(findings[0].title).toContain('Peak headroom');
     expect(findings.some(item => item.title.includes('room buildup'))).toBe(true);
     expect(findings.length).toBeLessThanOrEqual(3);
+  });
+
+  it('does not invent clipping or crest warnings when level data is unavailable', () => {
+    const findings = buildRuleFindings({
+      normalized: target,
+      target,
+      perspective: 'mix',
+      peakDb: null,
+      rmsDb: null,
+      weightedScore: 90
+    });
+    expect(findings).toHaveLength(1);
+    expect(findings[0].title).toBe('No rule-level warning.');
   });
 });
