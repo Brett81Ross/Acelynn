@@ -20,6 +20,7 @@ on:
       - 'js/insights.js'
       - 'js/ui-enhancements.js'
       - 'tools/reconcile-acelynn-main.py'
+      - 'tools/apply-hotfix-shell.cjs'
       - 'tools/qa-reconciled-recovery.mjs'
       - 'tools/qa-reconciled-static.mjs'
       - 'tools/qa-recovery-browser.cjs'
@@ -48,6 +49,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
+
+      - name: Apply production hotfix directly to served shells
+        run: node tools/apply-hotfix-shell.cjs
 
       - name: Run recovery compatibility static and runtime syntax QA
         run: |
@@ -113,7 +117,7 @@ jobs:
           test "$changed" = "$expected"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'runtime: reconcile Acelynn Pro v1.2 insight shell'
+          git commit -m 'runtime: bake Acelynn Pro v1.2 production hotfix into served shells'
           git push origin HEAD:${GITHUB_REF_NAME}
 
       - name: Stop local test server
