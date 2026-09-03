@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const require=createRequire(import.meta.url);
 const {VERSION,LOGO_SRC,SIGNAL_FLOOR_DBFS,isUsableSignal,transformShell}=require('../api/shell-transform.cjs');
-const productionBase=readFileSync(new URL('../app-base.html',import.meta.url),'utf8');
+const productionBase=readFileSync('app-base.html','utf8');
 
 function count(text,needle){return text.split(needle).length-1}
 
