@@ -3,7 +3,15 @@ import { Blob as NodeBlob } from 'node:buffer';
 import { STORES, openDatabase, resetDatabaseConnectionForTests } from '../js/db.js';
 import { clear, read } from '../js/storage.js';
 import { getLegacyBackupStatus } from '../js/migration.js';
-import { clearSourceFile, initializeRuntime, persistAnalysis, setSourceFile } from '../js/runtime.js';
+import {
+  clearActiveRoomSignature,
+  clearSourceFile,
+  getActiveRoomSignature,
+  initializeRuntime,
+  persistAnalysis,
+  saveRoomSignature,
+  setSourceFile
+} from '../js/runtime.js';
 
 async function clearAllStores() {
   resetDatabaseConnectionForTests();
@@ -27,18 +35,23 @@ beforeEach(async () => {
 });
 
 describe('Acelynn v1.2 runtime persistence', () => {
-  it('persists a structured 32-bin analysis record without audio bytes', async () => {
+  it('persists a structured enriched 32-bin analysis record without audio bytes', async () => {
     const before = Date.now();
     const result = await persistAnalysis({
       fftMagnitudes: flatSpectrum(),
       sampleRate: 48000,
       fftSize: 2048,
       profile: 'Balanced mix',
-      score: 84,
+      score: 82,
+      perspectiveWeightedScore: 84,
+      targetProfileMatch: 82,
       focus: 'Mids',
       bandValues: [20, 40, 80, 55, 30],
       sourceType: 'microphone',
-      perspective: 'mix'
+      perspective: 'mix',
+      levels: { peakDbfs: -2.5, rmsDbfs: -12.5, crestDb: 10 },
+      coachingFindings: [{ severity: 1, title: 'Check mids.', text: 'Listen around 1 kHz.' }],
+      referenceDeltas: [{ name: 'Mids', delta: 4.2, direction: 'up' }]
     });
     expect(result.saved).toBe(true);
     const record = result.record;
@@ -47,6 +60,10 @@ describe('Acelynn v1.2 runtime persistence', () => {
     expect(record.spectralDefinition).toBe('log32-slope-v1');
     expect(record.spectralFeatures.coarseBins).toHaveLength(32);
     expect(record.spectralFeatures.normalizedCoarseSpectrum).toHaveLength(32);
+    expect(record.mixHealth).toEqual({ raw: 82, perspectiveWeighted: 84, targetProfileMatch: 82 });
+    expect(record.levels).toEqual({ peakDbfs: -2.5, rmsDbfs: -12.5, crestDb: 10 });
+    expect(record.coachingFindings[0].title).toBe('Check mids.');
+    expect(record.referenceDeltas[0]).toMatchObject({ name: 'Mids', delta: 4.2, direction: 'up' });
     expect(record.roomSignatureId).toBeNull();
     expect(record.roomConfidence).toBeNull();
     expect(record.fileHash).toBeNull();
@@ -54,6 +71,54 @@ describe('Acelynn v1.2 runtime persistence', () => {
     expect(JSON.stringify(record)).not.toContain('audioBytes');
     expect(JSON.stringify(record)).not.toContain('pcm');
     expect(await read.all(STORES.VERSIONS)).toHaveLength(1);
+  });
+
+  it('stores a local room signature, resolves it as active, and can deactivate it without deleting history', async () => {
+    const signature = await saveRoomSignature({
+      fftMagnitudes: flatSpectrum(1024, 2),
+      sampleRate: 48000,
+      fftSize: 2048,
+      bandValues: [50, 70, 65, 52, 38],
+      confidence: 0.86,
+      name: 'Studio desk'
+    });
+    expect(signature.scope).toBe('room');
+    expect(signature.normalizedBands).toHaveLength(5);
+    expect(signature.spectralFeatures.coarseBins).toHaveLength(32);
+    expect(signature.confidence).toBe(0.86);
+    expect((await getActiveRoomSignature())?.id).toBe(signature.id);
+    expect((await read.all(STORES.REFERENCES)).filter(ref => ref.scope === 'room')).toHaveLength(1);
+
+    await clearActiveRoomSignature();
+    expect(await getActiveRoomSignature()).toBeNull();
+    expect((await read.all(STORES.REFERENCES)).filter(ref => ref.scope === 'room')).toHaveLength(1);
+  });
+
+  it('persists the room signature linkage when an analysis uses room-aware scoring', async () => {
+    const signature = await saveRoomSignature({
+      fftMagnitudes: flatSpectrum(),
+      sampleRate: 48000,
+      fftSize: 2048,
+      bandValues: [60, 75, 64, 50, 39],
+      confidence: 0.78
+    });
+    const result = await persistAnalysis({
+      fftMagnitudes: flatSpectrum(),
+      sampleRate: 48000,
+      fftSize: 2048,
+      profile: 'Balanced mix',
+      score: 76,
+      perspectiveWeightedScore: 79,
+      targetProfileMatch: 76,
+      focus: 'Bass',
+      bandValues: [55, 72, 60, 48, 38],
+      sourceType: 'microphone',
+      perspective: 'room',
+      roomSignatureId: signature.id,
+      roomConfidence: signature.confidence
+    });
+    expect(result.record.roomSignatureId).toBe(signature.id);
+    expect(result.record.roomConfidence).toBe(0.78);
   });
 
   it('hashes a source file and prevents duplicate file records for the same workspace', async () => {
@@ -68,6 +133,7 @@ describe('Acelynn v1.2 runtime persistence', () => {
       fftSize: 2048,
       profile: 'Balanced mix',
       score: 75,
+      perspectiveWeightedScore: 75,
       focus: 'Bass',
       bandValues: [30, 70, 55, 40, 20],
       sourceType: 'file',
