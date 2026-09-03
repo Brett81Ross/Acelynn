@@ -8,29 +8,36 @@ const index=read('index.html');
 const base=read('app-base.html');
 const sw=read('sw.js');
 const shell=read('api/demo-shell.js');
+const transform=read('api/shell-transform.cjs');
 const vercel=read('vercel.json');
 const runtime=read('js/runtime.js');
 const insights=read('js/insights.js');
 const enhancements=read('js/ui-enhancements.js');
+const meteringCore=read('js/metering-core.js');
+const meteringProcessor=read('js/metering-processor.js');
+const meteringEngine=read('js/metering-engine.js');
+const meteringUi=read('js/metering-ui.js');
 const directBridge='\n<script src="/legacy-export-bridge.js?v=cutover1"></script>';
 const recoveryTag='<script src="/acelynn-recovery.js"></script>';
+const meteringEngineTag='<script type="module" src="/js/metering-engine.js"></script>';
+const meteringUiTag='<script type="module" src="/js/metering-ui.js"></script>';
 const runtimeTag='<script type="module" src="/js/runtime.js"></script>';
 const enhancementsTag='<script type="module" src="/js/ui-enhancements.js"></script>';
 
 assert.equal(count(index,directBridge),1,'static index keeps exactly one approved direct legacy bridge');
 assert.equal(count(base,directBridge),0,'app-base stays bridge-free because demo-shell injects the production bridge');
-assert.equal(count(index,recoveryTag),1,'static index loads recovery engine exactly once');
-assert.equal(count(base,recoveryTag),1,'app-base loads recovery engine exactly once');
-assert.equal(count(index,runtimeTag),1,'static index loads v1.2 runtime exactly once');
-assert.equal(count(base,runtimeTag),1,'app-base loads v1.2 runtime exactly once');
-assert.equal(count(index,enhancementsTag),1,'static index loads v1.2 enhancement UI exactly once');
-assert.equal(count(base,enhancementsTag),1,'app-base loads v1.2 enhancement UI exactly once');
+for(const [tag,label] of [[recoveryTag,'recovery engine'],[meteringEngineTag,'v1.3 metering engine'],[meteringUiTag,'v1.3 metering UI'],[runtimeTag,'runtime'],[enhancementsTag,'enhancement UI']]){
+  assert.equal(count(index,tag),1,`static index loads ${label} exactly once`);
+  assert.equal(count(base,tag),1,`app-base loads ${label} exactly once`);
+}
 assert.equal(count(index,'id="acelynnSplash"'),count(base,'id="acelynnSplash"'),'both reconciled shells receive the same single splash transform');
 assert.equal(count(index,'class="mark acelynn-logo"'),count(base,'class="mark acelynn-logo"'),'both reconciled shells receive the same branded header transform');
 for(const html of [index,base]){
   assert(html.includes(recoveryTag),'recovery engine uses origin-absolute URL');
-  assert(html.includes(runtimeTag),'v1.2 runtime uses origin-absolute module URL');
-  assert(html.includes(enhancementsTag),'v1.2 enhancement UI uses origin-absolute module URL');
+  assert(html.includes(meteringEngineTag),'v1.3 metering engine uses origin-absolute module URL');
+  assert(html.includes(meteringUiTag),'v1.3 metering UI uses origin-absolute module URL');
+  assert(html.includes(runtimeTag),'runtime uses origin-absolute module URL');
+  assert(html.includes(enhancementsTag),'enhancement UI uses origin-absolute module URL');
   assert(html.includes('Restore / merge backup'),'restore UI present');
   assert(html.includes('min-height:48px'),'restore touch target is at least 48px');
   assert(html.includes('acelynn-pro-pre-import-backup.json'),'pre-import safety backup present');
@@ -44,13 +51,19 @@ for(const html of [index,base]){
   assert(html.includes('AcelynnCoreBridge=Object.freeze'),'core exposes only the narrow enhancement bridge');
   assert(html.includes("new CustomEvent('acelynn:stopped'"),'stop state notifies enhancement UI');
   assert(html.includes("new CustomEvent('acelynn:snapshot-saved'"),'saved snapshots notify Mix-Diff UI');
-  assert(html.includes('AcelynnV12.persistAnalysis({fftMagnitudes'),'Save Current Check persists the v1.2 structured analysis');
+  assert(html.includes('AcelynnV12.persistAnalysis({fftMagnitudes'),'Save Current Check persists the structured analysis');
   assert(html.includes('perspectiveWeightedScore:r.weightedScore??r.score'),'runtime records perspective-weighted health');
   assert(html.includes('referenceDeltas:diff?.largestChanges||[]'),'runtime records A/B deltas');
   assert(html.includes('roomSignatureId:room?.id||null'),'runtime records applied room signature');
+  assert(html.includes('professionalMetering:globalThis.AcelynnMetering?.getSnapshot?.()||null'),'runtime records sanitized v1.3 metering snapshot');
+  assert(html.includes("sourceType:'microphone'"),'microphone path attaches professional metering');
+  assert(html.includes("sourceType:'file'"),'file path attaches professional metering');
+  assert(html.includes('globalThis.AcelynnMetering?.detach?.()'),'stop path detaches metering node');
+  assert(html.includes('globalThis.AcelynnMetering?.reset?.()'),'source reset clears prior metering state');
   assert(html.includes('sourceType:frame.sourceType'),'stopped-save persistence uses the frozen source identity');
   assert(html.includes('perspective:frame.perspective'),'stopped-save persistence uses the frozen analysis perspective');
   assert(html.includes("localStorage.setItem('acelynn-snapshots'"),'legacy local snapshot fallback remains intact');
+  assert(!html.includes('/js/metering-processor.js'),'AudioWorklet processor is never loaded as a page script');
   assert(!html.includes('/js/spectral.js'),'shell does not directly import spectral implementation');
   assert(!html.includes('/js/migration.js'),'shell does not directly import migration implementation');
   assert(!html.includes('localStorage.clear('),'destructive localStorage.clear is forbidden');
@@ -64,15 +77,18 @@ for(const html of [index,base]){
   assert(html.includes('All Rights Reserved'),'rights footer remains present');
   assert(html.includes('class="mark acelynn-logo"'),'correct branded header logo is baked into served shell');
   assert(html.includes('src="/acelynnpro.png"'),'Acelynn Pro brand asset is used');
-  assert(html.includes('id="acelynnSplash"'),'v1.2 splash screen is baked into served shell');
-  assert(html.includes('v1.2.0 · Cactus🌵Byte Studios™'),'splash shows the current version and studio');
-  assert(html.includes('© 2026 Acelynn Pro™ · v1.2.0'),'footer shows v1.2.0');
+  assert(html.includes('id="acelynnSplash"'),'splash screen is baked into served shell');
+  assert(html.includes('v1.3.0 · Cactus🌵Byte Studios™'),'splash shows staging v1.3.0 and studio');
+  assert(html.includes('© 2026 Acelynn Pro™ · v1.3.0'),'footer shows v1.3.0');
   assert(html.includes('signalDb<-72'),'analysis uses the RMS-based usable-signal floor');
   assert(!html.includes('if(avg<8)'),'obsolete FFT-byte waiting gate is removed');
 }
 
 assert(runtime.includes("const ACTIVE_ROOM_META_KEY = 'activeRoomSignatureId'"),'runtime has persistent active-room pointer');
 assert(runtime.includes('export async function saveRoomSignature'),'runtime persists room signatures');
+assert(runtime.includes('professionalMetering: sanitizeProfessionalMetering(professionalMetering)'),'runtime persists only sanitized metering aggregates');
+assert(runtime.includes('globalThis.AcelynnV13 = runtime'),'v1.3 runtime namespace exists');
+assert(runtime.includes('globalThis.AcelynnV12 = runtime'),'v1.2 compatibility alias remains available');
 assert(runtime.includes('perspectiveWeighted: weightedScore'),'runtime persists weighted health');
 assert(runtime.includes('coachingFindings: cleanFindings'),'runtime persists deterministic findings');
 assert(runtime.includes('referenceDeltas: cleanReferenceDeltas'),'runtime persists Mix-Diff deltas');
@@ -84,16 +100,29 @@ assert(enhancements.includes('Room signature'),'room capture UI exists');
 assert(enhancements.includes('Mix-Diff A/B'),'A/B comparison UI exists');
 assert(enhancements.includes('LIVE RULE METER'),'live rule meter UI exists');
 
+assert(meteringCore.includes('export function createKWeightingCoefficients'),'K-weighting coefficient generator exists');
+assert(meteringCore.includes('export function calculateIntegratedLufs'),'integrated loudness gating exists');
+assert(meteringCore.includes('export function estimateInterSamplePeak4x'),'true-peak estimate foundation exists');
+assert(meteringProcessor.includes("registerProcessor('acelynn-professional-meter'"),'AudioWorklet processor is registered');
+assert(meteringProcessor.includes('sampleRate * 0.4'),'Momentary window is 400 ms');
+assert(meteringProcessor.includes('sampleRate * 3'),'Short-term window is 3 seconds');
+assert(meteringEngine.includes("audioWorklet.addModule('/js/metering-processor.js')"),'metering processor is loaded only through AudioWorklet');
+assert(meteringEngine.includes("measurementDomain: sourceType === 'file' ? 'digital-program'"),'metering distinguishes digital programme from acoustic capture');
+assert(meteringUi.includes('Professional metering'),'professional metering card exists');
+assert(meteringUi.includes('not calibrated SPL'),'microphone UI explicitly refuses false SPL claims');
+assert(meteringUi.includes('official EBU/ITU compliance test set'),'true-peak compliance status is explicit');
+
 assert(sw.includes("const MIGRATION_SHELL='/api/demo-shell.js'"),'migration fallback worker remains available');
 assert(sw.includes("key.startsWith(LEGACY_CACHE_PREFIX)"),'migration worker only targets Acelynn legacy caches');
 assert(!sw.includes('caches.open('),'migration worker does not create caches');
 assert(!sw.includes('cache.put('),'migration worker does not write caches');
 assert(shell.includes('/legacy-export-bridge.js?v=cutover1'),'production shell still injects the proven Android export bridge');
-assert(shell.includes('/demo-help.js?v=1.1.2'),'existing demo/help injection remains intact');
+assert(shell.includes('/demo-help.js?v=${VERSION}'),'demo/help cache bust follows current shell version');
 assert(shell.includes('export default async function handler'),'Vercel shell handler uses ESM under package type module');
+assert(transform.includes("const VERSION='1.3.0'"),'shell transform reports v1.3.0');
 assert(/"deploymentEnabled"\s*:\s*false/.test(vercel),'staging branch must not deploy to Vercel');
 
 const bridgeBlob=execFileSync('git',['hash-object','legacy-export-bridge.js'],{encoding:'utf8'}).trim();
 assert.equal(bridgeBlob,'4289393f9ad736ab55a4ff525bb80464ac2c1b5e','proven legacy export bridge must remain byte-for-byte unchanged');
 
-console.log('Acelynn Pro reconciled static + stopped-save + insight UI + production hotfix QA passed.');
+console.log('Acelynn Pro reconciled static + v1.3 professional metering + v1.2 recovery compatibility QA passed.');
