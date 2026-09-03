@@ -45,7 +45,7 @@ jobs:
       - name: Run v1.2 foundation and spectral QA
         run: npm run qa:v1.2
 
-      - name: Confirm new foundation is not runtime-wired yet
+      - name: Confirm staged-only runtime boundary
         run: |
           ! grep -q '/js/spectral.js' index.html
           ! grep -q '/js/spectral.js' app-base.html
