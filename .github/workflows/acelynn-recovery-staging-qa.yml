@@ -2,7 +2,7 @@ name: Acelynn Pro Recovery Staging QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release]
     paths:
       - 'acelynn-recovery.js'
       - 'legacy-export-bridge.js'
@@ -11,6 +11,7 @@ on:
       - 'app-base.html'
       - 'sw.js'
       - 'api/demo-shell.js'
+      - 'api/shell-transform.cjs'
       - 'js/runtime.js'
       - 'js/meta.js'
       - 'js/db.js'
@@ -22,6 +23,7 @@ on:
       - 'tools/qa-reconciled-recovery.mjs'
       - 'tools/qa-reconciled-static.mjs'
       - 'tools/qa-recovery-browser.cjs'
+      - 'tools/qa-hotfix-browser.cjs'
       - '.github/workflows/acelynn-recovery-staging-qa.yml'
       - 'vercel.json'
   workflow_dispatch:
@@ -56,8 +58,13 @@ jobs:
           node --check js/storage.js
           node --check js/insights.js
           node --check js/ui-enhancements.js
+          node --check api/shell-transform.cjs
+          node --check api/demo-shell.js
           node tools/qa-reconciled-recovery.mjs
           node tools/qa-reconciled-static.mjs
+
+      - name: Build exact transformed hotfix shell for browser QA
+        run: node -e "const fs=require('node:fs');const {transformShell}=require('./api/shell-transform.cjs');fs.writeFileSync('hotfix-preview.html',transformShell(fs.readFileSync('app-base.html','utf8')))"
 
       - name: Install isolated Playwright dependency
         run: |
@@ -79,6 +86,11 @@ jobs:
         env:
           NODE_PATH: /tmp/acelynn-browser/node_modules
         run: node tools/qa-recovery-browser.cjs
+
+      - name: Run real browser logo splash footer and valid-signal hotfix QA
+        env:
+          NODE_PATH: /tmp/acelynn-browser/node_modules
+        run: node tools/qa-hotfix-browser.cjs
 
       - name: Verify no deployment boundary was crossed
         run: |
@@ -108,3 +120,4 @@ jobs:
         if: always()
         run: |
           test ! -f /tmp/acelynn-http.pid || kill "$(cat /tmp/acelynn-http.pid)" 2>/dev/null || true
+          rm -f hotfix-preview.html
