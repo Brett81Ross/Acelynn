@@ -2,6 +2,12 @@ import { APP_META } from './meta.js';
 import { STORES, openDatabase, requestToPromise } from './db.js';
 import { findVersionsByFileHash, hashAudioContent, meta, read, runWriteTransaction } from './storage.js';
 import { computeSpectralFeatures } from './spectral.js';
+import {
+  dryRunLegacyMigration,
+  finalizeLegacyBackupAfterCleanLaunch,
+  getLegacyBackupStatus,
+  importLegacySnapshots
+} from './migration.js';
 
 const WORKSPACE_META_KEY = 'defaultWorkspace';
 let sourceFileHash = null;
@@ -46,9 +52,33 @@ async function ensureDefaultWorkspace() {
   return workspace;
 }
 
+async function runStartupMigration() {
+  const before = await getLegacyBackupStatus();
+  let finalizedPriorBackup = false;
+  if (before.migration?.status === 'validated' && before.backup && before.migration.backupRemovalEligibleAfterCleanLaunch) {
+    await finalizeLegacyBackupAfterCleanLaunch();
+    finalizedPriorBackup = true;
+  }
+
+  const dryRun = dryRunLegacyMigration();
+  let migration = null;
+  if (dryRun.found && dryRun.importableCount > 0) {
+    migration = await importLegacySnapshots();
+  }
+  return { dryRun, migration, finalizedPriorBackup };
+}
+
 export async function initializeRuntime() {
   await openDatabase();
-  return ensureDefaultWorkspace();
+  let migrationState;
+  try {
+    migrationState = await runStartupMigration();
+  } catch (error) {
+    migrationState = { error: error?.message || String(error), rolledBack: true };
+    console.warn('Acelynn v1.2 legacy migration rolled back:', error);
+  }
+  const workspace = await ensureDefaultWorkspace();
+  return { workspace, migration: migrationState };
 }
 
 export async function setSourceFile(file) {
