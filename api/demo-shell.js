@@ -1,6 +1,8 @@
-const {transformShell}=require('./shell-transform.cjs');
+import shellTransform from './shell-transform.cjs';
 
-module.exports=async function handler(req,res){
+const {transformShell}=shellTransform;
+
+export default async function handler(req,res){
   if(req.method!=='GET'&&req.method!=='HEAD'){res.statusCode=405;res.setHeader('Allow','GET, HEAD');return res.end('Method Not Allowed')}
   try{
     const proto=req.headers['x-forwarded-proto']||'https';
@@ -16,4 +18,4 @@ module.exports=async function handler(req,res){
     if(req.method==='HEAD')return res.end();
     return res.end(html);
   }catch(error){console.error('Acelynn Pro shell failed:',error);res.statusCode=502;res.setHeader('Content-Type','text/plain; charset=utf-8');return res.end('Acelynn Pro is temporarily unavailable. Please try again.')}
-};
+}
