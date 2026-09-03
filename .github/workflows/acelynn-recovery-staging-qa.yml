@@ -2,7 +2,7 @@ name: Acelynn Pro Recovery Staging QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell]
     paths:
       - 'acelynn-recovery.js'
       - 'legacy-export-bridge.js'
@@ -20,6 +20,7 @@ on:
       - 'js/insights.js'
       - 'js/ui-enhancements.js'
       - 'tools/reconcile-acelynn-main.py'
+      - 'tools/apply-hotfix-shell.cjs'
       - 'tools/qa-reconciled-recovery.mjs'
       - 'tools/qa-reconciled-static.mjs'
       - 'tools/qa-recovery-browser.cjs'
@@ -42,12 +43,23 @@ jobs:
           fetch-depth: 0
 
       - name: Apply deterministic recovery reconciliation
+        if: github.ref_name != 'repair-acelynn-v1-2-production-shell'
         run: python3 tools/reconcile-acelynn-main.py
+
+      - name: Verify production-repair shell source checkpoint
+        if: github.ref_name == 'repair-acelynn-v1-2-production-shell'
+        run: |
+          test "$(git hash-object index.html)" = "628d8a8cb6552143eb15e8ae4058268b1ac24a26"
+          test "$(git hash-object app-base.html)" = "9d37e60d0538fec4bb75015a25c23db11536bdae"
+          echo 'Production repair starts from the exact browser-QA-approved baked shell blobs.'
 
       - name: Use Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 24
+
+      - name: Apply production hotfix directly to served shells
+        run: node tools/apply-hotfix-shell.cjs
 
       - name: Run recovery compatibility static and runtime syntax QA
         run: |
@@ -105,7 +117,7 @@ jobs:
         run: |
           git add index.html app-base.html
           if git diff --cached --quiet; then
-            echo 'Acelynn Pro recovery/v1.2 shell already reconciled.'
+            echo 'Acelynn Pro recovery/v1.2 production shell already reconciled.'
             exit 0
           fi
           changed="$(git diff --cached --name-only | sort)"
@@ -113,7 +125,7 @@ jobs:
           test "$changed" = "$expected"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'runtime: reconcile Acelynn Pro v1.2 insight shell'
+          git commit -m 'runtime: bake Acelynn Pro v1.2 production hotfix into served shells'
           git push origin HEAD:${GITHUB_REF_NAME}
 
       - name: Stop local test server
