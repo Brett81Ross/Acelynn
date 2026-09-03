@@ -16,7 +16,7 @@ const directBridge='\n<script src="/legacy-export-bridge.js?v=cutover1"></script
 const recoveryTag='<script src="/acelynn-recovery.js"></script>';
 const runtimeTag='<script type="module" src="/js/runtime.js"></script>';
 const enhancementsTag='<script type="module" src="/js/ui-enhancements.js"></script>';
-const normalizeApprovedIndexDrift=text=>text.replace(directBridge,'').replace('</script>\n</body></html>','</script></body></html>').replace(/\n+$/,'');
+const normalizeApprovedIndexDrift=text=>text.replace(directBridge,'').replace(/\s+/g,' ').trim();
 
 assert.equal(count(index,directBridge),1,'static index keeps exactly one approved direct legacy bridge');
 assert.equal(count(base,directBridge),0,'app-base stays bridge-free because demo-shell injects the production bridge');
@@ -26,7 +26,7 @@ assert.equal(count(index,runtimeTag),1,'static index loads v1.2 runtime exactly 
 assert.equal(count(base,runtimeTag),1,'app-base loads v1.2 runtime exactly once');
 assert.equal(count(index,enhancementsTag),1,'static index loads v1.2 enhancement UI exactly once');
 assert.equal(count(base,enhancementsTag),1,'app-base loads v1.2 enhancement UI exactly once');
-assert.equal(normalizeApprovedIndexDrift(index),base.replace(/\n+$/,''),'index/app-base may differ only by the approved direct bridge and exact formatting it introduced');
+assert.equal(normalizeApprovedIndexDrift(index),normalizeApprovedIndexDrift(base),'index/app-base may differ only by the approved direct bridge and whitespace formatting');
 for(const html of [index,base]){
   assert(html.includes(recoveryTag),'recovery engine uses origin-absolute URL');
   assert(html.includes(runtimeTag),'v1.2 runtime uses origin-absolute module URL');
@@ -62,6 +62,13 @@ for(const html of [index,base]){
   assert(html.includes('Acelynn Pro™'),'Acelynn Pro trademark footer remains present');
   assert(html.includes('Cactus🌵Byte Studios™'),'CactusByte trademark footer remains present');
   assert(html.includes('All Rights Reserved'),'rights footer remains present');
+  assert(html.includes('class="mark acelynn-logo"'),'correct branded header logo is baked into served shell');
+  assert(html.includes('src="/acelynnpro.png"'),'Acelynn Pro brand asset is used');
+  assert(html.includes('id="acelynnSplash"'),'v1.2 splash screen is baked into served shell');
+  assert(html.includes('v1.2.0 · Cactus🌵Byte Studios™'),'splash shows the current version and studio');
+  assert(html.includes('© 2026 Acelynn Pro™ · v1.2.0'),'footer shows v1.2.0');
+  assert(html.includes('signalDb<-72'),'analysis uses the RMS-based usable-signal floor');
+  assert(!html.includes('if(avg<8)'),'obsolete FFT-byte waiting gate is removed');
 }
 
 assert(runtime.includes("const ACTIVE_ROOM_META_KEY = 'activeRoomSignatureId'"),'runtime has persistent active-room pointer');
@@ -83,9 +90,10 @@ assert(!sw.includes('caches.open('),'migration worker does not create caches');
 assert(!sw.includes('cache.put('),'migration worker does not write caches');
 assert(shell.includes('/legacy-export-bridge.js?v=cutover1'),'production shell still injects the proven Android export bridge');
 assert(shell.includes('/demo-help.js?v=1.1.2'),'existing demo/help injection remains intact');
+assert(shell.includes('export default async function handler'),'Vercel shell handler uses ESM under package type module');
 assert(/"deploymentEnabled"\s*:\s*false/.test(vercel),'staging branch must not deploy to Vercel');
 
 const bridgeBlob=execFileSync('git',['hash-object','legacy-export-bridge.js'],{encoding:'utf8'}).trim();
 assert.equal(bridgeBlob,'4289393f9ad736ab55a4ff525bb80464ac2c1b5e','proven legacy export bridge must remain byte-for-byte unchanged');
 
-console.log('Acelynn Pro reconciled static + stopped-save + insight UI QA passed.');
+console.log('Acelynn Pro reconciled static + stopped-save + insight UI + production hotfix QA passed.');
