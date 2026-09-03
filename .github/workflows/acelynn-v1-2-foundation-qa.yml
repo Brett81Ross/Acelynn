@@ -1,0 +1,69 @@
+name: Acelynn Pro v1.2 Foundation QA
+
+on:
+  push:
+    branches: [abl-acelynn-pro-recovery-v1-2-stage]
+    paths:
+      - 'js/**'
+      - 'tests/**'
+      - 'index.html'
+      - 'app-base.html'
+      - 'package.json'
+      - 'vitest.config.js'
+      - '.github/workflows/acelynn-v1-2-foundation-qa.yml'
+      - 'vercel.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact staging branch
+        uses: actions/checkout@v5
+
+      - name: Verify deployment remains disabled
+        run: grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install isolated QA dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax check v1.2 modules
+        run: |
+          node --check js/meta.js
+          node --check js/db.js
+          node --check js/storage.js
+          node --check js/migration.js
+          node --check js/spectral.js
+          node --check js/insights.js
+          node --check js/runtime.js
+          node --check js/ui-enhancements.js
+
+      - name: Run v1.2 foundation spectral insight and runtime QA
+        run: npm run qa:v1.2
+
+      - name: Confirm controlled runtime and enhancement wiring boundary
+        run: |
+          test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' index.html | wc -l)" -eq 1
+          test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' app-base.html | wc -l)" -eq 1
+          test "$(grep -o '<script type="module" src="/js/ui-enhancements.js"></script>' index.html | wc -l)" -eq 1
+          test "$(grep -o '<script type="module" src="/js/ui-enhancements.js"></script>' app-base.html | wc -l)" -eq 1
+          ! grep -q '/js/spectral.js' index.html
+          ! grep -q '/js/spectral.js' app-base.html
+          ! grep -q '/js/migration.js' index.html
+          ! grep -q '/js/migration.js' app-base.html
+          ! grep -q '/js/insights.js' index.html
+          ! grep -q '/js/insights.js' app-base.html
+          grep -q 'AcelynnV12.persistAnalysis' index.html
+          grep -q 'AcelynnV12.persistAnalysis' app-base.html
+          grep -q 'Save last check' index.html
+          grep -q 'Save last check' app-base.html
+          echo 'v1.2 core and enhancement UI are wired only through the approved module boundary.'

@@ -1,0 +1,15 @@
+{
+  "name": "acelynn-pro",
+  "private": true,
+  "version": "1.2.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "qa:v1.2": "vitest run tests/v1.2-foundation.test.js tests/spectral.test.js tests/runtime.test.js tests/insights.test.js"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.2.2",
+    "jsdom": "26.1.0",
+    "vitest": "3.2.4"
+  }
+}

@@ -1,0 +1,110 @@
+name: Acelynn Pro Recovery Staging QA
+
+on:
+  push:
+    branches: [abl-acelynn-pro-recovery-v1-2-stage]
+    paths:
+      - 'acelynn-recovery.js'
+      - 'legacy-export-bridge.js'
+      - 'legacy-export.html'
+      - 'index.html'
+      - 'app-base.html'
+      - 'sw.js'
+      - 'api/demo-shell.js'
+      - 'js/runtime.js'
+      - 'js/meta.js'
+      - 'js/db.js'
+      - 'js/storage.js'
+      - 'js/spectral.js'
+      - 'js/insights.js'
+      - 'js/ui-enhancements.js'
+      - 'tools/reconcile-acelynn-main.py'
+      - 'tools/qa-reconciled-recovery.mjs'
+      - 'tools/qa-reconciled-static.mjs'
+      - 'tools/qa-recovery-browser.cjs'
+      - '.github/workflows/acelynn-recovery-staging-qa.yml'
+      - 'vercel.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recovery-staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact staging branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Apply deterministic recovery reconciliation
+        run: python3 tools/reconcile-acelynn-main.py
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Run recovery compatibility static and runtime syntax QA
+        run: |
+          node --check acelynn-recovery.js
+          node --check legacy-export-bridge.js
+          node --check js/runtime.js
+          node --check js/spectral.js
+          node --check js/storage.js
+          node --check js/insights.js
+          node --check js/ui-enhancements.js
+          node tools/qa-reconciled-recovery.mjs
+          node tools/qa-reconciled-static.mjs
+
+      - name: Install isolated Playwright dependency
+        run: |
+          mkdir -p /tmp/acelynn-browser
+          cd /tmp/acelynn-browser
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Serve exact staged Acelynn shell
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/acelynn-http.log 2>&1 &
+          echo $! >/tmp/acelynn-http.pid
+          for i in {1..20}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/acelynn-http.log
+          exit 1
+
+      - name: Run real browser recovery stopped-save room and diff round trip
+        env:
+          NODE_PATH: /tmp/acelynn-browser/node_modules
+        run: node tools/qa-recovery-browser.cjs
+
+      - name: Verify no deployment boundary was crossed
+        run: |
+          grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
+          test ! -d .vercel/output
+          unexpected="$(git diff --name-only | grep -Ev '^(index.html|app-base.html)$' || true)"
+          test -z "$unexpected" || { echo "Unexpected working-tree changes: $unexpected" >&2; exit 1; }
+          echo 'No Vercel deployment, preview deployment, APK install, uninstall, or signing cutover executed.'
+
+      - name: Commit reconciled runtime shell if needed
+        shell: bash
+        run: |
+          git add index.html app-base.html
+          if git diff --cached --quiet; then
+            echo 'Acelynn Pro recovery/v1.2 shell already reconciled.'
+            exit 0
+          fi
+          changed="$(git diff --cached --name-only | sort)"
+          expected=$'app-base.html\nindex.html'
+          test "$changed" = "$expected"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'runtime: reconcile Acelynn Pro v1.2 insight shell'
+          git push origin HEAD:${GITHUB_REF_NAME}
+
+      - name: Stop local test server
+        if: always()
+        run: |
+          test ! -f /tmp/acelynn-http.pid || kill "$(cat /tmp/acelynn-http.pid)" 2>/dev/null || true
