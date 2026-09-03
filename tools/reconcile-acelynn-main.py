@@ -1,4 +1,5 @@
 from pathlib import Path
+import difflib
 
 FILES=[Path('index.html'),Path('app-base.html')]
 DIRECT_BRIDGE='\n<script src="/legacy-export-bridge.js?v=cutover1"></script>'
@@ -52,6 +53,9 @@ for path in FILES:
 
 index=FILES[0].read_text(encoding='utf-8')
 base=FILES[1].read_text(encoding='utf-8')
-if index.replace(DIRECT_BRIDGE,'') != base:
+normalized_index=index.replace(DIRECT_BRIDGE,'')
+if normalized_index != base:
+    diff=''.join(difflib.unified_diff(base.splitlines(True),normalized_index.splitlines(True),fromfile='app-base.html',tofile='index.html without direct bridge',n=2))
+    print('PRE-EXISTING SOURCE DRIFT AFTER APPROVED BRIDGE REMOVAL:\n'+diff[:12000])
     raise SystemExit('index.html/app-base.html drift exceeds the approved legacy bridge difference')
 print('Acelynn Pro source parity: OK (legacy bridge exception only)')
