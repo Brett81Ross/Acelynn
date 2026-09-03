@@ -12,6 +12,7 @@ function loadLegacyCommonJs(path){
 
 const recovery=loadLegacyCommonJs('acelynn-recovery.js');
 const bridge=loadLegacyCommonJs('legacy-export-bridge.js');
+const hostArray=value=>Array.from(value);
 const snap=(id,score=70)=>({time:id,profile:'Balanced mix',score,focus:'Mids',bands:[20,40,80,55,30]});
 
 assert.equal(recovery.APP,'Acelynn Pro');
@@ -20,7 +21,7 @@ assert.equal(recovery.VERSION,1);
 
 const legacyPayload=bridge.buildLegacyPayload(JSON.stringify([snap('old-1'),snap('old-2')]),'2026-09-02T00:00:00.000Z');
 assert.equal(legacyPayload.schema,undefined);
-assert.deepEqual(recovery.parseBackupObject(legacyPayload).map(x=>x.time),['old-1','old-2']);
+assert.deepEqual(hostArray(recovery.parseBackupObject(legacyPayload)).map(x=>x.time),['old-1','old-2']);
 
 const modern=recovery.createBackup([snap('new-1',91)]);
 assert.equal(modern.app,'Acelynn Pro');
@@ -31,7 +32,7 @@ assert.equal(modern.snapshots.length,1);
 
 const current=[snap('current-a'),snap('current-b')];
 const incoming=[snap('old-a'),snap('old-b'),snap('current-b'),...Array.from({length:15},(_,i)=>snap(`incoming-${i}`,50+i))];
-const merged=recovery.mergeSnapshots(current,incoming);
+const merged=hostArray(recovery.mergeSnapshots(current,incoming));
 assert.equal(merged.length,12);
 assert.deepEqual(merged.slice(0,2).map(x=>x.time),['current-a','current-b']);
 assert.deepEqual(merged.slice(2).map(x=>x.time),Array.from({length:10},(_,i)=>`incoming-${i+5}`));
