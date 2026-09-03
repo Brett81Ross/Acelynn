@@ -2,12 +2,18 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { Blob as NodeBlob } from 'node:buffer';
 import { STORES, openDatabase, resetDatabaseConnectionForTests } from '../js/db.js';
 import { clear, read } from '../js/storage.js';
+import { getLegacyBackupStatus } from '../js/migration.js';
 import { clearSourceFile, initializeRuntime, persistAnalysis, setSourceFile } from '../js/runtime.js';
 
-async function resetStores() {
+async function clearAllStores() {
   resetDatabaseConnectionForTests();
   await openDatabase();
   for (const store of Object.values(STORES)) await clear(store);
+}
+
+async function resetStores() {
+  await clearAllStores();
+  localStorage.clear();
   await initializeRuntime();
 }
 
@@ -75,5 +81,26 @@ describe('Acelynn v1.2 runtime persistence', () => {
     expect(second.saved).toBe(false);
     expect(second.duplicate).toBe(true);
     expect(await read.all(STORES.VERSIONS)).toHaveLength(1);
+  });
+
+  it('imports legacy snapshots once and removes the verified backup only on a later clean launch', async () => {
+    await clearAllStores();
+    localStorage.clear();
+    localStorage.setItem('acelynn-snapshots', JSON.stringify([
+      { time: 'Sep 2, 9:00 PM', profile: 'Balanced mix', score: 81, focus: 'Mids', bands: [12, 20, 31, 24, 14] }
+    ]));
+
+    const firstLaunch = await initializeRuntime();
+    expect(firstLaunch.migration.migration?.imported).toBe(true);
+    let status = await getLegacyBackupStatus();
+    expect(status.migration?.status).toBe('validated');
+    expect(status.backup?.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect((await read.all(STORES.VERSIONS)).filter(v => v.origin === 'legacy-v1.1')).toHaveLength(1);
+
+    const secondLaunch = await initializeRuntime();
+    expect(secondLaunch.migration.finalizedPriorBackup).toBe(true);
+    status = await getLegacyBackupStatus();
+    expect(status.backup).toBeNull();
+    expect((await read.all(STORES.VERSIONS)).filter(v => v.origin === 'legacy-v1.1')).toHaveLength(1);
   });
 });
