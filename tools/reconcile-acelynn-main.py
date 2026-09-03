@@ -2,6 +2,8 @@ from pathlib import Path
 
 FILES=[Path('index.html'),Path('app-base.html')]
 DIRECT_BRIDGE='\n<script src="/legacy-export-bridge.js?v=cutover1"></script>'
+RUNTIME_TAG='<script type="module" src="/js/runtime.js"></script>'
+RECOVERY_TAG='<script src="/acelynn-recovery.js"></script>'
 
 def normalize_approved_index_drift(text):
     text=text.replace(DIRECT_BRIDGE,'')
@@ -13,11 +15,15 @@ for path in FILES:
     original=text
 
     script_anchor='<script>\n(()=>{const $=id=>document.getElementById(id)'
-    script_replacement='<script src="/acelynn-recovery.js"></script>\n<script>\n(()=>{const $=id=>document.getElementById(id)'
-    if script_replacement not in text:
+    recovery_replacement=RECOVERY_TAG+'\n<script>\n(()=>{const $=id=>document.getElementById(id)'
+    if RECOVERY_TAG not in text:
         if script_anchor not in text:
             raise SystemExit(f'{path}: missing script anchor')
-        text=text.replace(script_anchor,script_replacement,1)
+        text=text.replace(script_anchor,recovery_replacement,1)
+    if RUNTIME_TAG not in text:
+        if RECOVERY_TAG not in text:
+            raise SystemExit(f'{path}: missing recovery tag for runtime insertion')
+        text=text.replace(RECOVERY_TAG,RUNTIME_TAG+'\n'+RECOVERY_TAG,1)
 
     controls_anchor='<div class="action-row"><button class="secondary" id="captureButton" disabled>Save current check</button><button class="secondary" id="exportButton" disabled>Export session report</button></div><div class="snapshot-list" id="snapshots">'
     controls_replacement='<div class="action-row"><button class="secondary" id="captureButton" disabled>Save current check</button><button class="secondary" id="exportButton" disabled>Export session report</button></div><div class="action-row"><button class="secondary" id="restoreButton" style="grid-column:1/-1;min-height:48px">Restore / merge backup</button></div><input id="restoreInput" class="hidden" type="file" accept="application/json,.json"><div class="snapshot-list" id="snapshots">'
@@ -40,6 +46,27 @@ for path in FILES:
             raise SystemExit(f'{path}: missing recovery handler anchor')
         text=text.replace(old_handlers,new_handlers,1)
 
+    mic_anchor='async function startMic(){try{stop();await context();'
+    mic_replacement="async function startMic(){try{stop();if(globalThis.AcelynnV12)AcelynnV12.clearSourceFile();await context();"
+    if mic_replacement not in text:
+        if mic_anchor not in text:
+            raise SystemExit(f'{path}: missing microphone source anchor')
+        text=text.replace(mic_anchor,mic_replacement,1)
+
+    file_anchor='async function startFile(file){try{stop();await context();'
+    file_replacement='async function startFile(file){try{stop();if(globalThis.AcelynnV12)await AcelynnV12.setSourceFile(file);await context();'
+    if file_replacement not in text:
+        if file_anchor not in text:
+            raise SystemExit(f'{path}: missing file source anchor')
+        text=text.replace(file_anchor,file_replacement,1)
+
+    capture_anchor="function capture(){if(!running)return;const r=profileResult(lastValues),focus=bands[r.normalized.indexOf(Math.max(...r.normalized))].name;snapshots.push({time:new Date().toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}),profile:r.p.name,score:r.score,focus,bands:lastValues.map(v=>Math.round(v))});snapshots=snapshots.slice(-12);localStorage.setItem('acelynn-snapshots',JSON.stringify(snapshots));renderSnapshots()}"
+    capture_replacement="function capture(){if(!running)return;const r=profileResult(lastValues),focus=bands[r.normalized.indexOf(Math.max(...r.normalized))].name,bandValues=lastValues.map(v=>Math.round(v)),fftMagnitudes=Array.from(data);snapshots.push({time:new Date().toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}),profile:r.p.name,score:r.score,focus,bands:bandValues});snapshots=snapshots.slice(-12);localStorage.setItem('acelynn-snapshots',JSON.stringify(snapshots));renderSnapshots();if(globalThis.AcelynnV12&&audioCtx&&analyser)AcelynnV12.persistAnalysis({fftMagnitudes,sampleRate:audioCtx.sampleRate,fftSize:analyser.fftSize,profile:r.p.name,score:r.score,focus,bandValues,sourceType:activeSource==='file'?'file':'microphone',perspective:$('analysisMode').value}).catch(e=>setCoach('Saved locally, v1.2 storage needs attention',e?.userMessage||e?.message||'Unable to save the structured analysis record.',[{title:'Your current check is still safe.',text:'The legacy local snapshot was preserved on this device.',color:'#ffb25b'}],'#ffb25b'))}"
+    if capture_replacement not in text:
+        if capture_anchor not in text:
+            raise SystemExit(f'{path}: missing capture persistence anchor')
+        text=text.replace(capture_anchor,capture_replacement,1)
+
     legacy_sw="if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})"
     retire_sw="async function retireLegacyServiceWorker(){if('serviceWorker'in navigator){try{const registrations=await navigator.serviceWorker.getRegistrations();await Promise.all(registrations.map(registration=>registration.unregister()))}catch(e){}}if('caches'in window){try{const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('acelynn-pro-')).map(key=>caches.delete(key)))}catch(e){}}}retireLegacyServiceWorker()"
     if retire_sw not in text:
@@ -51,6 +78,8 @@ for path in FILES:
         raise SystemExit(f'{path}: destructive localStorage.clear() is forbidden')
     if 'serviceWorker.register(' in text:
         raise SystemExit(f'{path}: service-worker registration must remain removed')
+    if text.count(RUNTIME_TAG)!=1:
+        raise SystemExit(f'{path}: v1.2 runtime must be loaded exactly once')
 
     path.write_text(text,encoding='utf-8')
     print(f"{path}: {'patched' if text!=original else 'already deterministic'}")
