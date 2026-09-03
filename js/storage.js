@@ -129,6 +129,14 @@ export async function deleteProjectCascade(projectId) {
 function asArrayBuffer(bytes) {
   if (bytes instanceof ArrayBuffer) return bytes;
   if (ArrayBuffer.isView(bytes)) return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  if (bytes && Object.prototype.toString.call(bytes) === '[object ArrayBuffer]' && Number.isFinite(bytes.byteLength)) {
+    return Uint8Array.from(new Uint8Array(bytes)).buffer;
+  }
+  if (bytes?.buffer && Number.isFinite(bytes.byteOffset) && Number.isFinite(bytes.byteLength)) {
+    try {
+      return Uint8Array.from(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength)).buffer;
+    } catch (_) {}
+  }
   throw new TypeError('Expected ArrayBuffer or typed array');
 }
 
