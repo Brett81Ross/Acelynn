@@ -9,8 +9,9 @@ const sw=read('sw.js');
 const shell=read('api/demo-shell.js');
 const vercel=read('vercel.json');
 const directBridge='\n<script src="/legacy-export-bridge.js?v=cutover1"></script>';
+const normalizeApprovedIndexDrift=text=>text.replace(directBridge,'').replace('</script>\n</body></html>','</script></body></html>');
 
-assert.equal(index.replace(directBridge,''),base,'index/app-base may differ only by the approved direct legacy bridge');
+assert.equal(normalizeApprovedIndexDrift(index),base,'index/app-base may differ only by the approved direct bridge and its exact closing-tag whitespace');
 for(const html of [index,base]){
   assert(html.includes('<script src="/acelynn-recovery.js"></script>'),'recovery engine uses origin-absolute URL');
   assert(html.includes('Restore / merge backup'),'restore UI present');
