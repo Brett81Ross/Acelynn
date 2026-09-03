@@ -34,8 +34,8 @@ beforeEach(async () => {
   await resetStores();
 });
 
-describe('Acelynn v1.2 runtime persistence', () => {
-  it('persists a structured enriched 32-bin analysis record without audio bytes', async () => {
+describe('Acelynn v1.3 runtime persistence', () => {
+  it('persists a structured enriched 32-bin analysis record and metering aggregates without audio bytes', async () => {
     const before = Date.now();
     const result = await persistAnalysis({
       fftMagnitudes: flatSpectrum(),
@@ -51,13 +51,33 @@ describe('Acelynn v1.2 runtime persistence', () => {
       perspective: 'mix',
       levels: { peakDbfs: -2.5, rmsDbfs: -12.5, crestDb: 10 },
       coachingFindings: [{ severity: 1, title: 'Check mids.', text: 'Listen around 1 kHz.' }],
-      referenceDeltas: [{ name: 'Mids', delta: 4.2, direction: 'up' }]
+      referenceDeltas: [{ name: 'Mids', delta: 4.2, direction: 'up' }],
+      professionalMetering: {
+        standard: 'ITU-R BS.1770-5 / EBU Tech 3341 aligned',
+        compliance: 'algorithm-aligned; official compliance test-set pending',
+        measurementDomain: 'acoustic-capture',
+        sampleRate: 48000,
+        channelCount: 1,
+        momentaryLufs: -24.1,
+        shortTermLufs: -23.8,
+        integratedLufs: -24.0,
+        samplePeakDbfs: -2.5,
+        truePeakEstimateDbtp: -2.1,
+        truePeakMethod: '4x-cubic-inter-sample-estimate',
+        correlation: null,
+        dcOffset: [0.0002],
+        dropoutCount: 0,
+        vectorPoints: [[0.2, 0.2], [0.3, 0.3]]
+      }
     });
     expect(result.saved).toBe(true);
     const record = result.record;
     expect(record.analysisTimestamp).toBeGreaterThanOrEqual(before);
     expect(record.createdAt).toBeGreaterThanOrEqual(record.analysisTimestamp);
+    expect(record.origin).toBe('v1.3-runtime');
+    expect(record.featureSchemaVersion).toBe(3);
     expect(record.spectralDefinition).toBe('log32-slope-v1');
+    expect(record.meteringDefinition).toBe('bs1770-ebu3341-v1');
     expect(record.spectralFeatures.coarseBins).toHaveLength(32);
     expect(record.spectralFeatures.normalizedCoarseSpectrum).toHaveLength(32);
     expect(record.mixHealth).toEqual({ raw: 82, perspectiveWeighted: 84, targetProfileMatch: 82 });
@@ -68,6 +88,16 @@ describe('Acelynn v1.2 runtime persistence', () => {
     expect(record.roomConfidence).toBeNull();
     expect(record.fileHash).toBeNull();
     expect(record.sourceMetadata).toEqual({});
+    expect(record.professionalMetering).toMatchObject({
+      definition: 'bs1770-ebu3341-v1',
+      measurementDomain: 'acoustic-capture',
+      sampleRate: 48000,
+      channelCount: 1,
+      momentaryLufs: -24.1,
+      truePeakEstimateDbtp: -2.1,
+      dropoutCount: 0
+    });
+    expect(record.professionalMetering).not.toHaveProperty('vectorPoints');
     expect(JSON.stringify(record)).not.toContain('audioBytes');
     expect(JSON.stringify(record)).not.toContain('pcm');
     expect(await read.all(STORES.VERSIONS)).toHaveLength(1);
