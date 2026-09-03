@@ -2,7 +2,6 @@ const loadedContexts = new WeakSet();
 let activeNode = null;
 let activeSource = null;
 let activeSink = null;
-let activeAnalyser = null;
 let latest = null;
 let sourceType = 'unknown';
 
@@ -43,11 +42,11 @@ async function loadWorklet(context) {
   return true;
 }
 
-function attachSilentPullSink(context, analyserNode) {
-  if (sourceType !== 'microphone' || typeof context?.createGain !== 'function' || !context?.destination) return null;
+function createSilentWorkletSink(context, node) {
+  if (typeof context?.createGain !== 'function' || !context?.destination) return null;
   const sink = context.createGain();
   sink.gain.value = 0;
-  analyserNode.connect(sink);
+  node.connect(sink);
   sink.connect(context.destination);
   return sink;
 }
@@ -72,12 +71,17 @@ export async function attach(context, sourceNode, analyserNode, options = {}) {
       latest = sanitizeMessage(event.data);
       globalThis.dispatchEvent?.(new CustomEvent('acelynn:metering', { detail: latest }));
     };
+    // Professional metering is a parallel tap. It never sits in the proven
+    // v1.2 analyser/playback path, so Worklet failure cannot stop core analysis.
     sourceNode.connect(node);
-    node.connect(analyserNode);
-    const sink = attachSilentPullSink(context, analyserNode);
+    const sink = createSilentWorkletSink(context, node);
+    if (!sink) {
+      try { sourceNode.disconnect(node); } catch (_) {}
+      try { node.disconnect(); } catch (_) {}
+      return false;
+    }
     activeNode = node;
     activeSource = sourceNode;
-    activeAnalyser = analyserNode;
     activeSink = sink;
     latest = {
       available: true,
@@ -117,9 +121,6 @@ export async function detach() {
   if (activeSource && activeNode) {
     try { activeSource.disconnect(activeNode); } catch (_) {}
   }
-  if (activeAnalyser && activeSink) {
-    try { activeAnalyser.disconnect(activeSink); } catch (_) {}
-  }
   if (activeSink) {
     try { activeSink.disconnect(); } catch (_) {}
   }
@@ -130,7 +131,6 @@ export async function detach() {
   activeNode = null;
   activeSource = null;
   activeSink = null;
-  activeAnalyser = null;
   return true;
 }
 
