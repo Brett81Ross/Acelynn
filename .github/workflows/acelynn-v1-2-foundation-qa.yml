@@ -2,8 +2,9 @@ name: Acelynn Pro v1.2 Foundation QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release]
     paths:
+      - 'api/**'
       - 'js/**'
       - 'tests/**'
       - 'index.html'
@@ -36,7 +37,7 @@ jobs:
       - name: Install isolated QA dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Syntax check v1.2 modules
+      - name: Syntax check v1.2 modules and served shell
         run: |
           node --check js/meta.js
           node --check js/db.js
@@ -46,8 +47,10 @@ jobs:
           node --check js/insights.js
           node --check js/runtime.js
           node --check js/ui-enhancements.js
+          node --check api/shell-transform.cjs
+          node --check api/demo-shell.js
 
-      - name: Run v1.2 foundation spectral insight and runtime QA
+      - name: Run v1.2 foundation spectral insight runtime and shell QA
         run: npm run qa:v1.2
 
       - name: Confirm controlled runtime and enhancement wiring boundary
@@ -66,4 +69,4 @@ jobs:
           grep -q 'AcelynnV12.persistAnalysis' app-base.html
           grep -q 'Save last check' index.html
           grep -q 'Save last check' app-base.html
-          echo 'v1.2 core and enhancement UI are wired only through the approved module boundary.'
+          echo 'v1.2 core and enhancement UI remain wired only through the approved module boundary.'
