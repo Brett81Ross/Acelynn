@@ -16,6 +16,8 @@ on:
       - 'js/db.js'
       - 'js/storage.js'
       - 'js/spectral.js'
+      - 'js/insights.js'
+      - 'js/ui-enhancements.js'
       - 'tools/reconcile-acelynn-main.py'
       - 'tools/qa-reconciled-recovery.mjs'
       - 'tools/qa-reconciled-static.mjs'
@@ -52,6 +54,8 @@ jobs:
           node --check js/runtime.js
           node --check js/spectral.js
           node --check js/storage.js
+          node --check js/insights.js
+          node --check js/ui-enhancements.js
           node tools/qa-reconciled-recovery.mjs
           node tools/qa-reconciled-static.mjs
 
@@ -71,7 +75,7 @@ jobs:
           cat /tmp/acelynn-http.log
           exit 1
 
-      - name: Run real browser export restore merge round trip
+      - name: Run real browser recovery stopped-save room and diff round trip
         env:
           NODE_PATH: /tmp/acelynn-browser/node_modules
         run: node tools/qa-recovery-browser.cjs
@@ -97,7 +101,7 @@ jobs:
           test "$changed" = "$expected"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'runtime: reconcile Acelynn Pro v1.2 capture shell'
+          git commit -m 'runtime: reconcile Acelynn Pro v1.2 insight shell'
           git push origin HEAD:${GITHUB_REF_NAME}
 
       - name: Stop local test server
