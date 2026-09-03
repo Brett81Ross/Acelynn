@@ -1,6 +1,8 @@
 const loadedContexts = new WeakSet();
 let activeNode = null;
 let activeSource = null;
+let activeSink = null;
+let activeAnalyser = null;
 let latest = null;
 let sourceType = 'unknown';
 
@@ -41,6 +43,15 @@ async function loadWorklet(context) {
   return true;
 }
 
+function attachSilentPullSink(context, analyserNode) {
+  if (sourceType !== 'microphone' || typeof context?.createGain !== 'function' || !context?.destination) return null;
+  const sink = context.createGain();
+  sink.gain.value = 0;
+  analyserNode.connect(sink);
+  sink.connect(context.destination);
+  return sink;
+}
+
 export async function attach(context, sourceNode, analyserNode, options = {}) {
   await detach();
   sourceType = String(options.sourceType || 'unknown');
@@ -63,8 +74,11 @@ export async function attach(context, sourceNode, analyserNode, options = {}) {
     };
     sourceNode.connect(node);
     node.connect(analyserNode);
+    const sink = attachSilentPullSink(context, analyserNode);
     activeNode = node;
     activeSource = sourceNode;
+    activeAnalyser = analyserNode;
+    activeSink = sink;
     latest = {
       available: true,
       sourceType,
@@ -87,6 +101,7 @@ export async function attach(context, sourceNode, analyserNode, options = {}) {
     globalThis.dispatchEvent?.(new CustomEvent('acelynn:metering-status', { detail: { available: true, sourceType } }));
     return true;
   } catch (error) {
+    await detach();
     latest = {
       available: false,
       sourceType,
@@ -102,12 +117,20 @@ export async function detach() {
   if (activeSource && activeNode) {
     try { activeSource.disconnect(activeNode); } catch (_) {}
   }
+  if (activeAnalyser && activeSink) {
+    try { activeAnalyser.disconnect(activeSink); } catch (_) {}
+  }
+  if (activeSink) {
+    try { activeSink.disconnect(); } catch (_) {}
+  }
   if (activeNode) {
     try { activeNode.disconnect(); } catch (_) {}
     try { activeNode.port.onmessage = null; } catch (_) {}
   }
   activeNode = null;
   activeSource = null;
+  activeSink = null;
+  activeAnalyser = null;
   return true;
 }
 
