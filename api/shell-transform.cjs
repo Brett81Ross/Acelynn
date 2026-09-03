@@ -1,5 +1,6 @@
 const VERSION='1.2.0';
 const LOGO_SRC='/acelynnpro.png';
+const SIGNAL_FLOOR_DBFS=-72;
 
 const HOTFIX_CSS=`
 .acelynn-logo{background:transparent!important;box-shadow:none!important;overflow:hidden;padding:0!important}
@@ -16,6 +17,10 @@ const HOTFIX_CSS=`
 const SPLASH_HTML=`<div id="acelynnSplash" role="status" aria-label="Opening Acelynn Pro"><div class="acelynn-splash-inner"><img class="acelynn-splash-logo" src="${LOGO_SRC}" alt="Acelynn Pro logo"><div class="acelynn-splash-title">Acelynn Pro™</div><div class="acelynn-splash-meta">v${VERSION} · Cactus🌵Byte Studios™</div></div></div>`;
 
 const SPLASH_SCRIPT=`<script>(function(){var splash=document.getElementById('acelynnSplash');if(!splash)return;var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;setTimeout(function(){splash.classList.add('splash-out');setTimeout(function(){splash.remove()},reduce?0:320)},reduce?180:900)})();</script>`;
+
+function isUsableSignal(rmsDb){
+  return Number.isFinite(Number(rmsDb))&&Number(rmsDb)>=SIGNAL_FLOOR_DBFS;
+}
 
 function replaceOnceOrThrow(html,needle,replacement,label){
   if(html.includes(replacement))return html;
@@ -42,7 +47,7 @@ function transformShell(input){
   }
 
   const oldCoach='function coach(result,vals,avg){if(avg<8){';
-  const newCoach="function coach(result,vals,avg,rmsDb){const signalDb=Number.isFinite(rmsDb)?rmsDb:Number.parseFloat($('rmsValue').textContent);if(!Number.isFinite(signalDb)||signalDb<-72){";
+  const newCoach=`function coach(result,vals,avg,rmsDb){const signalDb=Number.isFinite(rmsDb)?rmsDb:Number.parseFloat($('rmsValue').textContent);if(!Number.isFinite(signalDb)||signalDb<${SIGNAL_FLOOR_DBFS}){`;
   if(!html.includes(newCoach)){
     html=replaceOnceOrThrow(html,oldCoach,newCoach,'analysis signal gate');
   }
@@ -53,11 +58,11 @@ function transformShell(input){
     html=replaceOnceOrThrow(html,oldLoopCall,newLoopCall,'analysis RMS handoff');
   }
 
-  if(!html.includes('id="acelynnSplash"')||!html.includes(SPLASH_SCRIPT)){
+  if(!html.includes(SPLASH_SCRIPT)){
     html=replaceOnceOrThrow(html,'</body>',SPLASH_SCRIPT+'\n</body>','splash script anchor');
   }
 
   return html;
 }
 
-module.exports={VERSION,LOGO_SRC,transformShell};
+module.exports={VERSION,LOGO_SRC,SIGNAL_FLOOR_DBFS,isUsableSignal,transformShell};
