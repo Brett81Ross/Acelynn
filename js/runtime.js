@@ -19,6 +19,12 @@ import {
 
 const WORKSPACE_META_KEY = 'defaultWorkspace';
 const ACTIVE_ROOM_META_KEY = 'activeRoomSignatureId';
+export const SIGNAL_VALIDITY_THRESHOLDS = Object.freeze({
+  minRmsDb: -72,
+  minBandEnergyTotal: 5,
+  minBandPeak: 2,
+  minFftPeak: 1
+});
 let sourceFileHash = null;
 let sourceFileMetadata = null;
 
@@ -30,6 +36,44 @@ function finiteOrNull(value) {
   if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+export function evaluateSignalValidity({
+  bandValues = [],
+  fftMagnitudes = [],
+  rmsDb = null
+} = {}) {
+  const cleanBands = Array.isArray(bandValues)
+    ? bandValues.slice(0, 5).map(value => {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? number : 0;
+    })
+    : [];
+  const cleanFft = Array.isArray(fftMagnitudes) || ArrayBuffer.isView(fftMagnitudes)
+    ? Array.from(fftMagnitudes, value => {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? number : 0;
+    })
+    : [];
+  const rms = finiteOrNull(rmsDb);
+  const bandEnergyTotal = cleanBands.reduce((sum, value) => sum + value, 0);
+  const bandPeak = cleanBands.length ? Math.max(...cleanBands) : 0;
+  const fftPeak = cleanFft.length ? Math.max(...cleanFft) : 0;
+  const failures = [];
+
+  if (rms !== null && rms < SIGNAL_VALIDITY_THRESHOLDS.minRmsDb) failures.push('rms');
+  if (
+    bandEnergyTotal < SIGNAL_VALIDITY_THRESHOLDS.minBandEnergyTotal ||
+    bandPeak < SIGNAL_VALIDITY_THRESHOLDS.minBandPeak
+  ) failures.push('bands');
+  if (fftPeak < SIGNAL_VALIDITY_THRESHOLDS.minFftPeak) failures.push('fft');
+
+  return Object.freeze({
+    valid: failures.length === 0,
+    reason: failures[0] || null,
+    failures: Object.freeze(failures.slice()),
+    metrics: Object.freeze({ rmsDb: rms, bandEnergyTotal, bandPeak, fftPeak })
+  });
 }
 
 async function ensureDefaultWorkspace() {
@@ -178,6 +222,20 @@ export async function persistAnalysis({
   roomSignatureId = null,
   roomConfidence = null
 }) {
+  const signalValidity = evaluateSignalValidity({
+    bandValues,
+    fftMagnitudes,
+    rmsDb: levels?.rmsDbfs
+  });
+  if (!signalValidity.valid) {
+    const error = new Error('No usable audio signal was detected.');
+    error.name = 'AcelynnSignalValidationError';
+    error.code = 'NO_USABLE_SIGNAL';
+    error.userMessage = 'No usable audio signal was detected. Play audio at a normal listening level and try again.';
+    error.signalValidity = signalValidity;
+    throw error;
+  }
+
   const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
   const analysisTimestamp = Date.now();
   const workspace = await ensureDefaultWorkspace();
@@ -266,6 +324,7 @@ const runtime = Object.freeze({
   getActiveRoomSignature,
   clearActiveRoomSignature,
   persistAnalysis,
+  evaluateSignalValidity,
   calculatePerspectiveHealth,
   applyRoomSignature,
   estimateRoomConfidence,
