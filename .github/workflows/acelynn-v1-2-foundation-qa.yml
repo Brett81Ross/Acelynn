@@ -2,7 +2,7 @@ name: Acelynn Pro v1.2 Foundation QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, fix-acelynn-signal-validity]
     paths:
       - 'api/**'
       - 'js/**'
