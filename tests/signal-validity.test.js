@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   evaluateSignalValidity,
@@ -71,7 +72,7 @@ describe('Acelynn signal validity gate', () => {
   });
 
   it('installs a capture-phase UI guard so invalid frames cannot become legacy snapshots', () => {
-    const source = readFileSync(new URL('../js/ui-enhancements.js', import.meta.url), 'utf8');
+    const source = readFileSync(resolve(process.cwd(), 'js/ui-enhancements.js'), 'utf8');
     expect(source).toContain("captureButton.addEventListener('click'");
     expect(source).toContain('event.stopImmediatePropagation()');
     expect(source).toContain("captureButton.textContent !== 'Waiting for audio'");
