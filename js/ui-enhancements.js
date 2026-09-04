@@ -1,10 +1,111 @@
 const byId = id => document.getElementById(id);
 
+let signalGuardObserver = null;
+let lastSignalUiReason = null;
+
 function averageArrays(arrays) {
   const valid = arrays.filter(array => array && typeof array.length === 'number' && array.length);
   if (!valid.length) return [];
   const length = Math.min(...valid.map(array => array.length));
   return Array.from({ length }, (_, index) => valid.reduce((sum, array) => sum + Number(array[index] || 0), 0) / valid.length);
+}
+
+function evaluateFrameSignal(frame) {
+  const evaluator = globalThis.AcelynnV12?.evaluateSignalValidity;
+  if (!frame || typeof evaluator !== 'function') {
+    return { valid: false, reason: 'unavailable', failures: ['unavailable'], metrics: {} };
+  }
+  const validity = evaluator({
+    bandValues: frame.bandValues,
+    fftMagnitudes: frame.fftMagnitudes,
+    rmsDb: frame.rmsDb
+  });
+  frame.signalValid = validity.valid;
+  frame.signalValidity = validity;
+  return validity;
+}
+
+function setText(id, value) {
+  const element = byId(id);
+  if (element && element.textContent !== value) element.textContent = value;
+}
+
+function renderSignalWaiting(validity) {
+  const captureButton = byId('captureButton');
+  if (captureButton) {
+    if (!captureButton.disabled) captureButton.disabled = true;
+    if (captureButton.textContent !== 'Waiting for audio') captureButton.textContent = 'Waiting for audio';
+  }
+  setText('healthScore', '—');
+  setText('healthLabel', 'Waiting for audio');
+  setText('balanceText', 'Waiting for signal');
+  setText('focusValue', '—');
+  setText('status', 'Waiting for usable audio');
+  setText('ruleMeterLabel', 'Waiting for usable audio');
+  const ruleFill = byId('ruleMeterFill');
+  if (ruleFill && ruleFill.style.width !== '0%') ruleFill.style.width = '0%';
+
+  const healthScore = byId('healthScore');
+  if (healthScore) {
+    healthScore.style.borderColor = 'var(--lime)';
+    healthScore.style.color = 'var(--lime)';
+  }
+
+  const reasonKey = Array.isArray(validity?.failures) ? validity.failures.join(',') : String(validity?.reason || 'invalid');
+  if (lastSignalUiReason !== reasonKey) {
+    lastSignalUiReason = reasonKey;
+    setText('coachTitle', 'Waiting for usable audio');
+    setText('coachText', 'Acelynn can hear the input path, but there is not enough real spectral energy to score this check yet.');
+    const advice = byId('advice');
+    if (advice) {
+      advice.innerHTML = '<div class="advice-item"><b>No score was created.</b> Play audio at a normal listening level and let the spectrum settle before saving a check.</div>';
+    }
+  }
+}
+
+function enforceSignalValidityUi() {
+  const frame = globalThis.AcelynnCoreBridge?.getLastFrame?.();
+  if (!frame) return;
+  const validity = evaluateFrameSignal(frame);
+  if (validity.valid) {
+    lastSignalUiReason = null;
+    return;
+  }
+  renderSignalWaiting(validity);
+}
+
+function installSignalValidityGuard() {
+  const captureButton = byId('captureButton');
+  if (!captureButton || !globalThis.AcelynnCoreBridge) return;
+
+  captureButton.addEventListener('click', event => {
+    const frame = globalThis.AcelynnCoreBridge?.getLastFrame?.();
+    const validity = evaluateFrameSignal(frame);
+    if (validity.valid) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    renderSignalWaiting(validity);
+  }, true);
+
+  if (typeof MutationObserver !== 'undefined') {
+    signalGuardObserver = new MutationObserver(enforceSignalValidityUi);
+    ['captureButton', 'healthScore', 'healthLabel', 'balanceText', 'focusValue', 'status'].forEach(id => {
+      const element = byId(id);
+      if (!element) return;
+      signalGuardObserver.observe(element, {
+        attributes: id === 'captureButton',
+        childList: true,
+        characterData: true,
+        subtree: true
+      });
+    });
+  }
+
+  window.addEventListener('acelynn:frame', enforceSignalValidityUi);
+  window.addEventListener('acelynn:stopped', enforceSignalValidityUi);
+  window.addEventListener('acelynn:source-reset', () => {
+    lastSignalUiReason = null;
+  });
 }
 
 function injectStyles() {
@@ -81,6 +182,11 @@ function renderDiff(current, previous) {
 
 function renderRules(frame, stopped = false) {
   if (!frame?.result || !globalThis.AcelynnV12) return;
+  const validity = evaluateFrameSignal(frame);
+  if (!validity.valid) {
+    renderSignalWaiting(validity);
+    return;
+  }
   const score = Number(frame.result.weightedScore ?? frame.result.score ?? 0);
   const findings = AcelynnV12.buildRuleFindings({
     normalized: frame.result.normalized,
@@ -115,7 +221,8 @@ function updateRoomCaptureAvailability() {
   if (!button || !bridge) return;
   const frame = bridge.getLastFrame?.();
   const recent = bridge.getRecentFrames?.() || [];
-  button.disabled = !(frame?.sourceType === 'microphone' && recent.length >= 3);
+  const validity = evaluateFrameSignal(frame);
+  button.disabled = !(validity.valid && frame?.sourceType === 'microphone' && recent.length >= 3);
 }
 
 async function captureRoomSignature() {
@@ -123,7 +230,8 @@ async function captureRoomSignature() {
   if (!bridge || !globalThis.AcelynnV12) return;
   const frame = bridge.getLastFrame?.();
   const recent = bridge.getRecentFrames?.() || [];
-  if (!frame || frame.sourceType !== 'microphone' || recent.length < 3) return;
+  const validity = evaluateFrameSignal(frame);
+  if (!validity.valid || !frame || frame.sourceType !== 'microphone' || recent.length < 3) return;
   const bands = recent.map(item => item.bandValues);
   const fft = recent.map(item => item.fftMagnitudes);
   const confidence = AcelynnV12.estimateRoomConfidence(bands);
@@ -159,6 +267,7 @@ async function initializeEnhancements() {
   createRoomCard();
   createRuleMeter();
   createDiffCard();
+  installSignalValidityGuard();
 
   byId('roomSignatureButton')?.addEventListener('click', captureRoomSignature);
   byId('roomSignatureClearButton')?.addEventListener('click', clearRoomSignature);
@@ -172,6 +281,7 @@ async function initializeEnhancements() {
   }
   renderRoomStatus(globalThis.AcelynnActiveRoomSignature);
   updateRoomCaptureAvailability();
+  enforceSignalValidityUi();
 
   const snapshots = globalThis.AcelynnCoreBridge?.getSnapshots?.() || [];
   if (snapshots.length >= 2) renderDiff(snapshots[snapshots.length - 1], snapshots[snapshots.length - 2]);
