@@ -5,6 +5,9 @@
   } else {
     root.AcelynnLegacyExportBridge = api;
     api.install();
+    import('/js/static-shell-bootstrap.js').catch(error => {
+      console.error('Acelynn static shell bootstrap could not start:', error);
+    });
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
