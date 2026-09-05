@@ -2,13 +2,13 @@ name: Acelynn Pro v1.2 Foundation QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, fix-acelynn-signal-validity, abl-full-state-backup-v2]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, fix-acelynn-signal-validity, abl-full-state-backup-v2, abl-static-shell-authority-v2]
     paths:
-      - 'api/**'
       - 'js/**'
       - 'tests/**'
       - 'index.html'
-      - 'app-base.html'
+      - 'legacy-export-bridge.js'
+      - 'demo-help.js'
       - 'package.json'
       - 'vitest.config.js'
       - '.github/workflows/acelynn-v1-2-foundation-qa.yml'
@@ -37,7 +37,7 @@ jobs:
       - name: Install isolated QA dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Syntax check v1.2 modules and served shell
+      - name: Syntax check v1.2 modules and static shell bootstrap
         run: |
           node --check js/meta.js
           node --check js/db.js
@@ -49,27 +49,28 @@ jobs:
           node --check js/ui-enhancements.js
           node --check js/full-state-backup.js
           node --check js/full-state-backup-ui.js
-          node --check api/shell-transform.cjs
-          node --check api/demo-shell.js
+          node --check js/static-shell-bootstrap.js
+          node --check legacy-export-bridge.js
+          node --check demo-help.js
 
-      - name: Run v1.2 foundation spectral insight runtime and shell QA
+      - name: Run v1.2 foundation spectral insight runtime static-shell and backup QA
         run: npm run qa:v1.2
 
-      - name: Confirm controlled runtime and enhancement wiring boundary
+      - name: Confirm static shell authority and controlled module wiring
         run: |
           test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' index.html | wc -l)" -eq 1
-          test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' app-base.html | wc -l)" -eq 1
           test "$(grep -o '<script type="module" src="/js/ui-enhancements.js"></script>' index.html | wc -l)" -eq 1
-          test "$(grep -o '<script type="module" src="/js/ui-enhancements.js"></script>' app-base.html | wc -l)" -eq 1
-          grep -q '/js/full-state-backup-ui.js' api/demo-shell.js
+          test "$(grep -o '<script src="/legacy-export-bridge.js?v=cutover1"></script>' index.html | wc -l)" -eq 1
+          grep -q "import('/js/static-shell-bootstrap.js')" legacy-export-bridge.js
+          grep -q "'/js/full-state-backup-ui.js'" js/static-shell-bootstrap.js
+          grep -q "'/demo-help.js'" js/static-shell-bootstrap.js
+          ! grep -q '"rewrites"' vercel.json
+          test ! -e api/demo-shell.js
+          test ! -e api/shell-transform.cjs
+          test ! -e app-base.html
           ! grep -q '/js/spectral.js' index.html
-          ! grep -q '/js/spectral.js' app-base.html
           ! grep -q '/js/migration.js' index.html
-          ! grep -q '/js/migration.js' app-base.html
           ! grep -q '/js/insights.js' index.html
-          ! grep -q '/js/insights.js' app-base.html
           grep -q 'AcelynnV12.persistAnalysis' index.html
-          grep -q 'AcelynnV12.persistAnalysis' app-base.html
           grep -q 'Save last check' index.html
-          grep -q 'Save last check' app-base.html
-          echo 'v1.2 core, enhancement UI, and full-state backup wiring remain controlled.'
+          echo 'Acelynn now serves one static shell; full-state backup and help load through the controlled static bootstrap.'
