@@ -12,6 +12,7 @@ export default async function handler(req,res){
     let html=transformShell(await source.text());
     if(!html.includes('/demo-help.js'))html=html.replace('</body>','<script src="/demo-help.js?v=1.1.2"></script>\n</body>');
     if(!html.includes('/legacy-export-bridge.js'))html=html.replace('</body>','<script src="/legacy-export-bridge.js?v=cutover1"></script>\n</body>');
+    if(!html.includes('/js/full-state-backup-ui.js'))html=html.replace('</body>','<script type="module" src="/js/full-state-backup-ui.js"></script>\n</body>');
     res.statusCode=200;
     res.setHeader('Content-Type','text/html; charset=utf-8');
     res.setHeader('Cache-Control','no-cache, no-store, must-revalidate');
