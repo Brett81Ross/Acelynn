@@ -106,9 +106,7 @@ function installStableStyles() {
   document.head.appendChild(style);
 }
 
-function install() {
-  installStableStyles();
-
+function patchCurrentTargets() {
   [
     'coachTitle',
     'coachText',
@@ -122,8 +120,21 @@ function install() {
   ].forEach(id => dedupeTextContent(document.getElementById(id)));
 
   batchAdviceUpdates(document.getElementById('advice'));
-  dedupeInnerHtml(document.getElementById('ruleFindings'));
-  dedupeInnerHtml(document.getElementById('diffRows'));
+  const rulesReady = dedupeInnerHtml(document.getElementById('ruleFindings'));
+  const diffReady = dedupeInnerHtml(document.getElementById('diffRows'));
+  return rulesReady && diffReady;
+}
+
+function install() {
+  installStableStyles();
+  const allDynamicTargetsReady = patchCurrentTargets();
+
+  if (!allDynamicTargetsReady && typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(() => {
+      if (patchCurrentTargets()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 
   const body = document.body;
   if (body) body.dataset.acelynnLiveStability = '1';
