@@ -2,6 +2,12 @@ const textDescriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textCont
 const htmlDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
 const nativeAppendChild = Node.prototype.appendChild;
 
+let signalVisualState = null;
+let validStreak = 0;
+let invalidStreak = 0;
+const VALID_STREAK_REQUIRED = 3;
+const INVALID_STREAK_REQUIRED = 2;
+
 function dedupeTextContent(element) {
   if (!element || !textDescriptor?.get || !textDescriptor?.set) return false;
   if (element.dataset.acelynnStableText === '1') return true;
@@ -102,6 +108,30 @@ function installStableStyles() {
     #advice,#ruleFindings,#diffRows{overflow-anchor:none}
     #advice{contain:layout style paint}
     #ruleFindings,#diffRows{contain:layout style}
+
+    body.acelynn-signal-invalid #healthScore,
+    body.acelynn-signal-invalid #healthLabel,
+    body.acelynn-signal-invalid #balanceText,
+    body.acelynn-signal-invalid #focusValue,
+    body.acelynn-signal-invalid #status,
+    body.acelynn-signal-invalid #coachTitle,
+    body.acelynn-signal-invalid #coachText,
+    body.acelynn-signal-invalid #captureButton{font-size:0!important}
+
+    body.acelynn-signal-invalid #healthScore::after{content:'—';font-size:.91rem}
+    body.acelynn-signal-invalid #healthLabel::after{content:'Waiting for audio';font-size:.88rem}
+    body.acelynn-signal-invalid #balanceText::after{content:'Waiting for signal';font-size:.72rem}
+    body.acelynn-signal-invalid #focusValue::after{content:'—';font-size:.87rem}
+    body.acelynn-signal-invalid #status::after{content:'Waiting for usable audio';font-size:.68rem}
+    body.acelynn-signal-invalid #coachTitle::after{content:'Waiting for usable audio';font-size:.87rem}
+    body.acelynn-signal-invalid #coachText::after{content:'Acelynn can hear the input path, but there is not enough stable spectral energy to score this check yet.';font-size:.81rem;line-height:1.45}
+    body.acelynn-signal-invalid #captureButton::after{content:'Waiting for audio';font-size:.73rem}
+
+    body.acelynn-signal-invalid #captureButton{pointer-events:none;opacity:.4}
+    body.acelynn-signal-invalid #advice>*{display:none!important}
+    body.acelynn-signal-invalid #advice::after{content:'No score is being created yet. Play audio at a normal listening level and let the spectrum settle.';display:block;padding:10px;border-radius:11px;background:#0c0c17;border-left:3px solid var(--violet);font-size:.76rem;line-height:1.4;color:#d7d6e0}
+    body.acelynn-signal-invalid #ruleFindings>*{display:none!important}
+    body.acelynn-signal-invalid #ruleFindings::after{content:'Waiting for a stable signal before showing rule findings.';display:block;padding:8px 9px;border-radius:10px;background:#0c0c17;border-left:3px solid var(--violet);font-size:.7rem;line-height:1.4;color:#d7d6e0}
   `;
   document.head.appendChild(style);
 }
@@ -125,6 +155,60 @@ function patchCurrentTargets() {
   return rulesReady && diffReady;
 }
 
+function evaluateFrameValidity(frame) {
+  const evaluator = globalThis.AcelynnV12?.evaluateSignalValidity;
+  if (!frame || typeof evaluator !== 'function') return null;
+  return evaluator({
+    bandValues: frame.bandValues,
+    fftMagnitudes: frame.fftMagnitudes,
+    rmsDb: frame.rmsDb
+  });
+}
+
+function applySignalVisualState(valid) {
+  const body = document.body;
+  if (!body) return;
+  signalVisualState = valid;
+  body.classList.toggle('acelynn-signal-invalid', valid === false);
+  body.dataset.acelynnSignalVisualState = valid === false ? 'waiting' : 'valid';
+  const captureButton = document.getElementById('captureButton');
+  if (captureButton) {
+    if (valid === false) captureButton.setAttribute('aria-disabled', 'true');
+    else captureButton.removeAttribute('aria-disabled');
+  }
+}
+
+function stabilizeFrame(frame) {
+  const validity = evaluateFrameValidity(frame);
+  if (!validity) return null;
+
+  if (validity.valid) {
+    validStreak += 1;
+    invalidStreak = 0;
+    const required = signalVisualState === false ? VALID_STREAK_REQUIRED : 1;
+    if (validStreak >= required) applySignalVisualState(true);
+  } else {
+    invalidStreak += 1;
+    validStreak = 0;
+    const required = signalVisualState === true ? INVALID_STREAK_REQUIRED : 1;
+    if (invalidStreak >= required) applySignalVisualState(false);
+  }
+
+  return validity;
+}
+
+function resetSignalVisualState() {
+  signalVisualState = null;
+  validStreak = 0;
+  invalidStreak = 0;
+  const body = document.body;
+  if (body) {
+    body.classList.remove('acelynn-signal-invalid');
+    delete body.dataset.acelynnSignalVisualState;
+  }
+  document.getElementById('captureButton')?.removeAttribute('aria-disabled');
+}
+
 function install() {
   installStableStyles();
   const allDynamicTargetsReady = patchCurrentTargets();
@@ -136,8 +220,14 @@ function install() {
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  window.addEventListener('acelynn:frame', event => stabilizeFrame(event.detail?.frame));
+  window.addEventListener('acelynn:stopped', event => {
+    if (event.detail?.frame) stabilizeFrame(event.detail.frame);
+  });
+  window.addEventListener('acelynn:source-reset', resetSignalVisualState);
+
   const body = document.body;
-  if (body) body.dataset.acelynnLiveStability = '1';
+  if (body) body.dataset.acelynnLiveStability = '2';
 }
 
 if (document.readyState === 'loading') {
@@ -146,4 +236,12 @@ if (document.readyState === 'loading') {
   install();
 }
 
-export { batchAdviceUpdates, dedupeInnerHtml, dedupeTextContent, install };
+export {
+  batchAdviceUpdates,
+  dedupeInnerHtml,
+  dedupeTextContent,
+  evaluateFrameValidity,
+  install,
+  resetSignalVisualState,
+  stabilizeFrame
+};
