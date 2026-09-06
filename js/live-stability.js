@@ -7,6 +7,7 @@ let validStreak = 0;
 let invalidStreak = 0;
 const VALID_STREAK_REQUIRED = 3;
 const INVALID_STREAK_REQUIRED = 2;
+const ADVICE_FLUSH_INTERVAL_MS = 220;
 
 function dedupeTextContent(element) {
   if (!element || !textDescriptor?.get || !textDescriptor?.set) return false;
@@ -46,7 +47,7 @@ function dedupeInnerHtml(element) {
 
 function batchAdviceUpdates(box) {
   if (!box || !htmlDescriptor?.get || !htmlDescriptor?.set) return false;
-  if (box.dataset.acelynnAdviceBatching === '1') return true;
+  if (box.dataset.acelynnAdviceBatching === '2') return true;
 
   let collecting = false;
   let fragment = document.createDocumentFragment();
@@ -77,7 +78,7 @@ function batchAdviceUpdates(box) {
         fragment = document.createDocumentFragment();
         if (!scheduled) {
           scheduled = true;
-          queueMicrotask(flush);
+          setTimeout(flush, ADVICE_FLUSH_INTERVAL_MS);
         }
         return;
       }
@@ -96,7 +97,7 @@ function batchAdviceUpdates(box) {
     return nativeAppendChild.call(this, node);
   };
 
-  box.dataset.acelynnAdviceBatching = '1';
+  box.dataset.acelynnAdviceBatching = '2';
   return true;
 }
 
@@ -227,7 +228,7 @@ function install() {
   window.addEventListener('acelynn:source-reset', resetSignalVisualState);
 
   const body = document.body;
-  if (body) body.dataset.acelynnLiveStability = '2';
+  if (body) body.dataset.acelynnLiveStability = '3';
 }
 
 if (document.readyState === 'loading') {
@@ -237,6 +238,7 @@ if (document.readyState === 'loading') {
 }
 
 export {
+  ADVICE_FLUSH_INTERVAL_MS,
   batchAdviceUpdates,
   dedupeInnerHtml,
   dedupeTextContent,
