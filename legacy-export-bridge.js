@@ -5,6 +5,9 @@
   } else {
     root.AcelynnLegacyExportBridge = api;
     api.install();
+    import('/js/webview-performance.js').catch(error => {
+      console.error('Acelynn WebView performance guard could not start:', error);
+    });
     import('/js/live-stability.js').catch(error => {
       console.error('Acelynn live stability guard could not start:', error);
     });
