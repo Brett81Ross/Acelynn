@@ -27,4 +27,23 @@ describe('Acelynn live analysis stability guard', () => {
   it('disables scroll anchoring on volatile live-analysis sections', () => {
     expect(stability).toContain('#advice,#ruleFindings,#diffRows{overflow-anchor:none}');
   });
+
+  it('uses the runtime signal validator as the visual-state authority', () => {
+    expect(stability).toContain('AcelynnV12?.evaluateSignalValidity');
+    expect(stability).toContain('evaluateFrameValidity');
+    expect(stability).toContain("window.addEventListener('acelynn:frame'");
+  });
+
+  it('uses hysteresis instead of flipping waiting and valid UI on every frame', () => {
+    expect(stability).toContain('VALID_STREAK_REQUIRED = 3');
+    expect(stability).toContain('INVALID_STREAK_REQUIRED = 2');
+    expect(stability).toContain("body.classList.toggle('acelynn-signal-invalid', valid === false)");
+  });
+
+  it('masks conflicting score coaching and save controls while signal is invalid', () => {
+    expect(stability).toContain('body.acelynn-signal-invalid #healthScore');
+    expect(stability).toContain("content:'Waiting for audio'");
+    expect(stability).toContain('body.acelynn-signal-invalid #advice>*{display:none!important}');
+    expect(stability).toContain("captureButton.setAttribute('aria-disabled', 'true')");
+  });
 });
