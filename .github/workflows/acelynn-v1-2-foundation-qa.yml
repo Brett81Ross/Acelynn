@@ -2,7 +2,7 @@ name: Acelynn Pro v1.2 Foundation QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, fix-acelynn-signal-validity, abl-full-state-backup-v2, abl-static-shell-authority-v2]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, fix-acelynn-signal-validity, abl-full-state-backup-v2, abl-static-shell-authority-v2, hotfix-live-analysis-stability]
     paths:
       - 'js/**'
       - 'tests/**'
@@ -47,13 +47,14 @@ jobs:
           node --check js/insights.js
           node --check js/runtime.js
           node --check js/ui-enhancements.js
+          node --check js/live-stability.js
           node --check js/full-state-backup.js
           node --check js/full-state-backup-ui.js
           node --check js/static-shell-bootstrap.js
           node --check legacy-export-bridge.js
           node --check demo-help.js
 
-      - name: Run v1.2 foundation spectral insight runtime static-shell and backup QA
+      - name: Run v1.2 foundation spectral insight runtime static-shell backup and stability QA
         run: npm run qa:v1.2
 
       - name: Confirm static shell authority and controlled module wiring
@@ -61,6 +62,7 @@ jobs:
           test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' index.html | wc -l)" -eq 1
           test "$(grep -o '<script type="module" src="/js/ui-enhancements.js"></script>' index.html | wc -l)" -eq 1
           test "$(grep -o '<script src="/legacy-export-bridge.js?v=cutover1"></script>' index.html | wc -l)" -eq 1
+          grep -q "import('/js/live-stability.js')" legacy-export-bridge.js
           grep -q "import('/js/static-shell-bootstrap.js')" legacy-export-bridge.js
           grep -q "'/js/full-state-backup-ui.js'" js/static-shell-bootstrap.js
           grep -q "'/demo-help.js'" js/static-shell-bootstrap.js
@@ -73,4 +75,4 @@ jobs:
           ! grep -q '/js/insights.js' index.html
           grep -q 'AcelynnV12.persistAnalysis' index.html
           grep -q 'Save last check' index.html
-          echo 'Acelynn now serves one static shell; full-state backup and help load through the controlled static bootstrap.'
+          echo 'Acelynn static shell, live stability guard, full-state backup, and help wiring are controlled and deployment remains disabled.'

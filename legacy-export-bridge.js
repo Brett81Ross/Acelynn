@@ -5,6 +5,9 @@
   } else {
     root.AcelynnLegacyExportBridge = api;
     api.install();
+    import('/js/live-stability.js').catch(error => {
+      console.error('Acelynn live stability guard could not start:', error);
+    });
     import('/js/static-shell-bootstrap.js').catch(error => {
       console.error('Acelynn static shell bootstrap could not start:', error);
     });
