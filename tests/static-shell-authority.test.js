@@ -4,6 +4,9 @@ import { describe, expect, it } from 'vitest';
 const index = readFileSync('index.html', 'utf8');
 const legacyBridge = readFileSync('legacy-export-bridge.js', 'utf8');
 const bootstrap = readFileSync('js/static-shell-bootstrap.js', 'utf8');
+const controller = readFileSync('js/live-controller.js', 'utf8');
+const liveApp = readFileSync('js/live-app.js', 'utf8');
+const runtime = readFileSync('js/runtime.js', 'utf8');
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
 
 function count(text, needle) {
@@ -16,14 +19,17 @@ describe('Acelynn static shell authority', () => {
     expect(vercel.rewrites ?? []).toEqual([]);
     expect(index).toContain('Acelynn Pro™');
     expect(index).toContain('v1.2.0 · Cactus🌵Byte Studios™');
-    expect(index).toContain('signalDb<-72');
-    expect(index).toContain('AcelynnV12.persistAnalysis');
+    expect(runtime).toContain('minRmsDb: -72');
+    expect(controller).toContain('evaluateSignalValidity');
+    expect(liveApp).toContain('persistAnalysis');
   });
 
-  it('keeps one controlled static entrypoint for runtime and enhancement modules', () => {
+  it('keeps one controlled static entrypoint for runtime enhancement and unified live modules', () => {
     expect(count(index, '<script type="module" src="/js/runtime.js"></script>')).toBe(1);
     expect(count(index, '<script type="module" src="/js/ui-enhancements.js"></script>')).toBe(1);
+    expect(count(index, '<script type="module" src="/js/live-app.js"></script>')).toBe(1);
     expect(count(index, '<script src="/legacy-export-bridge.js?v=cutover1"></script>')).toBe(1);
+    expect(index).not.toContain('function loop(){if(!running)return;');
     expect(legacyBridge).toContain("import('/js/static-shell-bootstrap.js')");
     expect(bootstrap).toContain("'/js/full-state-backup-ui.js'");
     expect(bootstrap).toContain("'/demo-help.js'");
