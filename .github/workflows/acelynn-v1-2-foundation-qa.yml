@@ -2,7 +2,7 @@ name: Acelynn Pro v1.2 Foundation QA
 
 on:
   push:
-    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, fix-acelynn-signal-validity, abl-full-state-backup-v2, abl-static-shell-authority-v2, hotfix-live-analysis-stability, hotfix-webview-frame-budget]
+    branches: [abl-acelynn-pro-recovery-v1-2-stage, hotfix-acelynn-v1-2-post-release, repair-acelynn-v1-2-production-shell, fix-acelynn-signal-validity, abl-full-state-backup-v2, abl-static-shell-authority-v2, hotfix-live-analysis-stability, hotfix-webview-frame-budget, design-acelynn-live-renderer-unification]
     paths:
       - 'js/**'
       - 'tests/**'
@@ -36,6 +36,9 @@ jobs:
 
       - name: Install isolated QA dependencies
         run: npm install --no-audit --no-fund
+
+      - name: Run renderer unification TDD gate
+        run: npx vitest run tests/live-state.test.js
 
       - name: Syntax check v1.2 modules and static shell bootstrap
         run: |
