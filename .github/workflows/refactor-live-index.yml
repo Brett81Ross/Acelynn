@@ -1,0 +1,43 @@
+name: Refactor Acelynn Live Index
+
+on:
+  push:
+    branches: [design-acelynn-live-renderer-unification]
+    paths:
+      - 'tools/refactor-live-index.mjs'
+      - '.github/workflows/refactor-live-index.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v5
+        with:
+          ref: design-acelynn-live-renderer-unification
+
+      - name: Refactor index without reformatting unrelated content
+        run: node tools/refactor-live-index.mjs
+
+      - name: Verify only unified live bootstrap remains
+        run: |
+          grep -q '<script type="module" src="/js/live-app.js"></script>' index.html
+          ! grep -q 'function loop(){if(!running)return;' index.html
+          grep -q '<script src="/acelynn-recovery.js"></script>' index.html
+          grep -q '<script src="/legacy-export-bridge.js?v=cutover1"></script>' index.html
+          grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
+
+      - name: Commit staged index refactor
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'No index change required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'refactor: route Acelynn page through unified live app'
+          git push origin HEAD:design-acelynn-live-renderer-unification
