@@ -38,7 +38,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Run renderer unification TDD gate
-        run: npx vitest run tests/live-state.test.js tests/live-renderer.test.js tests/live-controller.test.js
+        run: npx vitest run tests/live-state.test.js tests/live-renderer.test.js tests/live-controller.test.js tests/live-app-wiring.test.js
 
       - name: Syntax check v1.2 modules and static shell bootstrap
         run: |
