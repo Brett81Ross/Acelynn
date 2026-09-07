@@ -71,11 +71,13 @@ describe('Acelynn signal validity gate', () => {
     });
   });
 
-  it('installs a capture-phase UI guard so invalid frames cannot become legacy snapshots', () => {
-    const source = readFileSync(resolve(process.cwd(), 'js/ui-enhancements.js'), 'utf8');
-    expect(source).toContain("captureButton.addEventListener('click'");
-    expect(source).toContain('event.stopImmediatePropagation()');
-    expect(source).toContain("captureButton.textContent !== 'Waiting for audio'");
-    expect(source).toContain('evaluateFrameSignal(frame)');
+  it('allows snapshots only from the canonical valid live state', () => {
+    const liveApp = readFileSync(resolve(process.cwd(), 'js/live-app.js'), 'utf8');
+    const controller = readFileSync(resolve(process.cwd(), 'js/live-controller.js'), 'utf8');
+    expect(liveApp).toContain("state?.signal !== 'valid'");
+    expect(liveApp).toContain('controller.markLastFrameSaved()');
+    expect(controller).toContain('evaluateSignalValidity');
+    expect(controller).toContain('frame.signalValidity = validity');
+    expect(controller).toContain('stateMachine.build');
   });
 });
