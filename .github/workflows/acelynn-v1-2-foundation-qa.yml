@@ -50,6 +50,10 @@ jobs:
           node --check js/insights.js
           node --check js/runtime.js
           node --check js/ui-enhancements.js
+          node --check js/live-state.js
+          node --check js/live-renderer.js
+          node --check js/live-controller.js
+          node --check js/live-app.js
           node --check js/live-stability.js
           node --check js/webview-performance.js
           node --check js/full-state-backup.js
@@ -65,7 +69,9 @@ jobs:
         run: |
           test "$(grep -o '<script type="module" src="/js/runtime.js"></script>' index.html | wc -l)" -eq 1
           test "$(grep -o '<script type="module" src="/js/ui-enhancements.js"></script>' index.html | wc -l)" -eq 1
+          test "$(grep -o '<script type="module" src="/js/live-app.js"></script>' index.html | wc -l)" -eq 1
           test "$(grep -o '<script src="/legacy-export-bridge.js?v=cutover1"></script>' index.html | wc -l)" -eq 1
+          ! grep -q 'function loop(){if(!running)return;' index.html
           grep -q "import('/js/webview-performance.js')" legacy-export-bridge.js
           grep -q "import('/js/live-stability.js')" legacy-export-bridge.js
           grep -q "import('/js/static-shell-bootstrap.js')" legacy-export-bridge.js
@@ -78,6 +84,7 @@ jobs:
           ! grep -q '/js/spectral.js' index.html
           ! grep -q '/js/migration.js' index.html
           ! grep -q '/js/insights.js' index.html
-          grep -q 'AcelynnV12.persistAnalysis' index.html
-          grep -q 'Save last check' index.html
-          echo 'Acelynn static shell, native WebView frame budget, live stability guard, full-state backup, and help wiring are controlled and deployment remains disabled.'
+          grep -q 'persistAnalysis' js/live-app.js
+          grep -q 'markLastFrameSaved' js/live-app.js
+          grep -q 'ANDROID_NATIVE_FRAME_INTERVAL_MS' js/live-controller.js
+          echo 'Acelynn static shell and unified live modules are controlled; temporary arbitration layers remain isolated until Task 4; deployment remains disabled.'
