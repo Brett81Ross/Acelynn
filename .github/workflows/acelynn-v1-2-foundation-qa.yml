@@ -38,7 +38,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Run renderer unification TDD gate
-        run: npx vitest run tests/live-state.test.js tests/live-renderer.test.js tests/live-controller.test.js tests/live-app-wiring.test.js
+        run: npx vitest run tests/live-state.test.js tests/live-renderer.test.js tests/live-controller.test.js tests/live-app-wiring.test.js tests/live-analysis-stability.test.js
 
       - name: Syntax check v1.2 modules and static shell bootstrap
         run: |
@@ -72,9 +72,11 @@ jobs:
           test "$(grep -o '<script type="module" src="/js/live-app.js"></script>' index.html | wc -l)" -eq 1
           test "$(grep -o '<script src="/legacy-export-bridge.js?v=cutover1"></script>' index.html | wc -l)" -eq 1
           ! grep -q 'function loop(){if(!running)return;' index.html
-          grep -q "import('/js/webview-performance.js')" legacy-export-bridge.js
-          grep -q "import('/js/live-stability.js')" legacy-export-bridge.js
+          ! grep -q "import('/js/webview-performance.js')" legacy-export-bridge.js
+          ! grep -q "import('/js/live-stability.js')" legacy-export-bridge.js
           grep -q "import('/js/static-shell-bootstrap.js')" legacy-export-bridge.js
+          ! grep -q 'new MutationObserver' js/ui-enhancements.js
+          ! grep -q 'signalGuardObserver' js/ui-enhancements.js
           grep -q "'/js/full-state-backup-ui.js'" js/static-shell-bootstrap.js
           grep -q "'/demo-help.js'" js/static-shell-bootstrap.js
           ! grep -q '"rewrites"' vercel.json
@@ -87,4 +89,4 @@ jobs:
           grep -q 'persistAnalysis' js/live-app.js
           grep -q 'markLastFrameSaved' js/live-app.js
           grep -q 'ANDROID_NATIVE_FRAME_INTERVAL_MS' js/live-controller.js
-          echo 'Acelynn static shell and unified live modules are controlled; temporary arbitration layers remain isolated until Task 4; deployment remains disabled.'
+          echo 'Acelynn unified live renderer authority is enforced; former arbitration layers are retired from startup; deployment remains disabled.'
