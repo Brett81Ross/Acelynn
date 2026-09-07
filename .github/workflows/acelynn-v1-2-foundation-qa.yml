@@ -37,8 +37,8 @@ jobs:
       - name: Install isolated QA dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Run renderer unification TDD gate
-        run: npx vitest run tests/live-state.test.js tests/live-renderer.test.js tests/live-controller.test.js tests/live-app-wiring.test.js tests/live-analysis-stability.test.js
+      - name: Run renderer unification focused gate
+        run: npx vitest run tests/live-state.test.js tests/live-renderer.test.js tests/live-controller.test.js tests/live-app-wiring.test.js tests/live-analysis-stability.test.js tests/live-integration.test.js
 
       - name: Syntax check v1.2 modules and static shell bootstrap
         run: |
@@ -62,7 +62,10 @@ jobs:
           node --check legacy-export-bridge.js
           node --check demo-help.js
 
-      - name: Run v1.2 foundation spectral insight runtime static-shell backup and stability QA
+      - name: Run complete Acelynn test suite
+        run: npm test
+
+      - name: Run locked v1.2 QA suite
         run: npm run qa:v1.2
 
       - name: Confirm static shell authority and controlled module wiring
@@ -89,4 +92,4 @@ jobs:
           grep -q 'persistAnalysis' js/live-app.js
           grep -q 'markLastFrameSaved' js/live-app.js
           grep -q 'ANDROID_NATIVE_FRAME_INTERVAL_MS' js/live-controller.js
-          echo 'Acelynn unified live renderer authority is enforced; former arbitration layers are retired from startup; deployment remains disabled.'
+          echo 'Acelynn unified live renderer authority is enforced; persistence/recovery regressions are green; deployment remains disabled.'
