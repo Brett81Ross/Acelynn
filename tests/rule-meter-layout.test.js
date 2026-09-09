@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const source = readFileSync(new URL('../js/ui-enhancements.js', import.meta.url), 'utf8');
+const source = readFileSync('js/ui-enhancements.js', 'utf8');
 
 test('Live Rule Meter header reserves stable two-line status height on phones', () => {
   assert.match(source, /\.rule-meter-head\{[^}]*display:grid/);
