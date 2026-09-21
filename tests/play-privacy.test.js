@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
+import path from 'node:path';
 
-const index = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const privacy = fs.readFileSync(new URL('../privacy.html', import.meta.url), 'utf8');
+const index = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
+const privacy = fs.readFileSync(path.resolve(process.cwd(), 'privacy.html'), 'utf8');
 
 describe('Google Play privacy surface', () => {
   it('keeps an in-app privacy policy link', () => {
