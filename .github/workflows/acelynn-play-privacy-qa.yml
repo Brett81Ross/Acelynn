@@ -1,0 +1,28 @@
+name: Acelynn Play Privacy QA
+on:
+  push:
+    branches: [acelynn-play-privacy-rc1]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Full Acelynn regression QA
+        run: npm test
+      - name: Google Play privacy QA
+        run: npm run qa:play
+      - name: Static privacy surface verification
+        run: |
+          test -s privacy.html
+          grep -F 'href="/privacy.html"' index.html
+          grep -F 'does not upload or transmit the microphone audio' privacy.html
+          grep -F 'source audio file is not uploaded' privacy.html
