@@ -8,14 +8,22 @@ import {
 
 const byId = id => document.getElementById(id);
 
-function downloadJson(payload, name) {
+async function downloadJson(payload, name) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const file = new File([blob], name, { type: 'application/json' });
+  if (globalThis.navigator?.share && globalThis.navigator?.canShare?.({ files: [file] })) {
+    await globalThis.navigator.share({ files: [file], title: 'Acelynn Pro backup' });
+    return 'shared';
+  }
   const href = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = href;
   anchor.download = name;
+  document.body.appendChild(anchor);
   anchor.click();
-  setTimeout(() => URL.revokeObjectURL(href), 750);
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 3000);
+  return 'downloaded';
 }
 
 function stamp() {
@@ -43,8 +51,8 @@ async function exportFullBackup() {
   }
   try {
     const backup = await createFullStateBackup();
-    downloadJson(backup, `acelynn-pro-full-backup-v2-${stamp()}.json`);
-    setStatus('Full backup exported');
+    const destination = await downloadJson(backup, `acelynn-pro-full-backup-v2-${stamp()}.json`);
+    setStatus(destination === 'shared' ? 'Choose where to save the full backup' : 'Full backup exported');
     setRecoveryMessage('Full backup created', 'Snapshots, structured analyses, room signatures, projects, songs, versions, references, and required metadata were included.');
   } catch (error) {
     setStatus('Backup failed');
@@ -70,7 +78,7 @@ async function restoreSelectedFile(file, input) {
 
     if (kind === 'legacy-v1') {
       const preRestore = await createFullStateBackup();
-      downloadJson(preRestore, `acelynn-pro-pre-restore-full-v2-${stamp()}.json`);
+      await downloadJson(preRestore, `acelynn-pro-pre-restore-full-v2-${stamp()}.json`);
       const recovery = globalThis.AcelynnRecovery;
       if (!recovery) throw new Error('Legacy recovery engine is unavailable.');
       const incoming = recovery.parseBackupText(raw);
@@ -91,7 +99,7 @@ async function restoreSelectedFile(file, input) {
 
     const payload = await parseFullStateBackupText(raw);
     const preRestore = await createFullStateBackup();
-    downloadJson(preRestore, `acelynn-pro-pre-restore-full-v2-${stamp()}.json`);
+    await downloadJson(preRestore, `acelynn-pro-pre-restore-full-v2-${stamp()}.json`);
     const result = await restoreFullStateBackup(payload);
     const versionCount = Number(result.counts?.versions || 0);
     const referenceCount = Number(result.counts?.references || 0);
