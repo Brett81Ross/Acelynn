@@ -52,6 +52,7 @@ jobs:
           node --check js/full-state-backup.js
           node --check js/full-state-backup-ui.js
           node --check js/static-shell-bootstrap.js
+          node --check js/comparability.js
           node --check legacy-export-bridge.js
           node --check demo-help.js
 
@@ -81,4 +82,5 @@ jobs:
           grep -q 'Saved Analysis' index.html
           grep -q 'Compare to current' index.html
           grep -q 'Delete analysis' index.html
+          grep -q 'comparability.test.js' package.json
           echo 'Acelynn static shell, native WebView frame budget, live stability guard, full-state backup, and help wiring are controlled and deployment remains disabled.'
