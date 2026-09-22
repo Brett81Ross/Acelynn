@@ -6,6 +6,7 @@ import {
   FULL_BACKUP_SCHEMA,
   createFullStateBackup,
   detectBackupKind,
+  parseFullStateBackupText,
   restoreFullStateBackup,
   verifyFullStateBackup
 } from '../js/full-state-backup.js';
