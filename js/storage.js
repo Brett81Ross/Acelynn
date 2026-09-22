@@ -97,32 +97,38 @@ export const meta = Object.freeze({
 });
 
 export async function deleteSongCascade(songId) {
-  return runWriteTransaction([STORES.SONGS, STORES.VERSIONS, STORES.REFERENCES], async stores => {
+  return runWriteTransaction([STORES.SONGS, STORES.VERSIONS, STORES.ANALYSES, STORES.REFERENCES], async stores => {
     const versions = await requestToPromise(stores[STORES.VERSIONS].index('bySong').getAll(songId));
+    const analyses = await requestToPromise(stores[STORES.ANALYSES].index('bySong').getAll(songId));
     const refs = await requestToPromise(stores[STORES.REFERENCES].index('bySong').getAll(songId));
+    for (const analysis of analyses) await requestToPromise(stores[STORES.ANALYSES].delete(analysis.id));
     for (const version of versions) await requestToPromise(stores[STORES.VERSIONS].delete(version.id));
     for (const ref of refs) await requestToPromise(stores[STORES.REFERENCES].delete(ref.id));
     await requestToPromise(stores[STORES.SONGS].delete(songId));
-    return { versionsDeleted: versions.length, referencesDeleted: refs.length };
+    return { versionsDeleted: versions.length, analysesDeleted: analyses.length, referencesDeleted: refs.length };
   }, { operation: 'deleteSongCascade', songId });
 }
 
 export async function deleteProjectCascade(projectId) {
-  return runWriteTransaction([STORES.PROJECTS, STORES.SONGS, STORES.VERSIONS, STORES.REFERENCES], async stores => {
+  return runWriteTransaction([STORES.PROJECTS, STORES.SONGS, STORES.VERSIONS, STORES.ANALYSES, STORES.REFERENCES], async stores => {
     const songs = await requestToPromise(stores[STORES.SONGS].index('byProject').getAll(projectId));
     let versionCount = 0;
+    let analysisCount = 0;
     let referenceCount = 0;
     for (const song of songs) {
       const versions = await requestToPromise(stores[STORES.VERSIONS].index('bySong').getAll(song.id));
+      const analyses = await requestToPromise(stores[STORES.ANALYSES].index('bySong').getAll(song.id));
       const refs = await requestToPromise(stores[STORES.REFERENCES].index('bySong').getAll(song.id));
       versionCount += versions.length;
+      analysisCount += analyses.length;
       referenceCount += refs.length;
+      for (const analysis of analyses) await requestToPromise(stores[STORES.ANALYSES].delete(analysis.id));
       for (const version of versions) await requestToPromise(stores[STORES.VERSIONS].delete(version.id));
       for (const ref of refs) await requestToPromise(stores[STORES.REFERENCES].delete(ref.id));
       await requestToPromise(stores[STORES.SONGS].delete(song.id));
     }
     await requestToPromise(stores[STORES.PROJECTS].delete(projectId));
-    return { songsDeleted: songs.length, versionsDeleted: versionCount, referencesDeleted: referenceCount };
+    return { songsDeleted: songs.length, versionsDeleted: versionCount, analysesDeleted: analysisCount, referencesDeleted: referenceCount };
   }, { operation: 'deleteProjectCascade', projectId });
 }
 
