@@ -118,3 +118,14 @@ describe('Acelynn full-state backup v2', () => {
     })).toBe('legacy-v1');
   });
 });
+
+
+describe('Android recovery UX regression contract', () => {
+  it('keeps full backups JSON-file based for Android save/share and restore', async () => {
+    const backup = await createFullStateBackup();
+    const raw = JSON.stringify(backup);
+    const parsed = await parseFullStateBackupText(raw);
+    expect(parsed.schema).toBe(FULL_BACKUP_SCHEMA);
+    expect(detectBackupKind(parsed)).toBe('full-v2');
+  });
+});
