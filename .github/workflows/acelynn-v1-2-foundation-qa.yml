@@ -76,5 +76,9 @@ jobs:
           ! grep -q '/js/migration.js' index.html
           ! grep -q '/js/insights.js' index.html
           grep -q 'AcelynnV12.persistAnalysis' index.html
-          grep -q 'Save last check' index.html
+          grep -q 'Save analysis' index.html
+          grep -q 'Saved analyses' index.html
+          grep -q 'Saved Analysis' index.html
+          grep -q 'Compare to current' index.html
+          grep -q 'Delete analysis' index.html
           echo 'Acelynn static shell, native WebView frame budget, live stability guard, full-state backup, and help wiring are controlled and deployment remains disabled.'
