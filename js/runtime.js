@@ -3,6 +3,7 @@ import { STORES, openDatabase, requestToPromise } from './db.js';
 import { hashAudioContent, meta, read, runWriteTransaction } from './storage.js';
 import { saveVersionAnalysis } from './core-loop.js';
 import { computeSpectralFeatures } from './spectral.js';
+import { analyzeMonoCompatibility } from './mono-compatibility.js';
 import {
   applyRoomSignature,
   buildRuleFindings,
@@ -170,6 +171,7 @@ export async function saveRoomSignature({
   name = 'Room signature'
 }) {
   const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
+  const monoCompatibility = sourceType === 'file' ? analyzeMonoCompatibility(stereoLeft, stereoRight) : null;
   const normalizedBands = normalizeBandValues(bandValues);
   const id = uuid();
   const createdAt = Date.now();
@@ -221,7 +223,9 @@ export async function persistAnalysis({
   coachingFindings = [],
   referenceDeltas = [],
   roomSignatureId = null,
-  roomConfidence = null
+  roomConfidence = null,
+  stereoLeft = null,
+  stereoRight = null
 }) {
   const signalValidity = evaluateSignalValidity({ bandValues, fftMagnitudes, rmsDb: levels?.rmsDbfs });
   if (!signalValidity.valid) {
@@ -275,6 +279,7 @@ export async function persistAnalysis({
       perspective: perspective || null,
       sourceFileHash,
       spectralFeatures,
+      monoCompatibility,
       referenceDeltas,
       roomSignatureId,
       roomConfidence
@@ -297,7 +302,8 @@ const runtime = Object.freeze({
   estimateRoomConfidence,
   diffSnapshots,
   buildRuleFindings,
-  normalizeBandValues
+  normalizeBandValues,
+  analyzeMonoCompatibility
 });
 
 globalThis.AcelynnV12 = runtime;
