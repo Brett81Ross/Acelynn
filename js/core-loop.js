@@ -1,7 +1,7 @@
 import { STORES, requestToPromise } from './db.js';
 import { read, runWriteTransaction } from './storage.js';
 import { buildAnalysisRecord, buildVersionRecord } from './analysis-model.js';
-import { compareAnalyses, comparisonSummary } from './comparability.js';
+import { buildComparisonGuidance, compareAnalyses, comparisonSummary } from './comparability.js';
 
 const USAGE_KEY = 'prePlayUsageCounters';
 
@@ -53,7 +53,7 @@ export async function compareVersions(songId,leftVersionId,rightVersionId) {
   const diff=compareAnalyses(left,right),u=await usage();
   u.comparisonsBySong[songId]=(u.comparisonsBySong[songId]||0)+1;
   if(Object.values(diff.bands).some(b=>b.classification!=='comparable'))u.comparisonsWithSuppression=(u.comparisonsWithSuppression||0)+1;
-  await writeUsage(u); return {diff,summary:comparisonSummary(diff),left,right};
+  await writeUsage(u); return {diff,summary:comparisonSummary(diff),guidance:buildComparisonGuidance(diff),left,right};
 }
 export async function listSongs(projectId = null) {
   const songs = projectId ? await read.byIndex(STORES.SONGS, 'byProject', projectId) : await read.all(STORES.SONGS);
