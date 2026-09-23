@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 
-const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+const html=fs.readFileSync('index.html','utf8');
 
 describe('pre-Play product language contract',()=>{
  it('removes Mix Health from user-facing shell',()=>{ expect(html).not.toMatch(/Mix Health/i); expect(html).toMatch(/Balance Score/i); });
