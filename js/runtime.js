@@ -171,7 +171,6 @@ export async function saveRoomSignature({
   name = 'Room signature'
 }) {
   const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
-  const monoCompatibility = sourceType === 'file' ? analyzeMonoCompatibility(stereoLeft, stereoRight) : null;
   const normalizedBands = normalizeBandValues(bandValues);
   const id = uuid();
   const createdAt = Date.now();
@@ -245,6 +244,7 @@ export async function persistAnalysis({
   }
 
   const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
+  const monoCompatibility = sourceType === 'file' ? analyzeMonoCompatibility(stereoLeft, stereoRight) : null;
   const cleanBands = Array.isArray(bandValues) ? bandValues.slice(0,5).map(finiteOrNull) : [];
   const bandMap = Object.fromEntries(['sub','bass','mids','presence','air'].map((key,index)=>[key,cleanBands[index] ?? null]));
   const cleanFindings = Array.isArray(coachingFindings) ? coachingFindings.slice(0,10).map(item => ({
