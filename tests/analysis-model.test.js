@@ -21,6 +21,10 @@ describe('pre-Play song/version/analysis contract', () => {
       levels:{peakDbfs:-4,rmsDbfs:-16,crestDb:12},coachingText:'Check the mids.',userNote:'After EQ'
     });
   });
+  it('accepts analyses where level telemetry is unavailable', () => {
+    const a=buildAnalysisRecord({songId:'s',versionId:'v',captureMode:'microphone',bands:{},levels:null});
+    expect(a.levels).toEqual({peakDbfs:null,rmsDbfs:null,crestDb:null});
+  });
   it('keeps microphone source format null', () => {
     const a=buildAnalysisRecord({songId:'s',versionId:'v',captureMode:'microphone',sourceMetadata:{name:'fake.wav'},bands:{}});
     expect(a.sourceFormat).toBeNull();
