@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compareAnalyses } from '../js/comparability.js';
 
 const base = {
-  captureMode: 'file', sourceFormat: 'wav', sampleRate: 48000, bitDepth: 24,
+  captureMode: 'file', bandUnit: 'relative-db', sourceFormat: 'wav', sampleRate: 48000, bitDepth: 24,
   bitrate: null, channelCount: 2, analysisEngineVersion: 'core-1', profileUsed: 'Balanced mix',
   bands: { sub: -30, bass: -24, mids: -20, presence: -25, air: -32 },
   balance: { score: 78 }
@@ -39,6 +39,15 @@ describe('per-band comparability contract', () => {
     expect(d.bands.mids.classification).toBe('comparable');
     expect(d.balanceDelta).toBeNull();
     expect(d.profileMismatch).toBe(true);
+  });
+
+  it('refuses fake dB precision for legacy byte-energy bands', () => {
+    const legacy = { ...base, bandUnit: 'legacy-byte-energy' };
+    const legacy2 = { ...changed, bandUnit: 'legacy-byte-energy' };
+    const d = compareAnalyses(legacy, legacy2);
+    expect(d.bands.sub.classification).toBe('direction-only');
+    expect(d.bands.sub.delta).toBeNull();
+    expect(d.bands.sub.direction).toBe('↑');
   });
 
   it('warns across engine versions while retaining tagged band deltas', () => {
