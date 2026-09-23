@@ -21,6 +21,7 @@ async function render(){
    const coaching=a?.coachingFindings?.[0]; row.innerHTML='<small>'+esc(v.label)+'</small><strong>Balance '+fmt(a?.balance?.score,0)+'/100 · '+esc(a?.balance?.leadingRegion||'No leading region')+'</strong><div class="v12-copy">'+esc(v.note||a?.userNote||coaching?.title||'No note yet')+'</div>';
    list.appendChild(row);
   }
+  const rename=document.createElement('div');rename.className='snapshot-detail-actions';rename.innerHTML='<button type="button" style="grid-column:1/-1">Rename song</button>';rename.firstChild.onclick=async()=>{const title=globalThis.prompt?.('Song name:',song.name||'');if(!title)return;await AcelynnCoreLoop.renameSong(song.id,title);await render();};card.appendChild(rename);
   if(history.length>=2){
    const actions=document.createElement('div');actions.className='snapshot-detail-actions';actions.innerHTML='<button type="button">Compare latest two</button><button type="button">Add note to latest</button>';
    actions.children[0].onclick=async()=>{const l=history.at(-2),r=history.at(-1),res=await AcelynnCoreLoop.compareVersions(song.id,l.version.id,r.version.id);const parts=Object.entries(res.diff.bands).map(([k,x])=>x.classification==='comparable'?k+' '+(x.delta>=0?'+':'')+fmt(x.delta)+' dB':k+' '+(x.direction||'—')+' ('+x.classification+')');byId('coachTitle').textContent='Version comparison';byId('coachText').textContent=res.summary+' '+parts.join(' · ');};
