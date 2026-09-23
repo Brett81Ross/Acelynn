@@ -34,7 +34,7 @@ export function buildVersionRecord({ songId, label, note = '', parentVersionId =
 export function buildAnalysisRecord({
   songId, versionId, timestamp = Date.now(), captureMode, sourceMetadata = {},
   sampleRate = null, bitDepth = null, bitrate = null, channelCount = null,
-  profileUsed = null, bands = {}, balance = {}, levels = {}, coachingText = '',
+  profileUsed = null, bands = {}, bandUnit = 'legacy-byte-energy', balance = {}, levels = {}, coachingText = '',
   coachingFindings = [], userNote = '', perspective = null, sourceFileHash = null,
   analysisEngineVersion = ANALYSIS_ENGINE_VERSION
 }) {
@@ -46,7 +46,7 @@ export function buildAnalysisRecord({
     sourceFormat: captureMode === 'file' ? inferSourceFormat(sourceMetadata) : null,
     sampleRate: finite(sampleRate), bitDepth: finite(bitDepth), bitrate: finite(bitrate),
     channelCount: finite(channelCount), analysisEngineVersion, profileUsed: text(profileUsed, 80),
-    bands: Object.freeze(cleanBands),
+    bands: Object.freeze(cleanBands), bandUnit: text(bandUnit, 40),
     balance: Object.freeze({
       score: finite(balance.score),
       contributions: Object.freeze(Object.fromEntries(BAND_KEYS.map(key => [key, finite(balance.contributions?.[key])]))),
