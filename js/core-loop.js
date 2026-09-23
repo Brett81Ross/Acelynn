@@ -50,11 +50,16 @@ export async function compareVersions(songId,leftVersionId,rightVersionId) {
   if(Object.values(diff.bands).some(b=>b.classification!=='comparable'))u.comparisonsWithSuppression=(u.comparisonsWithSuppression||0)+1;
   await writeUsage(u); return {diff,summary:comparisonSummary(diff),left,right};
 }
+export async function listSongs(projectId = null) {
+  const songs = projectId ? await read.byIndex(STORES.SONGS, 'byProject', projectId) : await read.all(STORES.SONGS);
+  return songs.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+}
+export async function getAnalysis(analysisId) { return read.one(STORES.ANALYSES, analysisId); }
 export async function updateAnalysisNote(analysisId,note) {
   const record=await read.one(STORES.ANALYSES,analysisId); if(!record)throw new Error('Analysis not found');
   const next={...record,userNote:String(note||'').slice(0,1200)};
   await runWriteTransaction([STORES.ANALYSES],s=>requestToPromise(s[STORES.ANALYSES].put(next)),{operation:'updateAnalysisNote',analysisId}); return next;
 }
 export async function getLocalUsageCounters(){ return usage(); }
-export const coreLoopApi=Object.freeze({createSong,saveVersionAnalysis,listSongHistory,compareVersions,updateAnalysisNote,getLocalUsageCounters});
+export const coreLoopApi=Object.freeze({createSong,saveVersionAnalysis,listSongHistory,compareVersions,updateAnalysisNote,getLocalUsageCounters,listSongs,getAnalysis});
 globalThis.AcelynnCoreLoop=coreLoopApi;
