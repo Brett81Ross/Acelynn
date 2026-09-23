@@ -1,5 +1,5 @@
 export const DB_NAME = 'AcelynnProStudioDB';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 
 export const STORES = Object.freeze({
   META: 'meta',
@@ -63,7 +63,8 @@ function createOpenPromise(factory) {
         { name: 'bySong', keyPath: 'songId' },
         { name: 'byTimestamp', keyPath: 'timestamp' },
         { name: 'byCaptureMode', keyPath: 'captureMode' },
-        { name: 'byEngineVersion', keyPath: 'analysisEngineVersion' }
+        { name: 'byEngineVersion', keyPath: 'analysisEngineVersion' },
+        { name: 'bySourceFileHash', keyPath: 'sourceFileHash' }
       ]);
       ensureStore(db, STORES.REFERENCES, { keyPath: 'id' }, [
         { name: 'byScope', keyPath: 'scope' },
