@@ -36,7 +36,7 @@ export function buildAnalysisRecord({
   sampleRate = null, bitDepth = null, bitrate = null, channelCount = null,
   profileUsed = null, bands = {}, bandUnit = 'legacy-byte-energy', balance = {}, levels = {}, coachingText = '',
   coachingFindings = [], userNote = '', perspective = null, sourceFileHash = null,
-  analysisEngineVersion = ANALYSIS_ENGINE_VERSION, spectralFeatures = null, referenceDeltas = [], roomSignatureId = null, roomConfidence = null
+  analysisEngineVersion = ANALYSIS_ENGINE_VERSION, spectralFeatures = null, monoCompatibility = null, referenceDeltas = [], roomSignatureId = null, roomConfidence = null
 }) {
   if (!songId || !versionId) throw new TypeError('songId and versionId are required');
   if (!['file','microphone'].includes(captureMode)) throw new TypeError('captureMode must be file or microphone');
@@ -65,6 +65,7 @@ export function buildAnalysisRecord({
     userNote: text(userNote, 1200) || '', perspective: text(perspective, 40),
     sourceFileHash: sourceFileHash || null,
     spectralFeatures: spectralFeatures || null,
+    monoCompatibility: monoCompatibility ? Object.freeze({ available:Boolean(monoCompatibility.available), correlation:finite(monoCompatibility.correlation), sideToMonoDb:finite(monoCompatibility.sideToMonoDb), risk:text(monoCompatibility.risk,24), message:text(monoCompatibility.message,360) }) : null,
     referenceDeltas: Object.freeze((Array.isArray(referenceDeltas) ? referenceDeltas : []).slice(0,10).map(x => Object.freeze({
       name: text(x?.name,40) || '', delta: finite(x?.delta), direction: text(x?.direction,16)
     }))),
