@@ -55,6 +55,7 @@ jobs:
           node --check js/comparability.js
           node --check js/analysis-model.js
           node --check js/core-loop.js
+          node --check js/song-history-ui.js
           node --check legacy-export-bridge.js
           node --check demo-help.js
 
@@ -70,6 +71,7 @@ jobs:
           grep -q "import('/js/live-stability.js')" legacy-export-bridge.js
           grep -q "import('/js/static-shell-bootstrap.js')" legacy-export-bridge.js
           grep -q "'/js/full-state-backup-ui.js'" js/static-shell-bootstrap.js
+          grep -q "'/js/song-history-ui.js'" js/static-shell-bootstrap.js
           grep -q "'/demo-help.js'" js/static-shell-bootstrap.js
           ! grep -q '"rewrites"' vercel.json
           test ! -e api/demo-shell.js
@@ -86,5 +88,8 @@ jobs:
           grep -q 'Delete analysis' index.html
           grep -q 'comparability.test.js' package.json
           grep -q 'core-loop.test.js' package.json
+          grep -q 'song-history-ui.test.js' package.json
+          grep -q 'Back Up Acelynn' js/full-state-backup-ui.js
+          grep -q 'Restore Acelynn Backup' js/full-state-backup-ui.js
           ! grep -qi 'Mix Health' index.html
           echo 'Acelynn static shell, native WebView frame budget, live stability guard, full-state backup, and help wiring are controlled and deployment remains disabled.'
