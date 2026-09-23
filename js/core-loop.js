@@ -35,6 +35,11 @@ export async function saveVersionAnalysis({ songId, label, versionNote='', analy
   if(prior.length===1&&!u.v1ToV2MsBySong[songId])u.v1ToV2MsBySong[songId]=Math.max(0,version.createdAt-prior[0].createdAt);
   await writeUsage(u); return {version,analysis:record};
 }
+export async function renameSong(songId, title) {
+  const song=await read.one(STORES.SONGS,songId); if(!song)throw new Error('Song not found');
+  const next={...song,name:String(title||song.name||'Untitled song').slice(0,160),updatedAt:now()};
+  await runWriteTransaction([STORES.SONGS],s=>requestToPromise(s[STORES.SONGS].put(next)),{operation:'renameSong',songId}); return next;
+}
 export async function listSongHistory(songId) {
   const versions=(await read.byIndex(STORES.VERSIONS,'bySong',songId)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   const analyses=await read.byIndex(STORES.ANALYSES,'bySong',songId);
@@ -61,5 +66,5 @@ export async function updateAnalysisNote(analysisId,note) {
   await runWriteTransaction([STORES.ANALYSES],s=>requestToPromise(s[STORES.ANALYSES].put(next)),{operation:'updateAnalysisNote',analysisId}); return next;
 }
 export async function getLocalUsageCounters(){ return usage(); }
-export const coreLoopApi=Object.freeze({createSong,saveVersionAnalysis,listSongHistory,compareVersions,updateAnalysisNote,getLocalUsageCounters,listSongs,getAnalysis});
+export const coreLoopApi=Object.freeze({createSong,saveVersionAnalysis,listSongHistory,compareVersions,updateAnalysisNote,getLocalUsageCounters,listSongs,getAnalysis,renameSong});
 globalThis.AcelynnCoreLoop=coreLoopApi;
