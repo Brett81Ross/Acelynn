@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { STORES, openDatabase, resetDatabaseConnectionForTests } from '../js/db.js';
 import { clear, put, read } from '../js/storage.js';
-import { createSong, getLocalUsageCounters, listSongHistory, saveVersionAnalysis, compareVersions, updateAnalysisNote } from '../js/core-loop.js';
+import { createSong, getLocalUsageCounters, listSongHistory, saveVersionAnalysis, compareVersions, updateAnalysisNote, renameSong } from '../js/core-loop.js';
 
 beforeEach(async()=>{ resetDatabaseConnectionForTests(); await openDatabase(); for(const s of Object.values(STORES))await clear(s); localStorage.clear();
  await put(STORES.PROJECTS,{id:'p1',name:'Local',createdAt:1,updatedAt:1,metadata:{}});
@@ -17,6 +17,7 @@ describe('pre-Play core loop',()=>{
   const history=await listSongHistory(song.id);
   expect(history).toHaveLength(2); expect(history[0].version.label).toBe('v1'); expect(history[1].analysis.userNote).toBe('Pulled 300 Hz down.');
   expect(history[1].version.parentVersionId).toBe(one.version.id);
+  const renamed=await renameSong(song.id,'Final Chorus'); expect(renamed.name).toBe('Final Chorus');
  });
  it('runs guarded comparison and records only local counters',async()=>{
   const song=await createSong({projectId:'p1',title:'Compare Me'});
