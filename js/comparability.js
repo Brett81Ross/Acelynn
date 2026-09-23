@@ -22,6 +22,12 @@ function bitrateClass(value) {
 export function classifyBandComparability(left, right, band) {
   const reasons = [];
   if (!left || !right) return { classification: 'suppressed', reasons: ['analysis metadata is missing'] };
+  if (left.bandUnit !== 'relative-db' || right.bandUnit !== 'relative-db') {
+    const a = finite(left?.bands?.[band]);
+    const b = finite(right?.bands?.[band]);
+    if (a === null || b === null) return { classification: 'suppressed', reasons: ['band measurement is missing'] };
+    return { classification: 'direction-only', reasons: ['stored band unit does not support an honest dB magnitude'] };
+  }
 
   if (left.captureMode !== 'file' || right.captureMode !== 'file') {
     if (left.captureMode === 'microphone' && right.captureMode === 'microphone') {
