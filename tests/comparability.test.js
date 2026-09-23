@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareAnalyses } from '../js/comparability.js';
+import { buildComparisonGuidance, compareAnalyses } from '../js/comparability.js';
 
 const base = {
   captureMode: 'file', bandUnit: 'relative-db', sourceFormat: 'wav', sampleRate: 48000, bitDepth: 24,
@@ -56,5 +56,12 @@ describe('per-band comparability contract', () => {
     expect(d.engineMismatch).toBe(true);
     expect(d.bands.sub.classification).toBe('comparable');
     expect(d.bands.sub.reasons.join(' ')).toMatch(/engine version changed/i);
+  });
+  it('uses listen-for language and respects suppression', () => {
+    const mp3={...changed,sourceFormat:'mp3',bitrate:128000};
+    const g=buildComparisonGuidance(compareAnalyses(base,mp3));
+    expect(g.find(x=>x.band==='presence').text).toMatch(/Listen for|No meaningful/);
+    expect(g.find(x=>x.band==='air').text).toMatch(/Not reliable/);
+    expect(g.map(x=>x.text).join(' ')).not.toMatch(/your mix is (now )?better/i);
   });
 });
