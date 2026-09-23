@@ -120,8 +120,6 @@ function validatePayloadShape(payload) {
   const backupDbVersion = Number(payload.database?.version);
   const requiredStores = STORE_NAMES.filter(name => !(name === STORES.ANALYSES && backupDbVersion === 1));
   for (const storeName of requiredStores) validateStoreRecords(storeName, stores[storeName]);
-  if (backupDbVersion === 1 && !Array.isArray(stores[STORES.ANALYSES])) stores[STORES.ANALYSES] = [];
-  for (const storeName of STORE_NAMES) if (!Array.isArray(stores[storeName])) stores[storeName] = [];
   validateRelationships(stores);
   const raw = payload.legacy?.raw ?? null;
   normalizeLegacyRaw(raw);
@@ -178,7 +176,7 @@ export async function verifyFullStateBackup(payload) {
   const expectedCounts = payload.database?.counts || {};
   for (const storeName of STORE_NAMES) {
     const expected = expectedCounts[storeName] ?? (storeName === STORES.ANALYSES && Number(payload.database?.version) === 1 ? 0 : undefined);
-    if (Number(expected) !== payload.database.stores[storeName].length) {
+    if (Number(expected) !== (payload.database.stores[storeName]?.length ?? 0)) {
       throw backupError(`Full backup count mismatch for ${storeName}.`, 'COUNT_MISMATCH');
     }
   }
@@ -196,14 +194,15 @@ export async function parseFullStateBackupText(raw) {
 }
 
 async function replaceStructuredState(storesPayload) {
+  const normalizedStores = Object.fromEntries(STORE_NAMES.map(name => [name, Array.isArray(storesPayload[name]) ? storesPayload[name] : []]));
   return runWriteTransaction(STORE_NAMES, async stores => {
     for (const storeName of STORE_NAMES) await requestToPromise(stores[storeName].clear());
     for (const storeName of STORE_NAMES) {
-      for (const record of storesPayload[storeName]) await requestToPromise(stores[storeName].put(record));
+      for (const record of normalizedStores[storeName]) await requestToPromise(stores[storeName].put(record));
     }
     for (const storeName of STORE_NAMES) {
       const actual = await requestToPromise(stores[storeName].getAll());
-      const expectedText = stableStringify(sortedRecords(storeName, storesPayload[storeName]));
+      const expectedText = stableStringify(sortedRecords(storeName, normalizedStores[storeName]));
       const actualText = stableStringify(sortedRecords(storeName, actual));
       if (actualText !== expectedText) throw backupError(`Restore verification failed for ${storeName}.`, 'RESTORE_VERIFY_FAILED');
     }
