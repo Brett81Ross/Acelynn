@@ -67,8 +67,9 @@ describe('Acelynn full-state backup v2', () => {
     expect(backup.database.counts.projects).toBe(1);
     expect(backup.database.counts.songs).toBe(1);
     expect(backup.database.counts.versions).toBe(1);
+    expect(backup.database.counts.analyses).toBe(1);
     expect(backup.database.counts.references).toBe(1);
-    expect(backup.database.stores.versions[0].id).toBe(analysis.record.id);
+    expect(backup.database.stores.analyses[0].id).toBe(analysis.record.id);
     expect(backup.database.stores.references[0].id).toBe(signature.id);
     expect(backup.legacy.raw).toContain('Balanced mix');
     expect(JSON.stringify(backup)).not.toContain('audioBytes');
@@ -82,10 +83,12 @@ describe('Acelynn full-state backup v2', () => {
     const result = await restoreFullStateBackup(backup);
     expect(result.restored).toBe(true);
     expect(result.counts.versions).toBe(1);
+    expect(result.counts.analyses).toBe(1);
     expect(JSON.parse(localStorage.getItem('acelynn-snapshots'))).toHaveLength(1);
     expect((await read.all(STORES.PROJECTS)).map(record => record.id)).toEqual(backup.database.stores.projects.map(record => record.id));
     expect((await read.all(STORES.SONGS)).map(record => record.id)).toEqual(backup.database.stores.songs.map(record => record.id));
     expect((await read.all(STORES.VERSIONS)).map(record => record.id)).toEqual(backup.database.stores.versions.map(record => record.id));
+    expect((await read.all(STORES.ANALYSES)).map(record => record.id)).toEqual(backup.database.stores.analyses.map(record => record.id));
     expect((await read.all(STORES.REFERENCES)).map(record => record.id)).toEqual(backup.database.stores.references.map(record => record.id));
     expect((await getActiveRoomSignature())?.id).toBe(signature.id);
   });
