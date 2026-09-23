@@ -2,7 +2,7 @@ export const ANALYSIS_ENGINE_VERSION = 'acelynn-core-1';
 
 export const BAND_KEYS = Object.freeze(['sub', 'bass', 'mids', 'presence', 'air']);
 
-function finite(value) {
+export function finite(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
@@ -107,4 +107,24 @@ export function comparisonSummary(diff) {
   const suppressed = BAND_KEYS.filter(key => diff.bands[key].classification !== 'comparable');
   if (!suppressed.length) return 'All 5 bands are reliably comparable.';
   return `${diff.comparableBandCount} of 5 bands reliably comparable — ${suppressed.map(key => key[0].toUpperCase() + key.slice(1)).join(' and ')} limited by capture conditions.`;
+}
+
+
+export function buildComparisonGuidance(diff) {
+  if (!diff?.bands) return [];
+  const copy = {
+    sub: { up: 'Listen for added depth; check whether the lowest notes become loose on smaller systems.', down: 'Listen for a leaner foundation; check whether the mix still carries enough depth.' },
+    bass: { up: 'Listen for more weight; check whether kick and bass begin masking each other.', down: 'Listen for extra separation; check whether the mix loses too much body.' },
+    mids: { up: 'Listen for more body and forward detail; check whether the center becomes crowded.', down: 'Listen for more space; check whether important instruments start feeling hollow or distant.' },
+    presence: { up: 'Listen for clearer vocals and attack; check whether the mix becomes harsh on earbuds.', down: 'Listen for a smoother upper midrange; check whether vocals or attack lose definition.' },
+    air: { up: 'Listen for more openness; check whether hiss, cymbals, or reverb become distracting.', down: 'Listen for a softer top end; check whether the mix loses useful openness.' }
+  };
+  return BAND_KEYS.map(key => {
+    const band=diff.bands[key];
+    if (band.classification === 'suppressed') return { band:key, classification:band.classification, text:`Not reliable for this comparison: ${band.reasons[0] || 'capture conditions differ'}.` };
+    if (!band.direction || band.direction === '≈') return { band:key, classification:band.classification, text:'No meaningful directional change detected in this region.' };
+    const direction=band.direction === '↑' ? 'up' : 'down';
+    const magnitude=band.classification === 'comparable' && finite(band.delta)!==null ? `${Math.abs(band.delta).toFixed(1)} dB ` : '';
+    return { band:key, classification:band.classification, text:`${key[0].toUpperCase()+key.slice(1)} moved ${magnitude}${direction}. ${copy[key][direction]}` };
+  });
 }
