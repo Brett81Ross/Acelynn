@@ -261,6 +261,21 @@ async function clearRoomSignature() {
   renderRoomStatus(null);
 }
 
+
+const beginnerBandCopy={
+  sub:'Sub is the deepest low end: rumble, sub-bass, and the bottom of a kick. Too much can eat headroom; too little can make a mix feel small.',
+  bass:'Bass carries weight and punch: bass guitar or synth fundamentals and much of the kick body. Listen for masking between low-end instruments.',
+  mids:'Mids carry much of the musical body and identity: guitars, keys, snare body, and vocal fundamentals. Crowding here can make a mix feel boxed-in.',
+  presence:'Presence affects intelligibility and attack, especially vocals, guitars, snare, and pick detail. Extra energy can add clarity but may become harsh.',
+  air:'Air is the highest region: cymbal sheen, breath, hiss, and openness. Codec differences can affect this region, so Acelynn may suppress unreliable comparisons.'
+};
+function installBeginnerExplainers(){
+ document.querySelectorAll('[data-band-help]').forEach(button=>button.addEventListener('click',()=>{
+   const box=byId('bandHelpText'),key=button.dataset.bandHelp;if(!box)return;box.textContent=beginnerBandCopy[key]||'';box.classList.remove('hidden');
+ }));
+ byId('balanceHelpButton')?.addEventListener('click',()=>byId('balanceHelpText')?.classList.toggle('hidden'));
+}
+
 async function initializeEnhancements() {
   if (!byId('captureButton')) return;
   injectStyles();
@@ -268,6 +283,7 @@ async function initializeEnhancements() {
   createRuleMeter();
   createDiffCard();
   installSignalValidityGuard();
+  installBeginnerExplainers();
 
   byId('roomSignatureButton')?.addEventListener('click', captureRoomSignature);
   byId('roomSignatureClearButton')?.addEventListener('click', clearRoomSignature);
