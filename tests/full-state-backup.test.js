@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { STORES, openDatabase, resetDatabaseConnectionForTests } from '../js/db.js';
-import { clear, read } from '../js/storage.js';
+import { clear, hashBytesSha256, read } from '../js/storage.js';
 import { initializeRuntime, persistAnalysis, saveRoomSignature, getActiveRoomSignature } from '../js/runtime.js';
 import {
   FULL_BACKUP_SCHEMA,
@@ -128,5 +128,30 @@ describe('Android recovery UX regression contract', () => {
     const parsed = await parseFullStateBackupText(raw);
     expect(parsed.schema).toBe(FULL_BACKUP_SCHEMA);
     expect(detectBackupKind(parsed)).toBe('full-v2');
+  });
+});
+
+function canonicalForLegacy(value) {
+  if (value === null || typeof value !== 'object') return (typeof value === 'number' && !Number.isFinite(value)) ? null : value;
+  if (Array.isArray(value)) return value.map(canonicalForLegacy);
+  const out={}; for(const key of Object.keys(value).sort()) if(value[key]!==undefined) out[key]=canonicalForLegacy(value[key]); return out;
+}
+async function resignLegacyFixture(payload) {
+  const { checksum, ...core }=payload;
+  const bytes=new TextEncoder().encode(JSON.stringify(canonicalForLegacy(core)));
+  return {...core,checksum:{algorithm:'SHA-256',scope:'payload-without-checksum',value:await hashBytesSha256(bytes)}};
+}
+describe('database v1 backup compatibility',()=>{
+  it('verifies and restores the pre-analysis-store backup shape without invalidating its checksum',async()=>{
+    const current=await createFullStateBackup();
+    const legacy=structuredClone(current);
+    legacy.database.version=1;
+    delete legacy.database.stores.analyses;
+    delete legacy.database.counts.analyses;
+    const signed=await resignLegacyFixture(legacy);
+    await expect(verifyFullStateBackup(signed)).resolves.toMatchObject({ok:true});
+    const result=await restoreFullStateBackup(signed);
+    expect(result.restored).toBe(true);
+    expect(await read.all(STORES.ANALYSES)).toEqual([]);
   });
 });
