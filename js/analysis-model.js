@@ -41,6 +41,7 @@ export function buildAnalysisRecord({
   if (!songId || !versionId) throw new TypeError('songId and versionId are required');
   if (!['file','microphone'].includes(captureMode)) throw new TypeError('captureMode must be file or microphone');
   const cleanBands = Object.fromEntries(BAND_KEYS.map(key => [key, finite(bands[key])]));
+  const safeLevels = levels || {};
   return Object.freeze({
     id: id('analysis'), songId, versionId, timestamp, captureMode,
     sourceFormat: captureMode === 'file' ? inferSourceFormat(sourceMetadata) : null,
@@ -54,8 +55,8 @@ export function buildAnalysisRecord({
       deviations: Object.freeze(Object.fromEntries(BAND_KEYS.map(key => [key, finite(balance.deviations?.[key])])))
     }),
     levels: Object.freeze({
-      peakDbfs: finite(levels.peakDbfs), rmsDbfs: finite(levels.rmsDbfs),
-      crestDb: finite(levels.crestDb ?? (finite(levels.peakDbfs) !== null && finite(levels.rmsDbfs) !== null ? finite(levels.peakDbfs)-finite(levels.rmsDbfs) : null))
+      peakDbfs: finite(safeLevels.peakDbfs), rmsDbfs: finite(safeLevels.rmsDbfs),
+      crestDb: finite(safeLevels.crestDb ?? (finite(safeLevels.peakDbfs) !== null && finite(safeLevels.rmsDbfs) !== null ? finite(safeLevels.peakDbfs)-finite(safeLevels.rmsDbfs) : null))
     }),
     coachingText: text(coachingText, 2400) || '',
     coachingFindings: Object.freeze((Array.isArray(coachingFindings) ? coachingFindings : []).slice(0,10).map(x => Object.freeze({
