@@ -52,15 +52,15 @@ async function exportFullBackup() {
   try {
     const backup = await createFullStateBackup();
     const destination = await downloadJson(backup, `acelynn-pro-full-backup-v2-${stamp()}.json`);
-    setStatus(destination === 'shared' ? 'Choose where to save the full backup' : 'Full backup exported');
-    setRecoveryMessage('Full backup created', 'Snapshots, structured analyses, room signatures, projects, songs, versions, references, and required metadata were included.');
+    setStatus(destination === 'shared' ? 'Choose where to save the full backup' : 'Backup saved successfully');
+    setRecoveryMessage('Backup saved successfully', 'You do not need to open this file. Keep it somewhere safe in case you need to restore Acelynn. Saved analyses, song versions, notes, room signatures, and required settings are included.');
   } catch (error) {
     setStatus('Backup failed');
     setRecoveryMessage('Full backup could not be created', error?.userMessage || error?.message || 'Acelynn could not export the complete local state.');
   } finally {
     if (button) {
       button.disabled = false;
-      button.textContent = previousText || 'Export session report';
+      button.textContent = previousText || 'Back Up Acelynn';
     }
   }
 }
@@ -103,7 +103,7 @@ async function restoreSelectedFile(file, input) {
     const result = await restoreFullStateBackup(payload);
     const versionCount = Number(result.counts?.versions || 0);
     const referenceCount = Number(result.counts?.references || 0);
-    setStatus(`Full restore verified · ${versionCount} analyses · ${referenceCount} references`);
+    setStatus(`Restore verified · ${versionCount} versions · ${referenceCount} references`);
     setRecoveryMessage('Full backup restored and verified', 'Acelynn restored the complete local database plus the legacy snapshot state. Reloading now to reopen the restored workspace.');
     setTimeout(() => globalThis.location?.reload?.(), 250);
   } catch (error) {
@@ -133,9 +133,9 @@ function installFullStateBackupUi() {
   }, true);
 
   const restoreButton = byId('restoreButton');
-  if (restoreButton) restoreButton.textContent = 'Restore full backup';
+  if (restoreButton) restoreButton.textContent = 'Restore Acelynn Backup';
   exportButton.disabled = false;
-  exportButton.textContent = 'Export full backup';
+  exportButton.textContent = 'Back Up Acelynn';
 }
 
 if (typeof document !== 'undefined') {
