@@ -174,7 +174,7 @@ function renderDiff(current, previous) {
     rows.innerHTML = '';
     return;
   }
-  score.textContent = diff.scoreDelta === null ? 'A/B ready' : `${diff.scoreDelta >= 0 ? '+' : ''}${diff.scoreDelta} health`;
+  score.textContent = diff.scoreDelta === null ? 'A/B ready' : `${diff.scoreDelta >= 0 ? '+' : ''}${diff.scoreDelta} balance`;
   summary.textContent = diff.summary;
   rows.innerHTML = diff.largestChanges.map(change => `
     <div class="diff-row"><strong>${change.name} ${change.delta > 0 ? '↑' : change.delta < 0 ? '↓' : '→'} ${Math.abs(change.delta).toFixed(1)}</strong><span>${change.guidance}</span></div>`).join('');
@@ -190,7 +190,7 @@ function renderRules(frame, stopped = false) {
   const score = Number(frame.result.weightedScore ?? frame.result.score ?? 0);
   const findings = AcelynnV12.buildRuleFindings({
     normalized: frame.result.normalized,
-    target: frame.result.p?.target,
+    target: globalThis.AcelynnBalanceTarget || frame.result.p?.target,
     perspective: frame.perspective,
     peakDb: frame.peakDb,
     rmsDb: frame.rmsDb,
@@ -205,7 +205,7 @@ function renderRules(frame, stopped = false) {
   if (label) label.textContent = `${stopped ? 'Last reading · ' : ''}${Math.round(score)}/100`;
   if (list) list.innerHTML = findings.map(item => `<div class="rule-item"><b>${item.title}</b> ${item.text}</div>`).join('');
   const healthMetric = document.querySelector('.scorebox small');
-  if (healthMetric) healthMetric.textContent = frame.perspective === 'room' ? 'Room health' : frame.perspective === 'detail' ? 'Detail health' : 'Mix health';
+  if (healthMetric) healthMetric.textContent = frame.perspective === 'room' ? 'Room balance' : frame.perspective === 'detail' ? 'Detail balance' : 'Balance score';
 }
 
 function renderRoomStatus(signature) {
