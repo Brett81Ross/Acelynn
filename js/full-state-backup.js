@@ -91,6 +91,7 @@ function validateRelationships(stores) {
   for (const analysis of analyses) {
     if (!songs.has(analysis.songId)) throw backupError(`Analysis ${analysis.id} references a missing song.`, 'RELATIONSHIP_INVALID');
     if (!versionIds.has(analysis.versionId)) throw backupError(`Analysis ${analysis.id} references a missing version.`, 'RELATIONSHIP_INVALID');
+    if (analysis.roomSignatureId && !referenceIds.has(analysis.roomSignatureId)) throw backupError(`Analysis ${analysis.id} references a missing room signature.`, 'RELATIONSHIP_INVALID');
   }
   for (const reference of stores[STORES.REFERENCES]) {
     if (reference.songId && !songs.has(reference.songId)) throw backupError(`Reference ${reference.id} references a missing song.`, 'RELATIONSHIP_INVALID');
