@@ -78,6 +78,7 @@ function validateRelationships(stores) {
   const songs = new Map(stores[STORES.SONGS].map(record => [record.id, record]));
   const versionIds = new Set(stores[STORES.VERSIONS].map(record => record.id));
   const referenceIds = new Set(stores[STORES.REFERENCES].map(record => record.id));
+  const analyses = stores[STORES.ANALYSES] || [];
 
   for (const song of songs.values()) {
     if (!projectIds.has(song.projectId)) throw backupError(`Song ${song.id} references a missing project.`, 'RELATIONSHIP_INVALID');
@@ -86,6 +87,11 @@ function validateRelationships(stores) {
     if (!songs.has(version.songId)) throw backupError(`Version ${version.id} references a missing song.`, 'RELATIONSHIP_INVALID');
     if (version.parentVersionId && !versionIds.has(version.parentVersionId)) throw backupError(`Version ${version.id} references a missing parent version.`, 'RELATIONSHIP_INVALID');
     if (version.roomSignatureId && !referenceIds.has(version.roomSignatureId)) throw backupError(`Version ${version.id} references a missing room signature.`, 'RELATIONSHIP_INVALID');
+  }
+  for (const analysis of analyses) {
+    if (!songs.has(analysis.songId)) throw backupError(`Analysis ${analysis.id} references a missing song.`, 'RELATIONSHIP_INVALID');
+    if (!versionIds.has(analysis.versionId)) throw backupError(`Analysis ${analysis.id} references a missing version.`, 'RELATIONSHIP_INVALID');
+    if (analysis.roomSignatureId && !referenceIds.has(analysis.roomSignatureId)) throw backupError(`Analysis ${analysis.id} references a missing room signature.`, 'RELATIONSHIP_INVALID');
   }
   for (const reference of stores[STORES.REFERENCES]) {
     if (reference.songId && !songs.has(reference.songId)) throw backupError(`Reference ${reference.id} references a missing song.`, 'RELATIONSHIP_INVALID');
@@ -109,10 +115,12 @@ function validatePayloadShape(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw backupError('Backup must be a JSON object.', 'PAYLOAD_INVALID');
   if (payload.app !== APP) throw backupError('This backup belongs to a different app.', 'WRONG_APP');
   if (payload.schema !== FULL_BACKUP_SCHEMA || Number(payload.version) !== FULL_BACKUP_VERSION) throw backupError('Unsupported Acelynn full backup schema.', 'SCHEMA_UNSUPPORTED');
-  if (payload.database?.name !== DB_NAME || Number(payload.database?.version) !== DB_VERSION) throw backupError('This full backup targets an unsupported Acelynn database version.', 'DATABASE_UNSUPPORTED');
+  if (payload.database?.name !== DB_NAME || ![1, 2, DB_VERSION].includes(Number(payload.database?.version))) throw backupError('This full backup targets an unsupported Acelynn database version.', 'DATABASE_UNSUPPORTED');
   const stores = payload.database?.stores;
   if (!stores || typeof stores !== 'object' || Array.isArray(stores)) throw backupError('Full backup database stores are missing.', 'STORES_MISSING');
-  for (const storeName of STORE_NAMES) validateStoreRecords(storeName, stores[storeName]);
+  const backupDbVersion = Number(payload.database?.version);
+  const requiredStores = STORE_NAMES.filter(name => !(name === STORES.ANALYSES && backupDbVersion === 1));
+  for (const storeName of requiredStores) validateStoreRecords(storeName, stores[storeName]);
   validateRelationships(stores);
   const raw = payload.legacy?.raw ?? null;
   normalizeLegacyRaw(raw);
@@ -168,7 +176,8 @@ export async function verifyFullStateBackup(payload) {
   if (actual !== checksum.value) throw backupError('Full backup checksum verification failed.', 'CHECKSUM_MISMATCH');
   const expectedCounts = payload.database?.counts || {};
   for (const storeName of STORE_NAMES) {
-    if (Number(expectedCounts[storeName]) !== payload.database.stores[storeName].length) {
+    const expected = expectedCounts[storeName] ?? (storeName === STORES.ANALYSES && Number(payload.database?.version) === 1 ? 0 : undefined);
+    if (Number(expected) !== (payload.database.stores[storeName]?.length ?? 0)) {
       throw backupError(`Full backup count mismatch for ${storeName}.`, 'COUNT_MISMATCH');
     }
   }
@@ -186,14 +195,15 @@ export async function parseFullStateBackupText(raw) {
 }
 
 async function replaceStructuredState(storesPayload) {
+  const normalizedStores = Object.fromEntries(STORE_NAMES.map(name => [name, Array.isArray(storesPayload[name]) ? storesPayload[name] : []]));
   return runWriteTransaction(STORE_NAMES, async stores => {
     for (const storeName of STORE_NAMES) await requestToPromise(stores[storeName].clear());
     for (const storeName of STORE_NAMES) {
-      for (const record of storesPayload[storeName]) await requestToPromise(stores[storeName].put(record));
+      for (const record of normalizedStores[storeName]) await requestToPromise(stores[storeName].put(record));
     }
     for (const storeName of STORE_NAMES) {
       const actual = await requestToPromise(stores[storeName].getAll());
-      const expectedText = stableStringify(sortedRecords(storeName, storesPayload[storeName]));
+      const expectedText = stableStringify(sortedRecords(storeName, normalizedStores[storeName]));
       const actualText = stableStringify(sortedRecords(storeName, actual));
       if (actualText !== expectedText) throw backupError(`Restore verification failed for ${storeName}.`, 'RESTORE_VERIFY_FAILED');
     }

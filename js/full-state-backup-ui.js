@@ -8,14 +8,22 @@ import {
 
 const byId = id => document.getElementById(id);
 
-function downloadJson(payload, name) {
+async function downloadJson(payload, name) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const file = new File([blob], name, { type: 'application/json' });
+  if (globalThis.navigator?.share && globalThis.navigator?.canShare?.({ files: [file] })) {
+    await globalThis.navigator.share({ files: [file], title: 'Acelynn Pro backup' });
+    return 'shared';
+  }
   const href = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = href;
   anchor.download = name;
+  document.body.appendChild(anchor);
   anchor.click();
-  setTimeout(() => URL.revokeObjectURL(href), 750);
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 3000);
+  return 'downloaded';
 }
 
 function stamp() {
@@ -43,16 +51,16 @@ async function exportFullBackup() {
   }
   try {
     const backup = await createFullStateBackup();
-    downloadJson(backup, `acelynn-pro-full-backup-v2-${stamp()}.json`);
-    setStatus('Full backup exported');
-    setRecoveryMessage('Full backup created', 'Snapshots, structured analyses, room signatures, projects, songs, versions, references, and required metadata were included.');
+    const destination = await downloadJson(backup, `acelynn-pro-full-backup-v2-${stamp()}.json`);
+    setStatus(destination === 'shared' ? 'Choose where to save the full backup' : 'Backup saved successfully');
+    setRecoveryMessage('Backup saved successfully', 'You do not need to open this file. Keep it somewhere safe in case you need to restore Acelynn. Saved analyses, song versions, notes, room signatures, and required settings are included.');
   } catch (error) {
     setStatus('Backup failed');
     setRecoveryMessage('Full backup could not be created', error?.userMessage || error?.message || 'Acelynn could not export the complete local state.');
   } finally {
     if (button) {
       button.disabled = false;
-      button.textContent = previousText || 'Export session report';
+      button.textContent = previousText || 'Back Up Acelynn';
     }
   }
 }
@@ -70,7 +78,7 @@ async function restoreSelectedFile(file, input) {
 
     if (kind === 'legacy-v1') {
       const preRestore = await createFullStateBackup();
-      downloadJson(preRestore, `acelynn-pro-pre-restore-full-v2-${stamp()}.json`);
+      await downloadJson(preRestore, `acelynn-pro-pre-restore-full-v2-${stamp()}.json`);
       const recovery = globalThis.AcelynnRecovery;
       if (!recovery) throw new Error('Legacy recovery engine is unavailable.');
       const incoming = recovery.parseBackupText(raw);
@@ -91,11 +99,11 @@ async function restoreSelectedFile(file, input) {
 
     const payload = await parseFullStateBackupText(raw);
     const preRestore = await createFullStateBackup();
-    downloadJson(preRestore, `acelynn-pro-pre-restore-full-v2-${stamp()}.json`);
+    await downloadJson(preRestore, `acelynn-pro-pre-restore-full-v2-${stamp()}.json`);
     const result = await restoreFullStateBackup(payload);
     const versionCount = Number(result.counts?.versions || 0);
     const referenceCount = Number(result.counts?.references || 0);
-    setStatus(`Full restore verified · ${versionCount} analyses · ${referenceCount} references`);
+    setStatus(`Restore verified · ${versionCount} versions · ${referenceCount} references`);
     setRecoveryMessage('Full backup restored and verified', 'Acelynn restored the complete local database plus the legacy snapshot state. Reloading now to reopen the restored workspace.');
     setTimeout(() => globalThis.location?.reload?.(), 250);
   } catch (error) {
@@ -125,9 +133,9 @@ function installFullStateBackupUi() {
   }, true);
 
   const restoreButton = byId('restoreButton');
-  if (restoreButton) restoreButton.textContent = 'Restore full backup';
+  if (restoreButton) restoreButton.textContent = 'Restore Acelynn Backup';
   exportButton.disabled = false;
-  exportButton.textContent = 'Export full backup';
+  exportButton.textContent = 'Back Up Acelynn';
 }
 
 if (typeof document !== 'undefined') {

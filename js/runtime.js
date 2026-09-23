@@ -1,7 +1,9 @@
 import { APP_META } from './meta.js';
 import { STORES, openDatabase, requestToPromise } from './db.js';
-import { findVersionsByFileHash, hashAudioContent, meta, read, runWriteTransaction } from './storage.js';
+import { hashAudioContent, meta, read, runWriteTransaction } from './storage.js';
+import { saveVersionAnalysis } from './core-loop.js';
 import { computeSpectralFeatures } from './spectral.js';
+import { analyzeMonoCompatibility } from './mono-compatibility.js';
 import {
   applyRoomSignature,
   buildRuleFindings,
@@ -220,13 +222,11 @@ export async function persistAnalysis({
   coachingFindings = [],
   referenceDeltas = [],
   roomSignatureId = null,
-  roomConfidence = null
+  roomConfidence = null,
+  stereoLeft = null,
+  stereoRight = null
 }) {
-  const signalValidity = evaluateSignalValidity({
-    bandValues,
-    fftMagnitudes,
-    rmsDb: levels?.rmsDbfs
-  });
+  const signalValidity = evaluateSignalValidity({ bandValues, fftMagnitudes, rmsDb: levels?.rmsDbfs });
   if (!signalValidity.valid) {
     const error = new Error('No usable audio signal was detected.');
     error.name = 'AcelynnSignalValidationError';
@@ -236,84 +236,56 @@ export async function persistAnalysis({
     throw error;
   }
 
-  const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
-  const analysisTimestamp = Date.now();
   const workspace = await ensureDefaultWorkspace();
-
   if (sourceFileHash) {
-    const duplicates = await findVersionsByFileHash(sourceFileHash);
-    const sameSong = duplicates.find(record => record.songId === workspace.songId && record.sourceType === 'file');
+    const existing = await read.byIndex(STORES.ANALYSES, 'bySourceFileHash', sourceFileHash);
+    const sameSong = existing.find(record => record.songId === workspace.songId && record.captureMode === 'file');
     if (sameSong) return { saved: false, duplicate: true, record: sameSong };
   }
 
-  const createdAt = Date.now();
-  const id = uuid();
-  const normalizedBands = Array.isArray(bandValues) ? bandValues.slice(0, 5).map(value => finiteOrNull(value)) : [];
-  const peakDbfs = finiteOrNull(levels?.peakDbfs);
-  const rmsDbfs = finiteOrNull(levels?.rmsDbfs);
-  const crestDb = finiteOrNull(levels?.crestDb ?? (peakDbfs !== null && rmsDbfs !== null ? peakDbfs - rmsDbfs : null));
-  const cleanFindings = Array.isArray(coachingFindings) ? coachingFindings.slice(0, 5).map(item => ({
+  const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
+  const monoCompatibility = sourceType === 'file' ? analyzeMonoCompatibility(stereoLeft, stereoRight) : null;
+  const cleanBands = Array.isArray(bandValues) ? bandValues.slice(0,5).map(finiteOrNull) : [];
+  const bandMap = Object.fromEntries(['sub','bass','mids','presence','air'].map((key,index)=>[key,cleanBands[index] ?? null]));
+  const cleanFindings = Array.isArray(coachingFindings) ? coachingFindings.slice(0,10).map(item => ({
     severity: finiteOrNull(item?.severity),
-    title: String(item?.title || '').slice(0, 140),
-    text: String(item?.text || '').slice(0, 360)
+    title: String(item?.title || '').slice(0,140),
+    text: String(item?.text || '').slice(0,360)
   })) : [];
-  const cleanReferenceDeltas = Array.isArray(referenceDeltas) ? referenceDeltas.slice(0, 5).map(item => ({
-    name: String(item?.name || '').slice(0, 40),
-    delta: finiteOrNull(item?.delta),
-    direction: String(item?.direction || '').slice(0, 16)
-  })) : [];
-  const rawScore = finiteOrNull(score);
-  const weightedScore = finiteOrNull(perspectiveWeightedScore);
-  const profileMatch = finiteOrNull(targetProfileMatch);
-  const record = {
-    id,
+  const coachingText = cleanFindings.map(item => [item.title,item.text].filter(Boolean).join(' ')).join('\n');
+  const label = sourceFileMetadata?.name ? String(sourceFileMetadata.name).slice(0,100) : new Date().toISOString();
+  const saved = await saveVersionAnalysis({
     songId: workspace.songId,
-    parentVersionId: null,
-    versionLabel: new Date(analysisTimestamp).toISOString(),
-    analysisTimestamp,
-    createdAt,
-    origin: 'v1.2-runtime',
-    featureSchemaVersion: APP_META.featureSchemaVersion,
-    spectralDefinition: APP_META.spectralDefinition,
-    fileHash: sourceFileHash,
-    sourceType: sourceType || 'unknown',
-    sourceMetadata: sourceFileMetadata ? { ...sourceFileMetadata } : {},
-    perspective: perspective || null,
-    listeningProfile: profile || null,
-    bands: {
-      sub: { legacyByteEnergy: normalizedBands[0] ?? null },
-      bass: { legacyByteEnergy: normalizedBands[1] ?? null },
-      mids: { legacyByteEnergy: normalizedBands[2] ?? null },
-      presence: { legacyByteEnergy: normalizedBands[3] ?? null },
-      air: { legacyByteEnergy: normalizedBands[4] ?? null }
-    },
-    levels: { peakDbfs, rmsDbfs, crestDb },
-    dominantFrequencyArea: focus || null,
-    spectralFeatures,
-    mixHealth: {
-      raw: rawScore,
-      perspectiveWeighted: weightedScore,
-      targetProfileMatch: profileMatch
-    },
-    confidence: {
-      overall: null,
-      status: 'deterministic-rules',
-      claimStrengthFactor: null,
-      factors: null
-    },
-    coachingFindings: cleanFindings,
-    referenceDeltas: cleanReferenceDeltas,
-    roomSignatureId: roomSignatureId || null,
-    roomConfidence: finiteOrNull(roomConfidence)
-  };
-
-  await runWriteTransaction([STORES.VERSIONS, STORES.SONGS], async stores => {
-    await requestToPromise(stores[STORES.VERSIONS].put(record));
-    const song = await requestToPromise(stores[STORES.SONGS].get(workspace.songId));
-    if (song) await requestToPromise(stores[STORES.SONGS].put({ ...song, updatedAt: createdAt }));
-  }, { operation: 'persistAnalysis', versionId: id, sourceType: record.sourceType });
-
-  return { saved: true, duplicate: false, record };
+    label,
+    analysis: {
+      captureMode: sourceType === 'file' ? 'file' : 'microphone',
+      sourceMetadata: sourceFileMetadata ? { ...sourceFileMetadata } : {},
+      sampleRate,
+      bitDepth: null,
+      bitrate: null,
+      channelCount: null,
+      profileUsed: profile || null,
+      bandUnit: 'legacy-byte-energy',
+      bands: bandMap,
+      balance: {
+        score: finiteOrNull(perspectiveWeightedScore ?? score),
+        contributions: {},
+        leadingRegion: focus || null,
+        deviations: {}
+      },
+      levels,
+      coachingText,
+      coachingFindings: cleanFindings,
+      perspective: perspective || null,
+      sourceFileHash,
+      spectralFeatures,
+      monoCompatibility,
+      referenceDeltas,
+      roomSignatureId,
+      roomConfidence
+    }
+  });
+  return { saved: true, duplicate: false, record: saved.analysis, version: saved.version, ignoredLegacyTargetProfileMatch: targetProfileMatch };
 }
 
 const runtime = Object.freeze({
@@ -330,7 +302,8 @@ const runtime = Object.freeze({
   estimateRoomConfidence,
   diffSnapshots,
   buildRuleFindings,
-  normalizeBandValues
+  normalizeBandValues,
+  analyzeMonoCompatibility
 });
 
 globalThis.AcelynnV12 = runtime;

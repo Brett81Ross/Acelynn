@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { STORES, openDatabase, resetDatabaseConnectionForTests } from '../js/db.js';
-import { clear, read } from '../js/storage.js';
+import { clear, hashBytesSha256, read } from '../js/storage.js';
 import { initializeRuntime, persistAnalysis, saveRoomSignature, getActiveRoomSignature } from '../js/runtime.js';
 import {
   FULL_BACKUP_SCHEMA,
   createFullStateBackup,
   detectBackupKind,
+  parseFullStateBackupText,
   restoreFullStateBackup,
   verifyFullStateBackup
 } from '../js/full-state-backup.js';
@@ -66,8 +67,9 @@ describe('Acelynn full-state backup v2', () => {
     expect(backup.database.counts.projects).toBe(1);
     expect(backup.database.counts.songs).toBe(1);
     expect(backup.database.counts.versions).toBe(1);
+    expect(backup.database.counts.analyses).toBe(1);
     expect(backup.database.counts.references).toBe(1);
-    expect(backup.database.stores.versions[0].id).toBe(analysis.record.id);
+    expect(backup.database.stores.analyses[0].id).toBe(analysis.record.id);
     expect(backup.database.stores.references[0].id).toBe(signature.id);
     expect(backup.legacy.raw).toContain('Balanced mix');
     expect(JSON.stringify(backup)).not.toContain('audioBytes');
@@ -81,10 +83,12 @@ describe('Acelynn full-state backup v2', () => {
     const result = await restoreFullStateBackup(backup);
     expect(result.restored).toBe(true);
     expect(result.counts.versions).toBe(1);
+    expect(result.counts.analyses).toBe(1);
     expect(JSON.parse(localStorage.getItem('acelynn-snapshots'))).toHaveLength(1);
     expect((await read.all(STORES.PROJECTS)).map(record => record.id)).toEqual(backup.database.stores.projects.map(record => record.id));
     expect((await read.all(STORES.SONGS)).map(record => record.id)).toEqual(backup.database.stores.songs.map(record => record.id));
     expect((await read.all(STORES.VERSIONS)).map(record => record.id)).toEqual(backup.database.stores.versions.map(record => record.id));
+    expect((await read.all(STORES.ANALYSES)).map(record => record.id)).toEqual(backup.database.stores.analyses.map(record => record.id));
     expect((await read.all(STORES.REFERENCES)).map(record => record.id)).toEqual(backup.database.stores.references.map(record => record.id));
     expect((await getActiveRoomSignature())?.id).toBe(signature.id);
   });
@@ -116,5 +120,41 @@ describe('Acelynn full-state backup v2', () => {
       app: 'Acelynn Pro',
       snapshots: []
     })).toBe('legacy-v1');
+  });
+});
+
+
+describe('Android recovery UX regression contract', () => {
+  it('keeps full backups JSON-file based for Android save/share and restore', async () => {
+    const backup = await createFullStateBackup();
+    const raw = JSON.stringify(backup);
+    const parsed = await parseFullStateBackupText(raw);
+    expect(parsed.schema).toBe(FULL_BACKUP_SCHEMA);
+    expect(detectBackupKind(parsed)).toBe('full-v2');
+  });
+});
+
+function canonicalForLegacy(value) {
+  if (value === null || typeof value !== 'object') return (typeof value === 'number' && !Number.isFinite(value)) ? null : value;
+  if (Array.isArray(value)) return value.map(canonicalForLegacy);
+  const out={}; for(const key of Object.keys(value).sort()) if(value[key]!==undefined) out[key]=canonicalForLegacy(value[key]); return out;
+}
+async function resignLegacyFixture(payload) {
+  const { checksum, ...core }=payload;
+  const bytes=new TextEncoder().encode(JSON.stringify(canonicalForLegacy(core)));
+  return {...core,checksum:{algorithm:'SHA-256',scope:'payload-without-checksum',value:await hashBytesSha256(bytes)}};
+}
+describe('database v1 backup compatibility',()=>{
+  it('verifies and restores the pre-analysis-store backup shape without invalidating its checksum',async()=>{
+    const current=await createFullStateBackup();
+    const legacy=structuredClone(current);
+    legacy.database.version=1;
+    delete legacy.database.stores.analyses;
+    delete legacy.database.counts.analyses;
+    const signed=await resignLegacyFixture(legacy);
+    await expect(verifyFullStateBackup(signed)).resolves.toMatchObject({ok:true});
+    const result=await restoreFullStateBackup(signed);
+    expect(result.restored).toBe(true);
+    expect(await read.all(STORES.ANALYSES)).toEqual([]);
   });
 });

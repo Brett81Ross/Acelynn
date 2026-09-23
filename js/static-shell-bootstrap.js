@@ -1,6 +1,7 @@
 export const STATIC_SHELL_BOOTSTRAP_VERSION = 2;
 export const STATIC_SHELL_MODULES = Object.freeze([
   '/js/full-state-backup-ui.js',
+  '/js/song-history-ui.js',
   '/demo-help.js'
 ]);
 
