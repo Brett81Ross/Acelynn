@@ -90,6 +90,8 @@ jobs:
           grep -q 'core-loop.test.js' package.json
           grep -q 'song-history-ui.test.js' package.json
           grep -q 'comparison-render-honesty.test.js' package.json
+          grep -q 'beginner-comparison-ui.test.js' package.json
+          grep -qi 'not a grade of your song or mix quality' index.html
           grep -q 'Back Up Acelynn' js/full-state-backup-ui.js
           grep -q 'Restore Acelynn Backup' js/full-state-backup-ui.js
           ! grep -qi 'Mix Health' index.html
