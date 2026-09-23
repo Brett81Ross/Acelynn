@@ -36,7 +36,7 @@ export function buildAnalysisRecord({
   sampleRate = null, bitDepth = null, bitrate = null, channelCount = null,
   profileUsed = null, bands = {}, bandUnit = 'legacy-byte-energy', balance = {}, levels = {}, coachingText = '',
   coachingFindings = [], userNote = '', perspective = null, sourceFileHash = null,
-  analysisEngineVersion = ANALYSIS_ENGINE_VERSION
+  analysisEngineVersion = ANALYSIS_ENGINE_VERSION, spectralFeatures = null, referenceDeltas = [], roomSignatureId = null, roomConfidence = null
 }) {
   if (!songId || !versionId) throw new TypeError('songId and versionId are required');
   if (!['file','microphone'].includes(captureMode)) throw new TypeError('captureMode must be file or microphone');
@@ -63,6 +63,12 @@ export function buildAnalysisRecord({
     }))),
     userNote: text(userNote, 1200) || '', perspective: text(perspective, 40),
     sourceFileHash: sourceFileHash || null,
+    spectralFeatures: spectralFeatures || null,
+    referenceDeltas: Object.freeze((Array.isArray(referenceDeltas) ? referenceDeltas : []).slice(0,10).map(x => Object.freeze({
+      name: text(x?.name,40) || '', delta: finite(x?.delta), direction: text(x?.direction,16)
+    }))),
+    roomSignatureId: roomSignatureId || null,
+    roomConfidence: finite(roomConfidence),
     sourceMetadata: Object.freeze({
       name: captureMode === 'file' ? text(sourceMetadata.name, 240) : null,
       type: captureMode === 'file' ? text(sourceMetadata.type, 100) : null,
