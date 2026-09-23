@@ -56,6 +56,7 @@ jobs:
           node --check js/analysis-model.js
           node --check js/core-loop.js
           node --check js/song-history-ui.js
+          node --check js/mono-compatibility.js
           node --check legacy-export-bridge.js
           node --check demo-help.js
 
@@ -91,6 +92,7 @@ jobs:
           grep -q 'song-history-ui.test.js' package.json
           grep -q 'comparison-render-honesty.test.js' package.json
           grep -q 'beginner-comparison-ui.test.js' package.json
+          grep -q 'mono-compatibility.test.js' package.json
           grep -qi 'not a grade of your song or mix quality' index.html
           grep -q 'Back Up Acelynn' js/full-state-backup-ui.js
           grep -q 'Restore Acelynn Backup' js/full-state-backup-ui.js
