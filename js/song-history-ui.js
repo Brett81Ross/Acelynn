@@ -38,7 +38,7 @@ async function render(){
   const list=card.querySelector('.snapshot-band-list');
   for(const item of history.slice().reverse()){
    const a=item.analysis,v=item.version,row=document.createElement('div');row.className='snapshot-detail-item';
-   const coaching=a?.coachingFindings?.[0]; row.innerHTML='<small>'+esc(v.label)+'</small><strong>Balance '+fmt(a?.balance?.score,0)+'/100 · '+esc(a?.balance?.leadingRegion||'No leading region')+'</strong><div class="v12-copy">'+esc(v.note||a?.userNote||coaching?.title||'No note yet')+'</div>';
+   const coaching=a?.coachingFindings?.[0],mono=a?.monoCompatibility;const monoLine=mono?.available?'<div class="v12-copy"><b>Mono check:</b> '+esc((mono.risk||'unknown').toUpperCase())+' risk · correlation '+fmt(mono.correlation,2)+' — '+esc(mono.message||'')+'</div>':(a?.captureMode==='file'?'<div class="v12-copy"><b>Mono check:</b> '+esc(mono?.message||mono?.reason||'Stereo evidence unavailable for this saved analysis.')+'</div>':''); row.innerHTML='<small>'+esc(v.label)+'</small><strong>Balance '+fmt(a?.balance?.score,0)+'/100 · '+esc(a?.balance?.leadingRegion||'No leading region')+'</strong><div class="v12-copy">'+esc(v.note||a?.userNote||coaching?.title||'No note yet')+'</div>'+monoLine;
    list.appendChild(row);
   }
   const rename=document.createElement('div');rename.className='snapshot-detail-actions';rename.innerHTML='<button type="button" style="grid-column:1/-1">Rename song</button>';rename.firstChild.onclick=async()=>{const title=globalThis.prompt?.('Song name:',song.name||'');if(!title)return;await AcelynnCoreLoop.renameSong(song.id,title);await render();};card.appendChild(rename);
