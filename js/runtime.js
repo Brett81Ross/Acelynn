@@ -206,6 +206,17 @@ export async function clearActiveRoomSignature() {
   return true;
 }
 
+export function analyzeDecodedStereo(buffer,{maxSamples=262144}={}) {
+  const channels=Number(buffer?.numberOfChannels)||0;
+  if(channels<2||typeof buffer?.getChannelData!=='function') return Object.freeze({channelCount:channels||null,monoCompatibility:Object.freeze({available:false,reason:channels===1?'Source file is mono.':'Decoded stereo channels are unavailable.'})});
+  const left=buffer.getChannelData(0),right=buffer.getChannelData(1),n=Math.min(left.length,right.length);
+  if(n<32)return Object.freeze({channelCount:channels,monoCompatibility:analyzeMonoCompatibility(left,right)});
+  const take=Math.min(n,maxSamples),step=Math.max(1,Math.floor(n/take));
+  const l=new Float32Array(Math.ceil(n/step)),r=new Float32Array(Math.ceil(n/step));let j=0;
+  for(let i=0;i<n;i+=step){l[j]=left[i];r[j]=right[i];j++;}
+  return Object.freeze({channelCount:channels,monoCompatibility:analyzeMonoCompatibility(l.subarray(0,j),r.subarray(0,j))});
+}
+
 export async function persistAnalysis({
   fftMagnitudes,
   sampleRate,
@@ -224,7 +235,9 @@ export async function persistAnalysis({
   roomSignatureId = null,
   roomConfidence = null,
   stereoLeft = null,
-  stereoRight = null
+  stereoRight = null,
+  monoCompatibility = null,
+  channelCount = null
 }) {
   const signalValidity = evaluateSignalValidity({ bandValues, fftMagnitudes, rmsDb: levels?.rmsDbfs });
   if (!signalValidity.valid) {
@@ -244,7 +257,7 @@ export async function persistAnalysis({
   }
 
   const spectralFeatures = computeSpectralFeatures(fftMagnitudes, sampleRate, fftSize);
-  const monoCompatibility = sourceType === 'file' ? analyzeMonoCompatibility(stereoLeft, stereoRight) : null;
+  const monoEvidence = sourceType === 'file' ? (monoCompatibility || analyzeMonoCompatibility(stereoLeft, stereoRight)) : null;
   const cleanBands = Array.isArray(bandValues) ? bandValues.slice(0,5).map(finiteOrNull) : [];
   const bandMap = Object.fromEntries(['sub','bass','mids','presence','air'].map((key,index)=>[key,cleanBands[index] ?? null]));
   const cleanFindings = Array.isArray(coachingFindings) ? coachingFindings.slice(0,10).map(item => ({
@@ -263,7 +276,7 @@ export async function persistAnalysis({
       sampleRate,
       bitDepth: null,
       bitrate: null,
-      channelCount: null,
+      channelCount,
       profileUsed: profile || null,
       bandUnit: 'legacy-byte-energy',
       bands: bandMap,
@@ -279,7 +292,7 @@ export async function persistAnalysis({
       perspective: perspective || null,
       sourceFileHash,
       spectralFeatures,
-      monoCompatibility,
+      monoCompatibility: monoEvidence,
       referenceDeltas,
       roomSignatureId,
       roomConfidence
@@ -303,7 +316,8 @@ const runtime = Object.freeze({
   diffSnapshots,
   buildRuleFindings,
   normalizeBandValues,
-  analyzeMonoCompatibility
+  analyzeMonoCompatibility,
+  analyzeDecodedStereo
 });
 
 globalThis.AcelynnV12 = runtime;
