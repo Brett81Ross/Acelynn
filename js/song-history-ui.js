@@ -52,5 +52,5 @@ async function render(){
  }
  if(!root.children.length)root.innerHTML='<div class="subtle">Save an analysis to start local song history.</div>';
 }
-async function init(){inject();await render();window.addEventListener('acelynn:snapshot-saved',()=>setTimeout(render,50));}
+async function init(){inject();await render();window.addEventListener('acelynn:analysis-persisted',()=>render());}
 if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else queueMicrotask(init);}
