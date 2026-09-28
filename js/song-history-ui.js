@@ -28,6 +28,23 @@ function comparisonPanel(res){
  for(const item of res.guidance||[]){const el=document.createElement('div');el.className='advice-item';const b=document.createElement('b');b.textContent=BAND_NAMES[item.band]+'. ';el.appendChild(b);el.appendChild(document.createTextNode(item.text));guidance.appendChild(el);}
  panel.appendChild(guidance);return panel;
 }
+function detailPanel(a,v){
+ const box=document.createElement('div');box.className='snapshot-details';
+ const unit=a?.bandUnit==='relative-db'?'dB':'relative';
+ const bands=BAND_ORDER.map(key=>'<div class="snapshot-band-row"><span>'+BAND_NAMES[key]+'</span><strong>'+esc(fmt(a?.bands?.[key],1))+(unit==='dB'?' dB':'')+'</strong></div>').join('');
+ const mono=a?.monoCompatibility;
+ const monoText=mono?.available?esc((mono.risk||'unknown').toUpperCase())+' risk · correlation '+fmt(mono.correlation,2)+' · '+esc(mono.message||''):esc(mono?.message||mono?.reason||'Stereo evidence unavailable.');
+ const coaching=a?.coachingText||a?.coachingFindings?.map(x=>x.text||x.title).filter(Boolean).join(' ')||'No saved coaching text.';
+ box.innerHTML='<div class="snapshot-detail-head"><div><b>'+esc(v.label)+'</b><div>'+new Date(a?.timestamp||v.createdAt||Date.now()).toLocaleString()+'</div></div><div class="badge">'+fmt(a?.balance?.score,0)+'/100</div></div>'+
+ '<p class="v12-copy"><b>Balance Score:</b> Measures frequency-balance alignment for this analysis. It is not a grade of your song or mix quality.</p>'+
+ '<div class="snapshot-band-list">'+bands+'</div>'+
+ '<div class="snapshot-detail-grid"><div class="snapshot-detail-item"><small>Peak</small><strong>'+fmt(a?.levels?.peakDbfs,1)+' dBFS</strong></div><div class="snapshot-detail-item"><small>RMS</small><strong>'+fmt(a?.levels?.rmsDbfs,1)+' dBFS</strong></div><div class="snapshot-detail-item"><small>Crest</small><strong>'+fmt(a?.levels?.crestDb,1)+' dB</strong></div><div class="snapshot-detail-item"><small>Band scale</small><strong>'+esc(unit==='dB'?'Relative dB':'Relative only')+'</strong></div></div>'+
+ '<p class="v12-copy"><b>Coaching:</b> '+esc(coaching)+'</p>'+
+ (a?.captureMode==='file'?'<p class="v12-copy"><b>Mono check:</b> '+monoText+'</p>':'')+
+ '<p class="v12-copy"><b>Note:</b> '+esc(a?.userNote||v.note||'No note yet')+'</p>'+
+ '<details><summary>Analysis details</summary><p class="v12-copy">Capture: '+esc(a?.captureMode||'unknown')+' · Profile: '+esc(a?.profileUsed||'unknown')+' · Engine: '+esc(a?.analysisEngineVersion||'unknown')+' · Format: '+esc(a?.sourceFormat||'—')+' · Sample rate: '+esc(a?.sampleRate||'—')+' · Channels: '+esc(a?.channelCount||'—')+'</p></details>';
+ return box;
+}
 async function render(){
  const root=byId('songHistoryList');if(!root||!globalThis.AcelynnCoreLoop)return;
  const songs=await AcelynnCoreLoop.listSongs();root.innerHTML='';
@@ -38,14 +55,16 @@ async function render(){
   const list=card.querySelector('.snapshot-band-list');
   for(const item of history.slice().reverse()){
    const a=item.analysis,v=item.version,row=document.createElement('div');row.className='snapshot-detail-item';
-   const coaching=a?.coachingFindings?.[0],mono=a?.monoCompatibility;const monoLine=mono?.available?'<div class="v12-copy"><b>Mono check:</b> '+esc((mono.risk||'unknown').toUpperCase())+' risk · correlation '+fmt(mono.correlation,2)+' — '+esc(mono.message||'')+'</div>':(a?.captureMode==='file'?'<div class="v12-copy"><b>Mono check:</b> '+esc(mono?.message||mono?.reason||'Stereo evidence unavailable for this saved analysis.')+'</div>':''); row.innerHTML='<small>'+esc(v.label)+'</small><strong>Balance '+fmt(a?.balance?.score,0)+'/100 · '+esc(a?.balance?.leadingRegion||'No leading region')+'</strong><div class="v12-copy">'+esc(v.note||a?.userNote||coaching?.title||'No note yet')+'</div>'+monoLine;
-   list.appendChild(row);
+   row.setAttribute('role','button');row.setAttribute('tabindex','0');
+   row.innerHTML='<small>'+esc(v.label)+'</small><strong>Balance '+fmt(a?.balance?.score,0)+'/100 · '+esc(a?.balance?.leadingRegion||'No leading region')+'</strong><div class="v12-copy">'+esc(a?.userNote||v.note||a?.coachingFindings?.[0]?.title||'Tap to inspect saved analysis')+'</div>';
+   const toggle=()=>{const old=row.nextElementSibling;if(old?.classList.contains('saved-analysis-expanded')){old.remove();return}const wrap=document.createElement('div');wrap.className='saved-analysis-expanded';wrap.appendChild(detailPanel(a,v));const actions=document.createElement('div');actions.className='snapshot-detail-actions';actions.innerHTML='<button type="button" data-note>Add/edit note</button><button type="button" data-delete>Delete version</button>';actions.querySelector('[data-note]').onclick=async()=>{const note=globalThis.prompt?.('Note for this version:',a?.userNote||'');if(note===null||note===undefined)return;await AcelynnCoreLoop.updateAnalysisNote(a.id,note);await render()};actions.querySelector('[data-delete]').onclick=async()=>{if(globalThis.confirm&&!globalThis.confirm('Delete this saved version? The song and other versions will stay.'))return;await AcelynnCoreLoop.deleteVersionAnalysis(song.id,v.id);await render()};wrap.appendChild(actions);row.insertAdjacentElement('afterend',wrap)};
+   row.onclick=toggle;row.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}};list.appendChild(row);
   }
-  const rename=document.createElement('div');rename.className='snapshot-detail-actions';rename.innerHTML='<button type="button" style="grid-column:1/-1">Rename song</button>';rename.firstChild.onclick=async()=>{const title=globalThis.prompt?.('Song name:',song.name||'');if(!title)return;await AcelynnCoreLoop.renameSong(song.id,title);await render();};card.appendChild(rename);
+  const rename=document.createElement('div');rename.className='snapshot-detail-actions';rename.innerHTML='<button type="button" style="grid-column:1/-1">Rename song</button>';rename.firstChild.onclick=async()=>{const title=globalThis.prompt?.('Song name:',song.name||'');if(!title)return;await AcelynnCoreLoop.renameSong(song.id,title);await render()};card.appendChild(rename);
   if(history.length>=2){
    const actions=document.createElement('div');actions.className='snapshot-detail-actions';actions.innerHTML='<button type="button">Compare latest two</button><button type="button">Add note to latest</button>';
-   actions.children[0].onclick=async()=>{const l=history.at(-2),r=history.at(-1),res=await AcelynnCoreLoop.compareVersions(song.id,l.version.id,r.version.id);card.querySelector('.comparison-panel')?.remove();card.appendChild(comparisonPanel(res));};
-   actions.children[1].onclick=async()=>{const latest=history.at(-1).analysis;if(!latest)return;const note=globalThis.prompt?.('Add a note about this version:',latest.userNote||'');if(note===null||note===undefined)return;await AcelynnCoreLoop.updateAnalysisNote(latest.id,note);await render();};
+   actions.children[0].onclick=async()=>{const l=history.at(-2),r=history.at(-1),res=await AcelynnCoreLoop.compareVersions(song.id,l.version.id,r.version.id);card.querySelector('.comparison-panel')?.remove();card.appendChild(comparisonPanel(res))};
+   actions.children[1].onclick=async()=>{const latest=history.at(-1).analysis;if(!latest)return;const note=globalThis.prompt?.('Add a note about this version:',latest.userNote||'');if(note===null||note===undefined)return;await AcelynnCoreLoop.updateAnalysisNote(latest.id,note);await render()};
    card.appendChild(actions);
   }
   root.appendChild(card);
