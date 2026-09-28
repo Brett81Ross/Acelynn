@@ -21,6 +21,10 @@ describe('pre-Play song/version/analysis contract', () => {
       levels:{peakDbfs:-4,rmsDbfs:-16,crestDb:12},coachingText:'Check the mids.',userNote:'After EQ',monoCompatibility:{available:true,correlation:.91,sideToMonoDb:-8,risk:'low',message:'Stereo channels are cooperating well in this sample.'}
     });
   });
+  it('preserves the reason when mono evidence is unavailable', () => {
+    const a=buildAnalysisRecord({songId:'s',versionId:'v',captureMode:'file',bands:{},monoCompatibility:{available:false,reason:'Source file is mono.'}});
+    expect(a.monoCompatibility).toMatchObject({available:false,reason:'Source file is mono.'});
+  });
   it('accepts analyses where level telemetry is unavailable', () => {
     const a=buildAnalysisRecord({songId:'s',versionId:'v',captureMode:'microphone',bands:{},levels:null});
     expect(a.levels).toEqual({peakDbfs:null,rmsDbfs:null,crestDb:null});
