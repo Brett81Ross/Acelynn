@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { STORES, openDatabase, resetDatabaseConnectionForTests } from '../js/db.js';
 import { clear, put, read } from '../js/storage.js';
-import { createSong, getLocalUsageCounters, listSongHistory, saveVersionAnalysis, compareVersions, updateAnalysisNote, renameSong } from '../js/core-loop.js';
+import { createSong, getLocalUsageCounters, listSongHistory, saveVersionAnalysis, compareVersions, updateAnalysisNote, renameSong, deleteVersionAnalysis } from '../js/core-loop.js';
 
 beforeEach(async()=>{ resetDatabaseConnectionForTests(); await openDatabase(); for(const s of Object.values(STORES))await clear(s); localStorage.clear();
  await put(STORES.PROJECTS,{id:'p1',name:'Local',createdAt:1,updatedAt:1,metadata:{}});
@@ -26,6 +26,15 @@ describe('pre-Play core loop',()=>{
   const result=await compareVersions(song.id,one.version.id,two.version.id);
   expect(result.diff.bands.presence).toMatchObject({classification:'comparable',delta:2});
   const counters=await getLocalUsageCounters(); expect(counters.songsCreated).toBe(1); expect(counters.comparisonsBySong[song.id]).toBe(1); expect(counters.versionsSavedBySong[song.id]).toBe(2);
+ });
+ it('deletes one structured version and its analysis without deleting the song',async()=>{
+  const song=await createSong({projectId:'p1',title:'Keep Song'});
+  const one=await saveVersionAnalysis({songId:song.id,label:'v1',analysis:analysis()});
+  await saveVersionAnalysis({songId:song.id,label:'v2',analysis:analysis()});
+  const result=await deleteVersionAnalysis(song.id,one.version.id);
+  expect(result.analysesDeleted).toBe(1);
+  const history=await listSongHistory(song.id); expect(history).toHaveLength(1); expect(history[0].version.label).toBe('v2');
+  expect(await read.one(STORES.SONGS,song.id)).toBeTruthy();
  });
  it('keeps non-dB histories direction-only',async()=>{
   const song=await createSong({projectId:'p1',title:'Legacy Unit'});
