@@ -13,12 +13,12 @@ describe('pre-Play song/version/analysis contract', () => {
       sampleRate:48000,bitDepth:24,channelCount:2,profileUsed:'Balanced mix',
       bands:{sub:-30,bass:-25,mids:-20,presence:-24,air:-31},
       balance:{score:81,leadingRegion:'Mids'},levels:{peakDbfs:-4,rmsDbfs:-16},
-      coachingText:'Check the mids.',userNote:'After EQ'
+      coachingText:'Check the mids.',userNote:'After EQ',monoCompatibility:{available:true,correlation:.91,sideToMonoDb:-8,risk:'low',message:'Stereo channels are cooperating well in this sample.'}
     });
     expect(a).toMatchObject({
       captureMode:'file',sourceFormat:'wav',sampleRate:48000,bitDepth:24,channelCount:2,
       profileUsed:'Balanced mix',analysisEngineVersion:'acelynn-core-1',
-      levels:{peakDbfs:-4,rmsDbfs:-16,crestDb:12},coachingText:'Check the mids.',userNote:'After EQ'
+      levels:{peakDbfs:-4,rmsDbfs:-16,crestDb:12},coachingText:'Check the mids.',userNote:'After EQ',monoCompatibility:{available:true,correlation:.91,sideToMonoDb:-8,risk:'low',message:'Stereo channels are cooperating well in this sample.'}
     });
   });
   it('accepts analyses where level telemetry is unavailable', () => {
