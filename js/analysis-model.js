@@ -65,7 +65,7 @@ export function buildAnalysisRecord({
     userNote: text(userNote, 1200) || '', perspective: text(perspective, 40),
     sourceFileHash: sourceFileHash || null,
     spectralFeatures: spectralFeatures || null,
-    monoCompatibility: monoCompatibility ? Object.freeze({ available:Boolean(monoCompatibility.available), correlation:finite(monoCompatibility.correlation), sideToMonoDb:finite(monoCompatibility.sideToMonoDb), risk:text(monoCompatibility.risk,24), message:text(monoCompatibility.message,360) }) : null,
+    monoCompatibility: monoCompatibility ? Object.freeze({ available:Boolean(monoCompatibility.available), correlation:finite(monoCompatibility.correlation), sideToMonoDb:finite(monoCompatibility.sideToMonoDb), risk:text(monoCompatibility.risk,24), message:text(monoCompatibility.message,360), reason:text(monoCompatibility.reason,360) }) : null,
     referenceDeltas: Object.freeze((Array.isArray(referenceDeltas) ? referenceDeltas : []).slice(0,10).map(x => Object.freeze({
       name: text(x?.name,40) || '', delta: finite(x?.delta), direction: text(x?.direction,16)
     }))),
