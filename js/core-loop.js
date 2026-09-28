@@ -60,11 +60,22 @@ export async function listSongs(projectId = null) {
   return songs.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
 }
 export async function getAnalysis(analysisId) { return read.one(STORES.ANALYSES, analysisId); }
+export async function deleteVersionAnalysis(songId,versionId) {
+  const [version,analyses]=await Promise.all([read.one(STORES.VERSIONS,versionId),read.byIndex(STORES.ANALYSES,'byVersion',versionId)]);
+  if(!version||version.songId!==songId)throw new Error('Version not found for this song');
+  await runWriteTransaction([STORES.VERSIONS,STORES.ANALYSES,STORES.SONGS],async s=>{
+    for(const analysis of analyses)await requestToPromise(s[STORES.ANALYSES].delete(analysis.id));
+    await requestToPromise(s[STORES.VERSIONS].delete(versionId));
+    const song=await requestToPromise(s[STORES.SONGS].get(songId));
+    if(song)await requestToPromise(s[STORES.SONGS].put({...song,updatedAt:now()}));
+  },{operation:'deleteVersionAnalysis',songId,versionId});
+  return {versionId,analysesDeleted:analyses.length};
+}
 export async function updateAnalysisNote(analysisId,note) {
   const record=await read.one(STORES.ANALYSES,analysisId); if(!record)throw new Error('Analysis not found');
   const next={...record,userNote:String(note||'').slice(0,1200)};
   await runWriteTransaction([STORES.ANALYSES],s=>requestToPromise(s[STORES.ANALYSES].put(next)),{operation:'updateAnalysisNote',analysisId}); return next;
 }
 export async function getLocalUsageCounters(){ return usage(); }
-export const coreLoopApi=Object.freeze({createSong,saveVersionAnalysis,listSongHistory,compareVersions,updateAnalysisNote,getLocalUsageCounters,listSongs,getAnalysis,renameSong});
+export const coreLoopApi=Object.freeze({createSong,saveVersionAnalysis,listSongHistory,compareVersions,updateAnalysisNote,deleteVersionAnalysis,getLocalUsageCounters,listSongs,getAnalysis,renameSong});
 globalThis.AcelynnCoreLoop=coreLoopApi;
