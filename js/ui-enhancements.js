@@ -322,9 +322,7 @@ function installBeginnerExplainers(){
 async function initializeEnhancements() {
   if (!byId('captureButton')) return;
   injectStyles();
-  createRoomCard();
   createRuleMeter();
-  createDiffCard();
   installSignalValidityGuard();
   installBeginnerExplainers();
 
