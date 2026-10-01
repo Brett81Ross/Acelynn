@@ -113,7 +113,50 @@ function injectStyles() {
   const style = document.createElement('style');
   style.id = 'acelynn-v12-enhancement-styles';
   style.textContent = `
-    .v12-tools{display:grid;gap:10px;margin-top:12px}.v12-copy{color:var(--muted);font-size:.72rem;line-height:1.45}.v12-actions{display:grid;grid-template-columns:1fr auto;gap:8px}.v12-actions .secondary{min-height:48px}.v12-status{font-size:.7rem;color:var(--cyan);font-weight:800}.rule-meter{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}.rule-meter-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.66rem;font-weight:850}.rule-track{height:10px;margin-top:8px;border-radius:999px;background:#090914;overflow:hidden}.rule-fill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--pink),var(--yellow),var(--lime));transition:width .18s ease}.rule-list{display:grid;gap:7px;margin-top:9px}.rule-item{padding:8px 9px;border-radius:10px;background:#0c0c17;border-left:3px solid var(--violet);font-size:.7rem;line-height:1.4;color:#d7d6e0}.rule-item b{color:#fff}.diff-grid{display:grid;gap:8px;margin-top:12px}.diff-row{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid #303049;border-radius:10px;background:#0b0b16;font-size:.71rem}.diff-row strong{color:var(--ink)}.diff-row span{color:var(--muted);text-align:right}@media(max-width:430px){.v12-actions{grid-template-columns:1fr}.v12-actions .secondary{width:100%}}
+    .v12-tools{display:grid;gap:10px;margin-top:12px}.v12-copy{color:var(--muted);font-size:.72rem;line-height:1.45}.v12-actions{display:grid;grid-template-columns:1fr auto;gap:8px}.v12-actions .secondary{min-height:48px}.v12-status{font-size:.7rem;color:var(--cyan);font-weight:800}.rule-meter{margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}.rule-meter-head{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.66rem;font-weight:850}.rule-track{height:10px;margin-top:8px;border-radius:999px;background:#090914;overflow:hidden}.rule-fill{height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--pink),var(--yellow),var(--lime));transition:width .18s ease}.rule-list{display:grid;gap:7px;margin-top:9px}.rule-item{padding:8px 9px;border-radius:10px;background:#0c0c17;border-left:3px solid var(--violet);font-size:.7rem;line-height:1.4;color:#d7d6e0}.rule-item b{color:#fff}.diff-grid{display:grid;gap:8px;margin-top:12px}.diff-row{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid #303049;border-radius:10px;background:#0b0b16;font-size:.71rem}.diff-row strong{color:var(--ink)}.diff-row span{color:var(--muted);text-align:right}.comparison-panel{margin-top:12px;padding:11px;border:1px solid #34344e;border-radius:12px;background:#0a0a15}.comparison-summary{font-size:.75rem;font-weight:900;color:var(--ink)}.comparison-warning{margin-top:7px;padding:8px;border-left:3px solid var(--yellow);background:#ffe27a0d;color:#ddd7b0;font-size:.68rem;line-height:1.4}.comparison-band-grid{display:grid;gap:7px;margin-top:10px}.comparison-band-row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:9px;border:1px solid #292941;border-radius:10px;background:#0d0d19}.comparison-band-row strong{display:block;color:var(--ink);font-size:.72rem}.comparison-band-row small{display:block;margin-top:2px;color:var(--muted);font-size:.59rem}.comparison-band-row>b{align-self:center;color:var(--cyan);font-size:.68rem}.comparison-band-row p{grid-column:1/-1;margin:0;color:var(--muted);font-size:.62rem;line-height:1.35}.comparison-guidance{display:grid;gap:7px;margin-top:10px}@media(max-width:430px){.v12-actions{grid-template-columns:1fr}.v12-actions .secondary{width:100%}}
+    /* ABL-PLAY UI polish: visual-only. No analysis/runtime behavior changes. */
+    .hero{padding:17px}
+    .brand{min-width:0}
+    h1{font-size:1.28rem}
+    .eyebrow{letter-spacing:.15em}
+    .state{white-space:nowrap}
+    .setup{padding-top:18px}
+    .setup h2{font-size:1.18rem}
+    .setup p{max-width:58ch}
+    .main-btn{min-height:52px;font-size:.88rem;letter-spacing:.01em;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
+    .main-btn:not(:disabled):active,.secondary:not(:disabled):active,.tab:active{transform:translateY(1px)}
+    .main-btn:not(:disabled):hover{filter:brightness(1.04);box-shadow:0 11px 28px #73f3ff30}
+    .upload{min-height:52px;display:grid;place-items:center}
+    .scorebox{padding:12px 14px;border-color:#3a3a5b;background:linear-gradient(135deg,#0f0f1d,#121225)}
+    .scorebox b{font-size:.94rem}
+    .score-circle{width:56px;height:56px;font-size:1rem;box-shadow:0 0 22px #78f0b126}
+    .viz{height:220px;border-color:#343451;box-shadow:inset 0 1px #ffffff08}
+    .metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .metric{padding:10px}
+    .metric strong{font-size:.9rem}
+    .section{padding:16px;border-color:#33334f}
+    .section-head{font-size:.92rem}
+    .coach-copy{font-size:.82rem}
+    .advice-item{padding:11px}
+    .secondary{min-height:46px;transition:transform .14s ease,border-color .14s ease,background .14s ease}
+    .secondary:not(:disabled):hover{border-color:#555475;background:#1b1b2d}
+    .snapshot{padding:11px}
+    .badge{min-width:48px;text-align:center}
+    @media(max-width:430px){
+      .app{padding-left:12px;padding-right:12px}
+      header{margin-bottom:14px}
+      .mark{width:42px;height:42px}
+      .state{font-size:.64rem}
+      .hero{padding:14px}
+      .source-tabs,.view-tabs{gap:4px}
+      .tab{padding:11px 6px}
+      .controls{grid-template-columns:1fr}
+      .viz{height:195px}
+      .metrics{grid-template-columns:repeat(2,1fr)}
+      .score-circle{width:54px;height:54px}
+      .section{padding:14px}
+      .action-row{grid-template-columns:1fr}
+    }
   `;
   document.head.appendChild(style);
 }
@@ -174,7 +217,7 @@ function renderDiff(current, previous) {
     rows.innerHTML = '';
     return;
   }
-  score.textContent = diff.scoreDelta === null ? 'A/B ready' : `${diff.scoreDelta >= 0 ? '+' : ''}${diff.scoreDelta} health`;
+  score.textContent = diff.scoreDelta === null ? 'A/B ready' : `${diff.scoreDelta >= 0 ? '+' : ''}${diff.scoreDelta} balance`;
   summary.textContent = diff.summary;
   rows.innerHTML = diff.largestChanges.map(change => `
     <div class="diff-row"><strong>${change.name} ${change.delta > 0 ? '↑' : change.delta < 0 ? '↓' : '→'} ${Math.abs(change.delta).toFixed(1)}</strong><span>${change.guidance}</span></div>`).join('');
@@ -190,7 +233,7 @@ function renderRules(frame, stopped = false) {
   const score = Number(frame.result.weightedScore ?? frame.result.score ?? 0);
   const findings = AcelynnV12.buildRuleFindings({
     normalized: frame.result.normalized,
-    target: frame.result.p?.target,
+    target: globalThis.AcelynnBalanceTarget || frame.result.p?.target,
     perspective: frame.perspective,
     peakDb: frame.peakDb,
     rmsDb: frame.rmsDb,
@@ -205,7 +248,7 @@ function renderRules(frame, stopped = false) {
   if (label) label.textContent = `${stopped ? 'Last reading · ' : ''}${Math.round(score)}/100`;
   if (list) list.innerHTML = findings.map(item => `<div class="rule-item"><b>${item.title}</b> ${item.text}</div>`).join('');
   const healthMetric = document.querySelector('.scorebox small');
-  if (healthMetric) healthMetric.textContent = frame.perspective === 'room' ? 'Room health' : frame.perspective === 'detail' ? 'Detail health' : 'Mix health';
+  if (healthMetric) healthMetric.textContent = frame.perspective === 'room' ? 'Room balance' : frame.perspective === 'detail' ? 'Detail balance' : 'Balance score';
 }
 
 function renderRoomStatus(signature) {
@@ -261,13 +304,27 @@ async function clearRoomSignature() {
   renderRoomStatus(null);
 }
 
+
+const beginnerBandCopy={
+  sub:'Sub is the deepest low end: rumble, sub-bass, and the bottom of a kick. Too much can eat headroom; too little can make a mix feel small.',
+  bass:'Bass carries weight and punch: bass guitar or synth fundamentals and much of the kick body. Listen for masking between low-end instruments.',
+  mids:'Mids carry much of the musical body and identity: guitars, keys, snare body, and vocal fundamentals. Crowding here can make a mix feel boxed-in.',
+  presence:'Presence affects intelligibility and attack, especially vocals, guitars, snare, and pick detail. Extra energy can add clarity but may become harsh.',
+  air:'Air is the highest region: cymbal sheen, breath, hiss, and openness. Codec differences can affect this region, so Acelynn may suppress unreliable comparisons.'
+};
+function installBeginnerExplainers(){
+ document.querySelectorAll('[data-band-help]').forEach(button=>button.addEventListener('click',()=>{
+   const box=byId('bandHelpText'),key=button.dataset.bandHelp;if(!box)return;box.textContent=beginnerBandCopy[key]||'';box.classList.remove('hidden');
+ }));
+ byId('balanceHelpButton')?.addEventListener('click',()=>byId('balanceHelpText')?.classList.toggle('hidden'));
+}
+
 async function initializeEnhancements() {
   if (!byId('captureButton')) return;
   injectStyles();
-  createRoomCard();
   createRuleMeter();
-  createDiffCard();
   installSignalValidityGuard();
+  installBeginnerExplainers();
 
   byId('roomSignatureButton')?.addEventListener('click', captureRoomSignature);
   byId('roomSignatureClearButton')?.addEventListener('click', clearRoomSignature);

@@ -4,6 +4,7 @@ import { STORES, openDatabase, resetDatabaseConnectionForTests } from '../js/db.
 import { clear, read } from '../js/storage.js';
 import { getLegacyBackupStatus } from '../js/migration.js';
 import {
+  analyzeDecodedStereo,
   clearActiveRoomSignature,
   clearSourceFile,
   getActiveRoomSignature,
@@ -35,6 +36,18 @@ beforeEach(async () => {
 });
 
 describe('Acelynn v1.2 runtime persistence', () => {
+
+  it('derives mono evidence only from genuine decoded stereo channels', () => {
+    const left=Float32Array.from({length:4096},(_,i)=>Math.sin(i*.07));
+    const stereo={numberOfChannels:2,getChannelData:i=>i===0?left:Float32Array.from(left,x=>-x)};
+    const result=analyzeDecodedStereo(stereo);
+    expect(result.channelCount).toBe(2);
+    expect(result.monoCompatibility).toMatchObject({available:true,risk:'high'});
+    expect(result.monoCompatibility.correlation).toBeCloseTo(-1,5);
+    const mono=analyzeDecodedStereo({numberOfChannels:1,getChannelData:()=>left});
+    expect(mono).toMatchObject({channelCount:1,monoCompatibility:{available:false}});
+  });
+
   it('persists a structured enriched 32-bin analysis record without audio bytes', async () => {
     const before = Date.now();
     const result = await persistAnalysis({
@@ -55,22 +68,22 @@ describe('Acelynn v1.2 runtime persistence', () => {
     });
     expect(result.saved).toBe(true);
     const record = result.record;
-    expect(record.analysisTimestamp).toBeGreaterThanOrEqual(before);
-    expect(record.createdAt).toBeGreaterThanOrEqual(record.analysisTimestamp);
-    expect(record.spectralDefinition).toBe('log32-slope-v1');
+    expect(record.timestamp).toBeGreaterThanOrEqual(before);
     expect(record.spectralFeatures.coarseBins).toHaveLength(32);
     expect(record.spectralFeatures.normalizedCoarseSpectrum).toHaveLength(32);
-    expect(record.mixHealth).toEqual({ raw: 82, perspectiveWeighted: 84, targetProfileMatch: 82 });
+    expect(record.balance.score).toBe(84);
+    expect(record.bandUnit).toBe('legacy-byte-energy');
     expect(record.levels).toEqual({ peakDbfs: -2.5, rmsDbfs: -12.5, crestDb: 10 });
     expect(record.coachingFindings[0].title).toBe('Check mids.');
     expect(record.referenceDeltas[0]).toMatchObject({ name: 'Mids', delta: 4.2, direction: 'up' });
     expect(record.roomSignatureId).toBeNull();
     expect(record.roomConfidence).toBeNull();
-    expect(record.fileHash).toBeNull();
-    expect(record.sourceMetadata).toEqual({});
+    expect(record.sourceFileHash).toBeNull();
+    expect(record.sourceMetadata).toEqual({ name: null, type: null, size: null });
     expect(JSON.stringify(record)).not.toContain('audioBytes');
     expect(JSON.stringify(record)).not.toContain('pcm');
     expect(await read.all(STORES.VERSIONS)).toHaveLength(1);
+    expect(await read.all(STORES.ANALYSES)).toHaveLength(1);
   });
 
   it('stores a local room signature, resolves it as active, and can deactivate it without deleting history', async () => {
@@ -137,16 +150,21 @@ describe('Acelynn v1.2 runtime persistence', () => {
       focus: 'Bass',
       bandValues: [30, 70, 55, 40, 20],
       sourceType: 'file',
-      perspective: 'mix'
+      perspective: 'mix',
+      channelCount: 2,
+      monoCompatibility: {available:true,correlation:0.82,sideToMonoDb:-7,risk:'low',message:'Stereo channels are cooperating well in this sample.'}
     };
     const first = await persistAnalysis(payload);
     const second = await persistAnalysis(payload);
     expect(first.saved).toBe(true);
-    expect(first.record.fileHash).toBe(hash);
+    expect(first.record.sourceFileHash).toBe(hash);
     expect(first.record.sourceMetadata).toMatchObject({ name: 'mix.wav', type: 'audio/wav', size: 5 });
+    expect(first.record.channelCount).toBe(2);
+    expect(first.record.monoCompatibility).toMatchObject({available:true,correlation:0.82,risk:'low'});
     expect(second.saved).toBe(false);
     expect(second.duplicate).toBe(true);
     expect(await read.all(STORES.VERSIONS)).toHaveLength(1);
+    expect(await read.all(STORES.ANALYSES)).toHaveLength(1);
   });
 
   it('imports legacy snapshots once and removes the verified backup only on a later clean launch', async () => {
